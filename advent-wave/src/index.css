@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+:root {
+  --aw-primary: #6d5df6;
+  --aw-primary-hover: #5a4ae8;
+  --aw-gold: #c9a227;
+  --aw-gold-soft: #f5f0d8;
+  --aw-bg: #f7f7f9;
+  --aw-surface: #ffffff;
+  --aw-surface-elevated: #f0f0f4;
+  --aw-sidebar-bg: #ffffff;
+  --aw-nav-bg: rgba(255, 255, 255, 0.92);
+  --aw-player-bg: #ffffff;
+  --aw-text: #2d2a35;
+  --aw-muted: #6b6578;
+  --aw-border: #e8e7ed;
+  --aw-sidebar-w: 16rem;
+  --aw-shadow-card:
+    0 4px 6px -1px rgba(109, 93, 246, 0.06),
+    0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --aw-shadow-hover:
+    0 12px 24px -8px rgba(109, 93, 246, 0.12),
+    0 4px 8px -4px rgba(0, 0, 0, 0.06);
+  color-scheme: light;
+}
+
+.dark {
+  --aw-bg: #121118;
+  --aw-surface: #1a1824;
+  --aw-surface-elevated: #232030;
+  --aw-sidebar-bg: #16151f;
+  --aw-nav-bg: rgba(22, 21, 31, 0.92);
+  --aw-player-bg: #16151f;
+  --aw-text: #eceaf2;
+  --aw-muted: #9b95ad;
+  --aw-border: #2e2c3a;
+  --aw-gold-soft: #3d3520;
+  --aw-shadow-card:
+    0 4px 6px -1px rgba(0, 0, 0, 0.35),
+    0 2px 4px -2px rgba(0, 0, 0, 0.25);
+  --aw-shadow-hover:
+    0 12px 24px -8px rgba(0, 0, 0, 0.45),
+    0 4px 8px -4px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  font-family:
+    'DM Sans',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  background: var(--aw-bg);
+  color: var(--aw-text);
+}
+
+#root {
+  min-height: 100svh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--aw-primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(109, 93, 246, 0.25);
+}
+
+@keyframes aw-splash-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.95;
+  }
+}
+
+@keyframes aw-splash-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.aw-splash-logo {
+  animation: aw-splash-breathe 2s ease-in-out infinite;
+}
+
+.aw-splash-dot {
+  animation: aw-splash-dot 0.9s ease-in-out infinite;
+}
+
+.aw-splash-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.aw-splash-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes aw-like-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.aw-like-btn:active .aw-like-icon {
+  animation: aw-like-pop 0.38s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+/* Route content: smooth enter when pathname changes */
+@keyframes aw-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.aw-page-enter {
+  animation: aw-page-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Main transport play/pause: subtle pop on state change */
+@keyframes aw-play-toggle {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.aw-play-icon-swap {
+  animation: aw-play-toggle 0.38s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+/* Shared card lift */
+.aw-card-lift {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease;
+}
+
+.aw-card-lift:hover {
+  transform: scale(1.025);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aw-page-enter {
+    animation: none;
+  }
+
+  .aw-play-icon-swap {
+    animation: none;
+  }
+
+  .aw-card-lift:hover {
+    transform: none;
+  }
+}

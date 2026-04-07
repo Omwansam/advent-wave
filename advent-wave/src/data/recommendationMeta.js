@@ -1,0 +1,41 @@
+/** Mock tagging for frontend recommendations (not ML). */
+export const DEFAULT_SONG_META = {
+  genre: 'worship',
+  language: 'en',
+  region: 'global',
+  popularity: 60,
+}
+
+/** @type {Record<string, { genre: string; language: string; region: string; popularity: number }>} */
+export const recommendationMetaById = {
+  s1: { genre: 'worship', language: 'en', region: 'global', popularity: 86 },
+  s2: { genre: 'choir', language: 'en', region: 'global', popularity: 88 },
+  s3: { genre: 'worship', language: 'en', region: 'global', popularity: 84 },
+  s4: { genre: 'worship', language: 'en', region: 'global', popularity: 79 },
+  s5: { genre: 'choir', language: 'en', region: 'global', popularity: 92 },
+  s6: { genre: 'worship', language: 'en', region: 'global', popularity: 81 },
+  s7: { genre: 'youth', language: 'en', region: 'global', popularity: 87 },
+  s8: { genre: 'acoustic', language: 'en', region: 'global', popularity: 83 },
+  s9: { genre: 'instrumental', language: 'en', region: 'global', popularity: 76 },
+  s10: { genre: 'worship', language: 'en', region: 'global', popularity: 80 },
+  s11: { genre: 'choir', language: 'en', region: 'global', popularity: 85 },
+  s12: { genre: 'youth', language: 'en', region: 'global', popularity: 82 },
+  s13: { genre: 'gospel_swahili', language: 'sw', region: 'kenya', popularity: 90 },
+  s14: { genre: 'gospel_swahili', language: 'sw', region: 'kenya', popularity: 89 },
+  s15: { genre: 'choir', language: 'mixed', region: 'kenya', popularity: 94 },
+  s16: { genre: 'camp_meeting', language: 'mixed', region: 'kenya', popularity: 91 },
+  s17: { genre: 'youth', language: 'sw', region: 'kenya', popularity: 86 },
+  s18: { genre: 'worship', language: 'mixed', region: 'kenya', popularity: 88 },
+  s19: { genre: 'choir', language: 'en', region: 'kenya', popularity: 84 },
+  s20: { genre: 'worship', language: 'en', region: 'kenya', popularity: 83 },
+  s21: { genre: 'choir', language: 'mixed', region: 'kenya', popularity: 85 },
+  s22: { genre: 'youth', language: 'en', region: 'kenya', popularity: 87 },
+  s23: { genre: 'worship', language: 'en', region: 'kenya', popularity: 81 },
+  s24: { genre: 'choir', language: 'en', region: 'kenya', popularity: 82 },
+  s25: { genre: 'gospel_swahili', language: 'mixed', region: 'kenya', popularity: 86 },
+  s26: { genre: 'worship', language: 'en', region: 'kenya', popularity: 84 },
+  s27: { genre: 'camp_meeting', language: 'mixed', region: 'kenya', popularity: 78 },
+  s28: { genre: 'youth', language: 'sw', region: 'kenya', popularity: 88 },
+  s29: { genre: 'worship', language: 'mixed', region: 'kenya', popularity: 80 },
+  s30: { genre: 'choir', language: 'mixed', region: 'kenya', popularity: 93 },
+}
