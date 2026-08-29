@@ -5,3 +5,6 @@ target/
 .idea/
 *.iml
 .vscode/
+
+# Local, uncommitted credential overrides (config/application-local.yml)
+config/

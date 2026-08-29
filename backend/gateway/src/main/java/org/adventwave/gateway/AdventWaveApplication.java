@@ -13,8 +13,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EntityScan(
     basePackages = {"org.adventwave"}
 )
+// CatalogRepositories and PlatformRepositories are holder classes whose repository
+// interfaces are nested inside them. Spring Data's scanner skips nested interfaces by
+// default, so without considerNestedRepositories the context fails with "required a bean
+// of type ...CatalogRepositories$MediaItemRepository that could not be found".
 @EnableJpaRepositories(
-    basePackages = {"org.adventwave"}
+    basePackages = {"org.adventwave"},
+    considerNestedRepositories = true
 )
 @ConfigurationPropertiesScan(
     basePackages = {"org.adventwave"}
