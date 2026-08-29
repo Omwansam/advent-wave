@@ -5,6 +5,3 @@ target/
 .idea/
 *.iml
 .vscode/
-
-# Local configuration and secrets. .env.example is the committed template.
-.env

@@ -20,9 +20,19 @@ For a machine that cannot run containers. Postgres is installed natively; Redis 
 
 ```bash
 cd backend
-cp .env.example .env             # then edit ADVENTWAVE_DB_URL if your port is not 5433
-./tools/setup-local-db.sh        # one time: creates the adventwave role and database
-./run-local.sh                   # sources .env, pins JDK 21, boots the gateway
+export JAVA_HOME=~/.jdks/temurin-21   # the build needs JDK 21; check with java -version
+./tools/setup-local-db.sh             # one time: creates the adventwave role and database
+./mvnw -q -DskipTests install
+./mvnw spring-boot:run -pl gateway -Dspring-boot.run.profiles=local
+```
+
+The `local` profile lives in `gateway/src/main/resources/application-local.yml` and does one
+thing: point the datasource at port 5433 instead of the 5434 default. Edit it if your cluster
+is elsewhere, or override without touching a file:
+
+```bash
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/adventwave \
+  ./mvnw spring-boot:run -pl gateway
 ```
 
 `setup-local-db.sh` is the one-time equivalent of the `POSTGRES_*` variables in
@@ -34,8 +44,8 @@ is often 5433 rather than 5432, and `application.yml` defaults to 5434 because t
 Redis is optional either way. It is a cache and a write buffer, never a source of truth:
 every call site catches its own failure and falls through to Postgres. Without it the app is
 correct and slightly slower, `/actuator/health` reports DOWN, and `PlayerStateService` logs
-one warning per 30-second flush tick. Uncomment `MANAGEMENT_HEALTH_REDIS_ENABLED=false` in
-`.env` to quiet the health check, or install it natively with
+one warning per 30-second flush tick. Set `management.health.redis.enabled: false` in the
+`local` profile to quiet the health check, or install it natively with
 `sudo apt install redis-server` — no container needed.
 
 Note the two Maven steps. `spring-boot:run -pl gateway -am` does **not** work: `-am` puts the
@@ -143,10 +153,13 @@ drift apart.
 ## Configuration
 
 Everything below is overridable by environment variable; see `gateway/src/main/resources/application.yml`.
-There is no `.env` support in Spring Boot itself — `backend/.env` is read by `run-local.sh`,
-which exports each line before starting the JVM, and an exported variable always beats the
-default baked into `application.yml`. `.env` is git-ignored; `.env.example` is the committed
-template. On a server, set these as real environment variables and skip the file.
+Standard Spring Boot externalized configuration applies, highest precedence first: command-line
+arguments, then environment variables, then a `application-{profile}.yml`, then the defaults
+baked into `application.yml`. Every property is also settable by its relaxed-binding name
+regardless of the aliases below — `spring.datasource.url` as `SPRING_DATASOURCE_URL`, and so on.
+
+For local work, put overrides in `application-local.yml` and run with
+`-Dspring-boot.run.profiles=local`. On a server, set them as real environment variables.
 
 | Variable | Default | Notes |
 | --- | --- | --- |

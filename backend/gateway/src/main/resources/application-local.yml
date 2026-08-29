@@ -1,0 +1,12 @@
+# Local development profile. Activate with:
+#
+#   ./mvnw spring-boot:run -pl gateway -Dspring-boot.run.profiles=local
+#
+# or by exporting SPRING_PROFILES_ACTIVE=local. Spring merges this on top of
+# application.yml, so only the values that differ from the defaults belong here.
+spring:
+  datasource:
+    # application.yml defaults to 5434, which is the port docker-compose publishes.
+    # A natively installed Debian cluster (16/main) usually listens on 5433 instead;
+    # check yours with `pg_lsclusters`.
+    url: jdbc:postgresql://localhost:5433/adventwave

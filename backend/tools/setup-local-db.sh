@@ -44,5 +44,6 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 SQL
 
 echo
-echo "done. Put this in backend/.env:"
-echo "  ADVENTWAVE_DB_URL=jdbc:postgresql://localhost:$PORT/$DB"
+echo "done. The 'local' Spring profile expects port 5433; if yours differs, edit"
+echo "gateway/src/main/resources/application-local.yml or override at run time:"
+echo "  SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:$PORT/$DB"
