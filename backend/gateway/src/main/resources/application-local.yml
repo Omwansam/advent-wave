@@ -10,3 +10,12 @@ spring:
     # A natively installed Debian cluster (16/main) usually listens on 5433 instead;
     # check yours with `pg_lsclusters`.
     url: jdbc:postgresql://localhost:5433/adventwave
+
+management:
+  health:
+    redis:
+      # Redis is a cache and a write buffer here, never a source of truth: every call site
+      # catches its own failure and falls through to Postgres. Running without it is a
+      # supported local setup, so its absence must not make /actuator/health return 503 —
+      # a DOWN aggregate reads as "the backend is broken" when nothing is.
+      enabled: false
