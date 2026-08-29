@@ -1,0 +1,46 @@
+name: adventwave
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: adventwave-postgres
+    environment:
+      POSTGRES_DB: adventwave
+      POSTGRES_USER: adventwave
+      POSTGRES_PASSWORD: adventwave
+    ports:
+      # 5434 on the host: 5432 and 5433 are commonly already taken by local Postgres instances,
+      # and having AdventWave quietly attach to whichever one answers is worse than an odd port.
+      - "${ADVENTWAVE_DB_PORT:-5434}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # logical replication is what Debezium needs in weeks 1-2 (plan §4, workstream C).
+    # Turning it on now means C's connector does not require a restart of a database
+    # that already has data in it.
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_replication_slots=4
+      - -c
+      - max_wal_senders=4
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adventwave -d adventwave"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: adventwave-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

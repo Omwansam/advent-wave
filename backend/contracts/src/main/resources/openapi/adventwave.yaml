@@ -1,0 +1,815 @@
+openapi: 3.1.0
+
+info:
+  title: AdventWave API
+  version: 1.0.0
+  description: |
+    The public surface, derived from the 16 pages of the React client (plan §1 day 4).
+
+    Two rules that are not obvious from the paths:
+
+    * `/v1/media/{id}/stream` returns a manifest containing **one** short-lived signed URL, for
+      the profile resolved from the listener's quality setting. It never returns a durable link,
+      and it does not mint a URL per profile — that would be four times the leak surface for a
+      single playback. The catalogue is church-licensed content.
+    * `POST /v1/events/playback` accepts what a client observed, not what it concluded.
+      `counted`, `duration_ms` and `private` are computed server-side. Play counts are reported
+      back to contributing churches, so they are not a client-controlled number.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://api.adventwave.app
+    description: Production
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: auth
+  - name: home
+  - name: catalog
+  - name: search
+  - name: library
+  - name: playback
+  - name: settings
+
+paths:
+  /v1/auth/session:
+    post:
+      tags: [auth]
+      summary: Issue a development token
+      description: |
+        Present only while `adventwave.auth.dev-issuer` is enabled. It verifies no credential and
+        exists so the client can build a real token-bearing flow before the managed IdP is chosen.
+        Deleted when the IdP lands.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+                name: { type: string }
+      responses:
+        "200":
+          description: A signed JWT and the provisioned user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  tokenType: { type: string, examples: [Bearer] }
+                  expiresIn: { type: integer, description: seconds }
+                  user: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /v1/me:
+    get:
+      tags: [auth]
+      summary: The authenticated listener
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/settings:
+    get:
+      tags: [settings]
+      summary: Read playback and interface preferences
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserSettings" }
+    put:
+      tags: [settings]
+      summary: Replace playback and interface preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserSettings" }
+      responses:
+        "200":
+          description: The stored settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserSettings" }
+
+  /v1/home:
+    get:
+      tags: [home]
+      summary: The assembled home page
+      parameters:
+        - name: tz
+          in: query
+          required: false
+          schema: { type: string, examples: ["Africa/Nairobi"] }
+          description: IANA zone, so the greeting matches the listener's clock. Defaults to UTC.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Home" }
+
+  /v1/discover:
+    get:
+      tags: [catalog]
+      summary: Discover categories and their tracks
+      parameters:
+        - name: cat
+          in: query
+          required: false
+          schema: { type: string, examples: [kenya] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items: { $ref: "#/components/schemas/DiscoverCategory" }
+                  tracks:
+                    type: array
+                    items: { $ref: "#/components/schemas/Track" }
+
+  /v1/browse:
+    get:
+      tags: [catalog]
+      summary: The published catalogue, grouped by media type
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  songs: { type: array, items: { $ref: "#/components/schemas/Track" } }
+                  sermons: { type: array, items: { $ref: "#/components/schemas/Track" } }
+                  podcasts: { type: array, items: { $ref: "#/components/schemas/Track" } }
+                  categories:
+                    type: array
+                    items: { $ref: "#/components/schemas/DiscoverCategory" }
+
+  /v1/search:
+    get:
+      tags: [search]
+      summary: Ranked search across the catalogue
+      description: |
+        Mirrors `searchCatalogFull()` field for field. Queries naming Kenyan places, choirs or
+        Swahili boost Kenyan content — the primary market, and over half the song catalogue.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchResults" }
+
+  /v1/media/{id}:
+    get:
+      tags: [catalog]
+      summary: One catalogue item
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Track" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/media/{id}/stream:
+    get:
+      tags: [playback]
+      summary: Playback manifest with one signed URL
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StreamManifest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/media/{id}/stream/{profile}:
+    get:
+      tags: [playback]
+      summary: Redeem a signed playback URL
+      description: |
+        Authenticated by signature rather than by bearer token, because a browser `<audio>`
+        element cannot send an Authorization header. The query string carries an HMAC over media
+        id, profile, listener and expiry; anything that fails verification is refused.
+      security: []
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+        - name: profile
+          in: path
+          required: true
+          schema: { type: string, examples: [aac_160, auto] }
+        - name: exp
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: uid
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+        - name: sig
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "302":
+          description: Redirect to the audio
+          headers:
+            Location: { schema: { type: string } }
+        "403":
+          description: Invalid or expired playback URL
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/artists/{id}:
+    get:
+      tags: [catalog]
+      summary: An artist and their catalogue
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Artist" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/albums/{id}:
+    get:
+      tags: [catalog]
+      summary: An album and its tracks
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Album" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/playlists:
+    post:
+      tags: [library]
+      summary: Create a playlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                cover: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Playlist" }
+
+  /v1/playlists/{id}:
+    get:
+      tags: [library]
+      summary: A playlist with its tracks resolved
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Playlist" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [library]
+      summary: Rename or redescribe a playlist
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Playlist" }
+    delete:
+      tags: [library]
+      summary: Delete a playlist
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "204": { description: Deleted }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/playlists/{id}/items:
+    put:
+      tags: [library]
+      summary: Append tracks to a playlist
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mediaItemIds]
+              properties:
+                mediaItemIds:
+                  type: array
+                  items: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The updated playlist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Playlist" }
+
+  /v1/playlists/{id}/items/{mediaItemId}:
+    delete:
+      tags: [library]
+      summary: Remove a track from a playlist
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+        - name: mediaItemId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The updated playlist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Playlist" }
+
+  /v1/library:
+    get:
+      tags: [library]
+      summary: Everything the client's library store persists
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Library" }
+
+  /v1/library/likes/{mediaItemId}:
+    put:
+      tags: [library]
+      summary: Toggle a like
+      description: |
+        The shelf follows the item's media type: sermons go to saved sermons, songs and podcast
+        episodes to liked songs.
+      parameters:
+        - name: mediaItemId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The resulting state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  liked: { type: boolean }
+
+  /v1/library/follows/artist/{artistId}:
+    put:
+      tags: [library]
+      summary: Toggle following an artist
+      parameters:
+        - name: artistId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The resulting state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  following: { type: boolean }
+
+  /v1/library/follows/playlist/{playlistId}:
+    put:
+      tags: [library]
+      summary: Toggle following a playlist
+      parameters:
+        - name: playlistId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The resulting state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  following: { type: boolean }
+
+  /v1/history:
+    get:
+      tags: [library]
+      summary: Listening history, newest first, capped at 100
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        ts: { type: integer, format: int64, description: epoch milliseconds }
+                  tracks:
+                    type: array
+                    items: { $ref: "#/components/schemas/Track" }
+    delete:
+      tags: [library]
+      summary: Clear listening history
+      responses:
+        "204": { description: Cleared }
+
+  /v1/recommendations:
+    get:
+      tags: [library]
+      summary: Recommendations for the listener
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Recommendations" }
+
+  /v1/player-state:
+    get:
+      tags: [playback]
+      summary: Resume state for this listener
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlayerState" }
+    put:
+      tags: [playback]
+      summary: Save resume state
+      description: |
+        Buffered in Redis and flushed to Postgres every 30 seconds. Safe to call every few
+        seconds; the documented worst case on cache loss is 30 seconds of playback position.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PlayerState" }
+      responses:
+        "200":
+          description: The stored state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlayerState" }
+
+  /v1/events/playback:
+    post:
+      tags: [playback]
+      summary: Report a playback event
+      description: Rate limited per listener. Returns the server-authoritative event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mediaItemId, eventType]
+              properties:
+                eventId: { type: string, description: idempotency key; minted server-side if absent }
+                mediaItemId: { type: string, format: uuid }
+                sessionId: { type: string, format: uuid }
+                eventType:
+                  type: string
+                  enum: [play_started, play_progress, play_completed, skipped]
+                msPlayed: { type: integer, minimum: 0 }
+                device: { type: string, enum: [web, ios, android] }
+                clientTs: { type: string, format: date-time }
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlaybackEvent" }
+        "429":
+          description: Too many events
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        status: { type: integer }
+        error: { type: string }
+        message: { type: string }
+        timestamp: { type: string, format: date-time }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        name: { type: string }
+        region: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    UserSettings:
+      type: object
+      properties:
+        theme: { type: string, enum: [light, dark] }
+        privateSession:
+          type: boolean
+          description: |
+            When on, playback events are flagged private and reach neither listening history nor
+            recommendation features.
+        normalizeAudio: { type: boolean }
+        crossfadeEnabled: { type: boolean }
+        crossfadeSec: { type: integer, minimum: 0, maximum: 12 }
+        sidebarCollapsed: { type: boolean }
+        friendActivityCollapsed: { type: boolean }
+        audioQuality: { type: string, enum: [data_saver, normal, high, very_high] }
+
+    Track:
+      type: object
+      description: |
+        The first seven properties reproduce the shape the React client consumes today, so pages
+        can migrate one at a time. `duration` is in seconds for that reason; `durationMs` is
+        canonical.
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        artist: { type: string }
+        album: { type: string }
+        duration: { type: integer, description: seconds }
+        cover: { type: string }
+        audioUrl: { type: string, description: the stream manifest endpoint, not a media URL }
+        mediaType: { type: string, enum: [song, sermon, podcast] }
+        artistId: { type: string, format: uuid }
+        albumId: { type: string, format: uuid }
+        durationMs: { type: integer }
+        genre: { type: string }
+        language: { type: string }
+        region: { type: string }
+        popularity: { type: integer, minimum: 0, maximum: 100 }
+        legacyId: { type: string, description: mockData.js id; present only for seed content }
+
+    Artist:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        cover: { type: string }
+        verified: { type: boolean }
+        songIds: { type: array, items: { type: string, format: uuid } }
+        tracks: { type: array, items: { $ref: "#/components/schemas/Track" } }
+
+    Album:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        artist: { type: string }
+        artistId: { type: string, format: uuid }
+        cover: { type: string }
+        songIds: { type: array, items: { type: string, format: uuid } }
+        tracks: { type: array, items: { $ref: "#/components/schemas/Track" } }
+
+    Playlist:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        cover: { type: string }
+        songIds: { type: array, items: { type: string, format: uuid } }
+        songs:
+          type: array
+          description: Present on resolve paths only.
+          items: { $ref: "#/components/schemas/Track" }
+        isCurated: { type: boolean }
+        ownerId: { type: string, format: uuid }
+        legacyId: { type: string }
+
+    DiscoverCategory:
+      type: object
+      properties:
+        id: { type: string }
+        label: { type: string }
+        gradient: { type: string }
+        cover: { type: string }
+        sortOrder: { type: integer }
+
+    SearchResults:
+      type: object
+      properties:
+        songs: { type: array, items: { $ref: "#/components/schemas/Track" } }
+        sermons: { type: array, items: { $ref: "#/components/schemas/Track" } }
+        podcasts: { type: array, items: { $ref: "#/components/schemas/Track" } }
+        artists: { type: array, items: { $ref: "#/components/schemas/Artist" } }
+        albums: { type: array, items: { $ref: "#/components/schemas/Album" } }
+        playlists: { type: array, items: { $ref: "#/components/schemas/Playlist" } }
+        topResult:
+          type: object
+          nullable: true
+          properties:
+            type: { type: string, enum: [song, sermon, podcast, artist, album, playlist] }
+            item: { type: object }
+            score: { type: integer }
+
+    Recommendations:
+      type: object
+      properties:
+        recommendedSongs: { type: array, items: { $ref: "#/components/schemas/Track" } }
+        recommendedPlaylists: { type: array, items: { $ref: "#/components/schemas/Playlist" } }
+        becauseYouListened:
+          type: object
+          nullable: true
+          properties:
+            artistName: { type: string }
+            songs: { type: array, items: { $ref: "#/components/schemas/Track" } }
+        trendingInRegion:
+          type: object
+          properties:
+            label: { type: string }
+            region: { type: string }
+            songs: { type: array, items: { $ref: "#/components/schemas/Track" } }
+
+    Library:
+      type: object
+      properties:
+        likedSongIds: { type: array, items: { type: string, format: uuid } }
+        savedSermonIds: { type: array, items: { type: string, format: uuid } }
+        userPlaylists: { type: array, items: { $ref: "#/components/schemas/Playlist" } }
+        followedArtistNames:
+          type: array
+          description: Kept while the client keys follows by name; drop after the migration.
+          items: { type: string }
+        followedArtistIds: { type: array, items: { type: string, format: uuid } }
+        followedPlaylistIds: { type: array, items: { type: string, format: uuid } }
+        recentHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              ts: { type: integer, format: int64 }
+        recentTrackIds: { type: array, items: { type: string, format: uuid } }
+
+    PlayerState:
+      type: object
+      properties:
+        currentSongId: { type: string, format: uuid, nullable: true }
+        queue:
+          type: array
+          description: Media item ids, never denormalised track objects.
+          items: { type: string, format: uuid }
+        orderedQueue:
+          type: array
+          nullable: true
+          description: Pre-shuffle order, so turning shuffle off restores it.
+          items: { type: string, format: uuid }
+        currentIndex: { type: integer, minimum: 0 }
+        positionMs: { type: integer, minimum: 0 }
+        volume: { type: number, minimum: 0, maximum: 1 }
+        shuffle: { type: boolean }
+        repeat: { type: string, enum: [off, all, one] }
+        tracks:
+          type: array
+          description: Read-side hydration of `queue`. Ignored on write.
+          items: { $ref: "#/components/schemas/Track" }
+        updatedAt: { type: string, format: date-time }
+
+    StreamManifest:
+      type: object
+      properties:
+        mediaItemId: { type: string, format: uuid }
+        durationMs: { type: integer }
+        loudnessLufs: { type: number, nullable: true }
+        targetLufs: { type: number, examples: [-14.0] }
+        gainDb:
+          type: number
+          nullable: true
+          description: targetLufs - loudnessLufs. The client applies it when normalizeAudio is on.
+        waveformUrl: { type: string, nullable: true }
+        selectedProfile: { type: string }
+        audioUrl: { type: string, description: signed, short-lived, for selectedProfile only }
+        expiresAtEpochSeconds: { type: integer, format: int64 }
+        profiles:
+          type: array
+          items:
+            type: object
+            properties:
+              profile: { type: string }
+              bitrateKbps: { type: integer }
+              byteSize: { type: integer, format: int64 }
+              codec: { type: string }
+
+    PlaybackEvent:
+      type: object
+      description: The server-authoritative event, as published to playback.events.v1.
+      properties:
+        event_id: { type: string }
+        user_id: { type: string, format: uuid }
+        media_item_id: { type: string, format: uuid }
+        media_type: { type: string, enum: [song, sermon, podcast] }
+        session_id: { type: string, format: uuid, nullable: true }
+        event_type: { type: string, enum: [play_started, play_progress, play_completed, skipped] }
+        ms_played: { type: integer }
+        duration_ms: { type: integer }
+        counted:
+          type: boolean
+          description: ms_played >= 30000 OR ms_played >= duration_ms * 0.5. Server-computed.
+        private:
+          type: boolean
+          description: Read from stored settings, never from the request. Consumers MUST honour it.
+        device: { type: string }
+        client_ts: { type: string, format: date-time }
+        server_ts: { type: string, format: date-time }
+
+    Home:
+      type: object
+      properties:
+        greetingPeriod: { type: string, enum: [morning, afternoon, evening] }
+        recentlyPlayed: { type: array, items: { $ref: "#/components/schemas/Track" } }
+        trendingNow: { type: array, items: { $ref: "#/components/schemas/Track" } }
+        sabbathWorship: { type: array, items: { $ref: "#/components/schemas/Playlist" } }
+        sermons: { type: array, items: { $ref: "#/components/schemas/Track" } }
+        recommendations: { $ref: "#/components/schemas/Recommendations" }

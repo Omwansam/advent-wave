@@ -1,0 +1,86 @@
+spring:
+  application:
+    name: adventwave-gateway
+
+  datasource:
+    # Port 5434 matches docker-compose.yml, chosen to avoid locally installed Postgres instances.
+    url: ${ADVENTWAVE_DB_URL:jdbc:postgresql://localhost:5434/adventwave}
+    username: ${ADVENTWAVE_DB_USER:adventwave}
+    password: ${ADVENTWAVE_DB_PASSWORD:adventwave}
+    hikari:
+      # The home page fans out ~5 concurrent queries per request on virtual threads. Virtual
+      # threads are cheap; connections are not, so the pool is the real concurrency limit and is
+      # sized deliberately rather than left at the default.
+      maximum-pool-size: 20
+      minimum-idle: 5
+
+  jpa:
+    open-in-view: false          # a lazy load in a serialiser is a bug, not a convenience
+    hibernate:
+      ddl-auto: validate         # Flyway owns the schema; Hibernate only checks it agrees
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  data:
+    redis:
+      host: ${ADVENTWAVE_REDIS_HOST:localhost}
+      port: ${ADVENTWAVE_REDIS_PORT:6379}
+      timeout: 2s
+
+  threads:
+    virtual:
+      enabled: true
+
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never       # error bodies come from ApiExceptionHandler, uniformly
+
+adventwave:
+  cors:
+    # The Vite dev server. Production origins are supplied by configuration, never hardcoded.
+    allowed-origins: ${ADVENTWAVE_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+
+  auth:
+    # Local token issuance, for use only until the managed IdP is chosen. Setting
+    # spring.security.oauth2.resourceserver.jwt.issuer-uri disables both this endpoint and the
+    # dev decoder.
+    dev-issuer: ${ADVENTWAVE_DEV_ISSUER:true}
+    dev-secret: ${ADVENTWAVE_DEV_SECRET:dev-only-secret-at-least-32-bytes-long-change-me}
+
+  catalog:
+    api-base-url: ${ADVENTWAVE_API_BASE_URL:http://localhost:8080}
+    signed-url-ttl: 5m
+    target-lufs: -14.0
+    signing-secret: ${ADVENTWAVE_SIGNING_SECRET:dev-only-playback-signing-secret-change-me}
+
+  player:
+    flush-interval-ms: 30000     # the documented bound on player-position loss
+
+  events:
+    playback-per-minute: 240     # ~1 progress event every 250ms per listener before limiting
+
+logging:
+  level:
+    org.adventwave: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
