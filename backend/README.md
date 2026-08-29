@@ -20,7 +20,6 @@ For a machine that cannot run containers. Postgres is installed natively; Redis 
 
 ```bash
 cd backend
-export JAVA_HOME=~/.jdks/temurin-21   # the build needs JDK 21; check with java -version
 ./tools/setup-local-db.sh             # one time: creates the adventwave role and database
 ./mvnw -q -DskipTests install
 ./mvnw spring-boot:run -pl gateway -Dspring-boot.run.profiles=local
@@ -65,7 +64,20 @@ curl -s localhost:8080/v1/home -H "Authorization: Bearer $TOKEN" | jq
 curl -s 'localhost:8080/v1/search?q=nairobi' -H "Authorization: Bearer $TOKEN" | jq
 ```
 
-If `JAVA_HOME` is not already a JDK 21: `export JAVA_HOME=~/.jdks/temurin-21`.
+### The JDK, once per machine
+
+Nothing above sets `JAVA_HOME`, and it does not need to be a JDK 21 — Maven can run on
+whatever `java` is first on your `PATH`. The root pom registers `maven-toolchains-plugin`,
+which locates a real JDK 21 through `~/.m2/toolchains.xml` and hands it to the compiler,
+to Surefire, and to the JVM `spring-boot:run` forks. Write that file once:
+
+```bash
+./mvnw -N toolchains:generate-jdk-toolchains-xml -Dtoolchain.file=$HOME/.m2/toolchains.xml
+```
+
+It scans the usual install locations and records every JDK it finds. If no JDK 21 is
+registered the build stops immediately with "Cannot find matching toolchain", rather than
+compiling against the wrong release or failing later with a class-version error.
 
 ## Layout
 

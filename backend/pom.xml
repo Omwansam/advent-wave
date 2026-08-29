@@ -74,6 +74,37 @@
   </dependencies>
 
   <build>
+    <plugins>
+      <!--
+        Pin the JDK for the build itself, not just the bytecode target. maven.compiler.release
+        above makes javac emit 21; this makes Maven use a real JDK 21 to do it, so a shell whose
+        default java is 17 no longer needs JAVA_HOME set by hand before every command.
+
+        The JDK is located through ~/.m2/toolchains.xml. Generate one for this machine with:
+
+            ./mvnw -N toolchains:generate-jdk-toolchains-xml \
+                   -Dtoolchain.file=$HOME/.m2/toolchains.xml
+
+        If no JDK 21 is registered the build stops with "Cannot find matching toolchain", which
+        is a clearer failure than the class-version error you would otherwise hit at run time.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-toolchains-plugin</artifactId>
+        <version>3.2.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>select-jdk-toolchain</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <version>[21,22)</version>
+        </configuration>
+      </plugin>
+    </plugins>
+
     <pluginManagement>
       <plugins>
         <plugin>
