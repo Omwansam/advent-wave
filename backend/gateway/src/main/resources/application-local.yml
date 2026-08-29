@@ -11,6 +11,21 @@ spring:
     # check yours with `pg_lsclusters`.
     url: jdbc:postgresql://localhost:5433/adventwave
 
+logging:
+  level:
+    # The three classes that touch Redis. With no Redis running each one logs a full
+    # RedisConnectionException stack trace every time it is called — PlayerStateService on
+    # every 30-second flush tick and every player-state write, HomeSectionCache three times
+    # per GET /v1/home, RateLimiter per playback event. Every one of those paths already
+    # catches the failure and falls through to Postgres, so the traces document an expected,
+    # handled condition and bury everything else in the log.
+    #
+    # Install Redis (sudo apt install redis-server) and these lines stop mattering: the
+    # warnings they hide can only fire when Redis is absent.
+    org.adventwave.platform.player.PlayerStateService: ERROR
+    org.adventwave.gateway.assemble.HomeSectionCache: ERROR
+    org.adventwave.gateway.events.RateLimiter: ERROR
+
 management:
   health:
     redis:
