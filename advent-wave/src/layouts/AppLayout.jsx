@@ -10,6 +10,8 @@ import { ToastHost } from '../components/ToastHost'
 import { CreatePlaylistModal } from '../components/CreatePlaylistModal'
 import { FriendActivityPanel } from '../components/FriendActivityPanel'
 import { useUiStore } from '../store/useUiStore'
+import { useAuthStore } from '../store/useAuthStore'
+import { useLibraryStore } from '../store/useLibraryStore'
 
 const LEGACY_THEME_KEY = 'adventwave-theme'
 
@@ -28,6 +30,18 @@ export function AppLayout() {
       })
     }
   }
+
+  const token = useAuthStore((s) => s.token)
+  const loadLibrary = useLibraryStore((s) => s.load)
+  const hydrateSettings = useUiStore((s) => s.hydrateSettings)
+
+  // Every page reads likes, follows and playlists from this store, and settings decide what
+  // the server does with playback, so both are fetched once here rather than per page.
+  useEffect(() => {
+    if (!token) return
+    loadLibrary()
+    hydrateSettings()
+  }, [token, loadLibrary, hydrateSettings])
 
   const theme = useUiStore((s) => s.theme)
   const toggleTheme = useUiStore((s) => s.toggleTheme)

@@ -1,156 +1,175 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import * as api from '../api'
+
+/**
+ * The user's library, owned by the server.
+ *
+ * Nothing here is persisted to localStorage any more: the same account is expected to look
+ * the same on another device, which only works if Postgres is the source of truth. Mutations
+ * apply optimistically and roll back if the server rejects them, so the UI stays responsive
+ * without inventing state the server never accepted.
+ */
+
+const EMPTY = {
+  likedSongIds: [],
+  savedSermonIds: [],
+  userPlaylists: [],
+  followedArtistNames: [],
+  followedArtistIds: [],
+  followedPlaylistIds: [],
+  recentHistory: [],
+  recentTrackIds: [],
+}
 
 const MAX_RECENT = 100
 
-export const useLibraryStore = create(
-  persist(
-    (set) => ({
-      likedSongIds: [],
-      savedSermonIds: [],
-      userPlaylists: [],
-      /** @type {string[]} */
-      followedArtistNames: [],
-      /** @type {string[]} playlist ids the user follows */
-      followedPlaylistIds: [],
-      /** @type {{ id: string, ts: number }[]} newest-first */
-      recentHistory: [],
-      /** @type {string[]} newest-first; kept for backwards compatibility */
-      recentTrackIds: [],
+function toggleMembership(list, id) {
+  return list.includes(id) ? list.filter((x) => x !== id) : [...list, id]
+}
 
-      recordTrackPlay: (songId) =>
-        set((s) => {
-          if (!songId) return s
-          const prevHistory = Array.isArray(s.recentHistory)
-            ? s.recentHistory
-            : []
-          const rest = prevHistory.filter((entry) => entry.id !== songId)
-          const history = [
-            { id: songId, ts: Date.now() },
-            ...rest,
-          ].slice(0, MAX_RECENT)
-          return {
-            recentHistory: history,
-            recentTrackIds: history.map((entry) => entry.id),
-          }
-        }),
+export const useLibraryStore = create((set, get) => ({
+  ...EMPTY,
+  loaded: false,
+  loading: false,
+  /** @type {Error | null} */
+  error: null,
 
-      clearRecentHistory: () =>
-        set({
-          recentHistory: [],
-          recentTrackIds: [],
-        }),
+  /** Replaces local state with the server's copy. Safe to call repeatedly. */
+  load: async () => {
+    set({ loading: true, error: null })
+    try {
+      const library = await api.getLibrary()
+      set({ ...EMPTY, ...library, loaded: true, loading: false })
+    } catch (error) {
+      set({ error, loading: false })
+    }
+  },
 
-      /** Toggles membership in Liked Songs (no duplicates; persisted). */
-      toggleLike: (songId) =>
-        set((s) => {
-          if (songId == null || songId === '') return s
-          const has = s.likedSongIds.includes(songId)
-          return {
-            likedSongIds: has
-              ? s.likedSongIds.filter((id) => id !== songId)
-              : [...s.likedSongIds, songId],
-          }
-        }),
+  /** Called on logout — the next account must not see the previous one's library. */
+  reset: () => set({ ...EMPTY, loaded: false, loading: false, error: null }),
 
-      /**
-       * Playlist page: if every id is liked, remove all from Liked Songs;
-       * otherwise add any missing ids (deduped).
-       */
-      toggleLikePlaylistTracks: (songIds) =>
-        set((s) => {
-          const ids = [...new Set((songIds || []).filter(Boolean))]
-          if (!ids.length) return s
-          const allLiked = ids.every((id) => s.likedSongIds.includes(id))
-          if (allLiked) {
-            const remove = new Set(ids)
-            return {
-              likedSongIds: s.likedSongIds.filter((id) => !remove.has(id)),
-            }
-          }
-          const merged = new Set(s.likedSongIds)
-          ids.forEach((id) => merged.add(id))
-          return { likedSongIds: [...merged] }
-        }),
+  /**
+   * One call for songs and sermons: the server routes to liked_songs or saved_sermons by the
+   * item's media_type. `mediaType` is only used to pick which local list to update optimistically.
+   */
+  toggleLike: async (mediaItemId, mediaType) => {
+    if (!mediaItemId) return
+    const key = mediaType === 'sermon' ? 'savedSermonIds' : 'likedSongIds'
+    const before = get()[key]
+    set({ [key]: toggleMembership(before, mediaItemId) })
+    try {
+      const { liked } = await api.toggleLike(mediaItemId)
+      // The server is authoritative on which list it landed in; reconcile if we guessed wrong.
+      const current = get()[key]
+      const has = current.includes(mediaItemId)
+      if (has !== liked) set({ [key]: toggleMembership(current, mediaItemId) })
+    } catch (error) {
+      set({ [key]: before, error })
+    }
+  },
 
-      toggleFollowArtist: (artistName) =>
-        set((s) => {
-          const name = artistName?.trim()
-          if (!name) return s
-          const has = s.followedArtistNames.includes(name)
-          return {
-            followedArtistNames: has
-              ? s.followedArtistNames.filter((n) => n !== name)
-              : [...s.followedArtistNames, name],
-          }
-        }),
+  /** Kept for the sermon pages, which know the media type without inspecting the item. */
+  toggleSavedSermon: (mediaItemId) => get().toggleLike(mediaItemId, 'sermon'),
 
-      toggleFollowPlaylist: (playlistId) =>
-        set((s) => {
-          const id = playlistId?.trim()
-          if (!id) return s
-          const has = s.followedPlaylistIds.includes(id)
-          return {
-            followedPlaylistIds: has
-              ? s.followedPlaylistIds.filter((p) => p !== id)
-              : [...s.followedPlaylistIds, id],
-          }
-        }),
+  /**
+   * Playlist page bulk action. The server toggle is an unconditional flip, so the set of ids
+   * to send is computed here: unlike everything only when everything is already liked.
+   */
+  toggleLikePlaylistTracks: async (mediaItemIds) => {
+    const ids = [...new Set((mediaItemIds || []).filter(Boolean))]
+    if (!ids.length) return
+    const liked = get().likedSongIds
+    const allLiked = ids.every((id) => liked.includes(id))
+    const toFlip = allLiked ? ids : ids.filter((id) => !liked.includes(id))
+    await Promise.all(toFlip.map((id) => get().toggleLike(id)))
+  },
 
-      toggleSavedSermon: (id) =>
-        set((s) => ({
-          savedSermonIds: s.savedSermonIds.includes(id)
-            ? s.savedSermonIds.filter((x) => x !== id)
-            : [...s.savedSermonIds, id],
-        })),
+  toggleFollowArtist: async (artistId, artistName) => {
+    if (!artistId) return
+    const beforeIds = get().followedArtistIds
+    const beforeNames = get().followedArtistNames
+    set({
+      followedArtistIds: toggleMembership(beforeIds, artistId),
+      followedArtistNames: artistName
+        ? toggleMembership(beforeNames, artistName)
+        : beforeNames,
+    })
+    try {
+      await api.toggleFollowArtist(artistId)
+    } catch (error) {
+      set({ followedArtistIds: beforeIds, followedArtistNames: beforeNames, error })
+    }
+  },
 
-      createPlaylist: (title, description = '') => {
-        const id = `u-${crypto.randomUUID()}`
-        set((s) => ({
-          userPlaylists: [
-            ...s.userPlaylists,
-            {
-              id,
-              title: title.trim() || 'New playlist',
-              description,
-              cover: `https://picsum.photos/seed/${encodeURIComponent(id)}/400/400`,
-              songIds: [],
-            },
-          ],
-        }))
-        return id
-      },
+  toggleFollowPlaylist: async (playlistId) => {
+    if (!playlistId) return
+    const before = get().followedPlaylistIds
+    set({ followedPlaylistIds: toggleMembership(before, playlistId) })
+    try {
+      await api.toggleFollowPlaylist(playlistId)
+    } catch (error) {
+      set({ followedPlaylistIds: before, error })
+    }
+  },
 
-      addSongToPlaylist: (playlistId, songId) =>
-        set((s) => ({
-          userPlaylists: s.userPlaylists.map((p) =>
-            p.id === playlistId && !p.songIds.includes(songId)
-              ? { ...p, songIds: [...p.songIds, songId] }
-              : p,
-          ),
-        })),
+  /** @returns {Promise<string | null>} the new playlist's id, for navigating to it */
+  createPlaylist: async (title, description = '') => {
+    const playlist = await api.createPlaylist({
+      title: title.trim() || 'New playlist',
+      description,
+    })
+    set((s) => ({ userPlaylists: [...s.userPlaylists, playlist] }))
+    return playlist.id
+  },
 
-      removeSongFromPlaylist: (playlistId, songId) =>
-        set((s) => ({
-          userPlaylists: s.userPlaylists.map((p) =>
-            p.id === playlistId
-              ? { ...p, songIds: p.songIds.filter((id) => id !== songId) }
-              : p,
-          ),
-        })),
+  addSongToPlaylist: async (playlistId, mediaItemId) => {
+    const updated = await api.addPlaylistItems(playlistId, [mediaItemId])
+    set((s) => ({
+      userPlaylists: s.userPlaylists.map((p) => (p.id === playlistId ? updated : p)),
+    }))
+  },
 
-      updateUserPlaylist: (playlistId, updates) =>
-        set((s) => ({
-          userPlaylists: s.userPlaylists.map((p) =>
-            p.id === playlistId ? { ...p, ...updates } : p,
-          ),
-        })),
+  removeSongFromPlaylist: async (playlistId, mediaItemId) => {
+    const updated = await api.removePlaylistItem(playlistId, mediaItemId)
+    set((s) => ({
+      userPlaylists: s.userPlaylists.map((p) => (p.id === playlistId ? updated : p)),
+    }))
+  },
 
-      deleteUserPlaylist: (playlistId) =>
-        set((s) => ({
-          userPlaylists: s.userPlaylists.filter((p) => p.id !== playlistId),
-        })),
+  updateUserPlaylist: async (playlistId, updates) => {
+    const updated = await api.updatePlaylist(playlistId, updates)
+    set((s) => ({
+      userPlaylists: s.userPlaylists.map((p) => (p.id === playlistId ? updated : p)),
+    }))
+  },
+
+  deleteUserPlaylist: async (playlistId) => {
+    await api.deletePlaylist(playlistId)
+    set((s) => ({
+      userPlaylists: s.userPlaylists.filter((p) => p.id !== playlistId),
+    }))
+  },
+
+  /**
+   * Local echo of a play so the "Recently played" rail updates immediately. The durable
+   * record is written by the server from the playback event the player sends; this is not
+   * a second source of truth, and a reload replaces it with the server's history.
+   */
+  recordTrackPlay: (mediaItemId) =>
+    set((s) => {
+      if (!mediaItemId) return s
+      const rest = s.recentHistory.filter((entry) => entry.id !== mediaItemId)
+      const recentHistory = [{ id: mediaItemId, ts: Date.now() }, ...rest].slice(0, MAX_RECENT)
+      return { recentHistory, recentTrackIds: recentHistory.map((e) => e.id) }
     }),
-    { name: 'adventwave-library' },
-  ),
-)
+
+  clearRecentHistory: async () => {
+    const before = { recentHistory: get().recentHistory, recentTrackIds: get().recentTrackIds }
+    set({ recentHistory: [], recentTrackIds: [] })
+    try {
+      await api.clearHistory()
+    } catch (error) {
+      set({ ...before, error })
+    }
+  },
+}))

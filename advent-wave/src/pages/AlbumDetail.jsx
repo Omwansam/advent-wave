@@ -1,33 +1,28 @@
-import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Play } from 'lucide-react'
 import { SongRow } from '../components/SongRow'
-import { getAlbumById, getSongsByIds } from '../data/mockData'
+import { PageError, PageLoading, PageNotFound } from '../components/PageState'
+import { getAlbum } from '../api'
+import { useApi } from '../hooks/useApi'
 import { usePlayerStore } from '../store/usePlayerStore'
 
 export function AlbumDetail() {
   const { id } = useParams()
   const playQueue = usePlayerStore((s) => s.playQueue)
 
-  const album = useMemo(() => getAlbumById(id), [id])
-  const tracks = useMemo(
-    () => (album ? getSongsByIds(album.songIds) : []),
-    [album],
+  const { data: album, error, loading, refetch } = useApi(
+    (signal) => getAlbum(id, { signal }),
+    [id],
   )
 
-  if (!album) {
-    return (
-      <div className="rounded-2xl bg-[var(--aw-surface)] p-12 text-center shadow-[var(--aw-shadow-card)]">
-        <p className="text-[var(--aw-muted)]">Album not found.</p>
-        <Link
-          to="/discover"
-          className="mt-4 inline-block font-medium text-[var(--aw-primary)]"
-        >
-          Browse Discover
-        </Link>
-      </div>
-    )
+  if (loading) return <PageLoading sections={2} />
+  if (error?.isNotFound) {
+    return <PageNotFound what="Album not found." to="/discover" label="Browse Discover" />
   }
+  if (error) return <PageError error={error} onRetry={refetch} what="this album" />
+  if (!album) return null
+
+  const tracks = album.tracks ?? []
 
   return (
     <div>
@@ -52,7 +47,7 @@ export function AlbumDetail() {
           </h1>
           <p className="mt-3 text-[var(--aw-muted)]">
             <Link
-              to={`/artist/${encodeURIComponent(album.artist)}`}
+              to={`/artist/${album.artistId}`}
               className="font-semibold text-[var(--aw-text)] hover:underline"
             >
               {album.artist}

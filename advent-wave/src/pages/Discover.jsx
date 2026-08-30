@@ -1,36 +1,37 @@
 import { useMemo } from 'react'
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom'
 import { SongRow } from '../components/SongRow'
-import { songs, discoverCategories, kenyaSongIds } from '../data/mockData'
+import { PageError, PageLoading } from '../components/PageState'
+import { getDiscover } from '../api'
+import { useApi } from '../hooks/useApi'
 
 export function Discover() {
   const [params] = useSearchParams()
   const cat = params.get('cat') || 'all'
   const { search: navSearch = '' } = useOutletContext() || {}
 
+  // Category membership lives in discover_category_items on the server; the client no longer
+  // carries a hardcoded id map.
+  const { data, error, loading, refetch } = useApi(
+    (signal) => getDiscover(cat === 'all' ? undefined : cat, { signal }),
+    [cat],
+  )
+
+  const categories = data?.categories ?? []
+
   const filtered = useMemo(() => {
-    let list = songs
-    if (cat !== 'all' && cat) {
-      const map = {
-        worship: ['s1', 's3', 's6', 's11'],
-        youth: ['s7', 's12', 's2'],
-        instrumental: ['s9', 's4', 's8'],
-        choirs: ['s5', 's11', 's2'],
-        churches: ['s3', 's6', 's10'],
-        kenya: kenyaSongIds,
-      }
-      const ids = map[cat]
-      if (ids) list = songs.filter((s) => ids.includes(s.id))
-    }
+    const tracks = data?.tracks ?? []
     const q = navSearch.trim().toLowerCase()
-    if (!q) return list
-    return list.filter(
+    if (!q) return tracks
+    return tracks.filter(
       (s) =>
         s.title.toLowerCase().includes(q) ||
         s.artist.toLowerCase().includes(q) ||
-        s.album.toLowerCase().includes(q),
+        (s.album ?? '').toLowerCase().includes(q),
     )
-  }, [cat, navSearch])
+  }, [data, navSearch])
+
+  if (error) return <PageError error={error} onRetry={refetch} what="Discover" />
 
   return (
     <div>
@@ -52,7 +53,7 @@ export function Discover() {
           >
             All
           </Link>
-          {discoverCategories.map((c) => (
+          {categories.map((c) => (
             <Link
               key={c.id}
               to={`/discover?cat=${c.id}`}
@@ -69,7 +70,7 @@ export function Discover() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {discoverCategories.map((c) => {
+        {categories.map((c) => {
           const active = cat === c.id
           return (
             <Link
@@ -81,21 +82,15 @@ export function Discover() {
                   : 'ring-black/[0.04] dark:ring-white/10'
               }`}
             >
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${c.gradient}`}
-              />
+              <div className={`absolute inset-0 bg-gradient-to-br ${c.gradient}`} />
               <img
                 src={c.cover}
                 alt=""
                 className="absolute inset-0 size-full object-cover opacity-30 mix-blend-overlay"
               />
               <div className="relative">
-                <p className="text-lg font-bold text-[var(--aw-text)]">
-                  {c.label}
-                </p>
-                <p className="mt-1 text-sm text-[var(--aw-muted)]">
-                  Open collection
-                </p>
+                <p className="text-lg font-bold text-[var(--aw-text)]">{c.label}</p>
+                <p className="mt-1 text-sm text-[var(--aw-muted)]">Open collection</p>
               </div>
             </Link>
           )
@@ -106,16 +101,15 @@ export function Discover() {
         <h2 className="mb-4 text-xl font-semibold text-[var(--aw-text)]">
           {cat === 'all' ? 'All tracks' : 'Tracks in this vibe'}
         </h2>
-        <div className="space-y-1 rounded-2xl bg-[var(--aw-surface)] p-3 shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] dark:ring-white/10">
-          {filtered.map((song, i) => (
-            <SongRow
-              key={song.id}
-              song={song}
-              index={i}
-              queue={filtered}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <PageLoading sections={1} />
+        ) : (
+          <div className="space-y-1 rounded-2xl bg-[var(--aw-surface)] p-3 shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] dark:ring-white/10">
+            {filtered.map((song, i) => (
+              <SongRow key={song.id} song={song} index={i} queue={filtered} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   )

@@ -1,6 +1,7 @@
 package org.adventwave.gateway.api;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 import org.adventwave.catalog.CatalogService;
 import org.adventwave.catalog.media.StreamService;
@@ -23,6 +24,12 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping({"/v1"})
 public class MediaController {
+    /**
+     * Bounded so one request cannot ask for the whole catalogue. Liked Songs and a queue are
+     * both capped well below this; a caller needing more should paginate.
+     */
+    private static final int MAX_BATCH_IDS = 200;
+
     private final CatalogService catalog;
     private final StreamService stream;
     private final UserService users;
@@ -31,6 +38,21 @@ public class MediaController {
         this.catalog = catalog;
         this.stream = stream;
         this.users = users;
+    }
+
+    /**
+     * Resolves many ids at once, in the order asked for, skipping anything unpublished. This
+     * is catalog.v1's BatchGetMediaItems on the public surface: the library and player-state
+     * endpoints return ids, and without this every one of them costs a request.
+     */
+    @GetMapping({"/media"})
+    public List<TrackDto> batch(@RequestParam("ids") List<UUID> ids) {
+        if (ids.size() > MAX_BATCH_IDS) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST, "at most " + MAX_BATCH_IDS + " ids per request"
+            );
+        }
+        return this.catalog.tracks(ids);
     }
 
     @GetMapping({"/media/{id}"})

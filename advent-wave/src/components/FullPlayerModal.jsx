@@ -14,7 +14,6 @@ import {
 import { usePlayerStore } from '../store/usePlayerStore'
 import { useLibraryStore } from '../store/useLibraryStore'
 import { useUiStore } from '../store/useUiStore'
-import { getAlbumForSong } from '../data/mockData'
 import { formatDuration } from '../utils/format'
 import { LikeButton } from './LikeButton'
 
@@ -52,7 +51,10 @@ export function FullPlayerModal({ audioRef }) {
   if (!open || !currentSong) return null
 
   const pct = duration ? Math.min(100, (currentTime / duration) * 100) : 0
-  const album = getAlbumForSong(currentSong)
+  // The track carries its own album id and title; no catalogue lookup needed.
+  const album = currentSong.albumId
+    ? { id: currentSong.albumId, title: currentSong.album }
+    : null
   const liked = likedSongIds.includes(currentSong.id)
 
   const onSeekPointer = (e) => {
@@ -128,7 +130,7 @@ export function FullPlayerModal({ audioRef }) {
               {currentSong.title}
             </h2>
             <Link
-              to={`/artist/${encodeURIComponent(currentSong.artist)}`}
+              to={`/artist/${currentSong.artistId}`}
               className="mt-2 block text-center text-lg text-[var(--aw-muted)] hover:text-[var(--aw-primary)] hover:underline md:text-left"
             >
               {currentSong.artist}
@@ -149,7 +151,7 @@ export function FullPlayerModal({ audioRef }) {
             <div className="mt-6 flex items-center justify-center gap-4 md:justify-start">
               <LikeButton
                 liked={liked}
-                onToggle={() => toggleLike(currentSong.id)}
+                onToggle={() => toggleLike(currentSong.id, currentSong.mediaType)}
                 size="lg"
                 className="p-3"
               />

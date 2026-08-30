@@ -1,7 +1,6 @@
 import { Pause, Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { formatDuration } from '../utils/format'
-import { getAlbumForSong } from '../data/mockData'
 import { usePlayerStore } from '../store/usePlayerStore'
 import { useLibraryStore } from '../store/useLibraryStore'
 import { SongRowMenu } from './SongRowMenu'
@@ -29,6 +28,7 @@ export function SongRow({
   const togglePlay = usePlayerStore((s) => s.togglePlay)
 
   const likedSongIds = useLibraryStore((s) => s.likedSongIds)
+  const savedSermonIds = useLibraryStore((s) => s.savedSermonIds)
   const toggleLike = useLibraryStore((s) => s.toggleLike)
 
   const active = currentSong?.id === song.id
@@ -44,7 +44,12 @@ export function SongRow({
     else playSong(song, queue)
   }
 
-  const albumLink = getAlbumForSong(song)
+  // The server returns the album id on the track, so no catalogue lookup is needed here.
+  const albumLink = song.albumId ? { id: song.albumId } : null
+  const liked =
+    song.mediaType === 'sermon'
+      ? savedSermonIds.includes(song.id)
+      : likedSongIds.includes(song.id)
 
   const gridCols = showAlbum
     ? 'grid-cols-[auto_1fr_auto] md:grid-cols-[minmax(0,48px)_minmax(0,1fr)_minmax(0,1fr)_auto]'
@@ -158,8 +163,8 @@ export function SongRow({
         ) : null}
         {showLike ? (
           <LikeButton
-            liked={likedSongIds.includes(song.id)}
-            onToggle={() => toggleLike(song.id)}
+            liked={liked}
+            onToggle={() => toggleLike(song.id, song.mediaType)}
             size="sm"
             className="p-2 opacity-100"
           />

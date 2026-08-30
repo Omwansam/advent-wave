@@ -1,12 +1,20 @@
 import { Bookmark } from 'lucide-react'
 import { SongRow } from '../components/SongRow'
-import { sermonTracks } from '../data/mockData'
+import { PageError, PageLoading } from '../components/PageState'
+import { getBrowse } from '../api'
+import { useApi } from '../hooks/useApi'
 import { useLibraryStore } from '../store/useLibraryStore'
 
 export function Sermons() {
   const savedSermonIds = useLibraryStore((s) => s.savedSermonIds)
   const toggleSavedSermon = useLibraryStore((s) => s.toggleSavedSermon)
-  const queue = sermonTracks
+
+  const { data, error, loading, refetch } = useApi((signal) => getBrowse({ signal }), [])
+
+  if (loading) return <PageLoading sections={1} />
+  if (error) return <PageError error={error} onRetry={refetch} what="sermons" />
+
+  const queue = data?.sermons ?? []
 
   return (
     <div>
@@ -15,7 +23,7 @@ export function Sermons() {
           Sermons
         </h1>
         <p className="mt-2 max-w-2xl text-[var(--aw-muted)]">
-          Save messages for later — your library syncs locally until accounts ship.
+          Save messages for later — your library follows your account across devices.
         </p>
       </header>
 

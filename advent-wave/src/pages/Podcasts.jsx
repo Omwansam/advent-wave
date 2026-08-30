@@ -1,8 +1,15 @@
 import { SongRow } from '../components/SongRow'
-import { podcastEpisodes } from '../data/mockData'
+import { PageError, PageLoading } from '../components/PageState'
+import { getBrowse } from '../api'
+import { useApi } from '../hooks/useApi'
 
 export function Podcasts() {
-  const queue = podcastEpisodes
+  const { data, error, loading, refetch } = useApi((signal) => getBrowse({ signal }), [])
+
+  if (loading) return <PageLoading sections={1} />
+  if (error) return <PageError error={error} onRetry={refetch} what="podcasts" />
+
+  const queue = data?.podcasts ?? []
 
   return (
     <div>

@@ -18,6 +18,8 @@ import { FollowedArtists } from './pages/FollowedArtists'
 import { LoginPage } from './pages/LoginPage'
 import { SplashScreen } from './components/SplashScreen'
 import { RequireAuth } from './components/RequireAuth'
+import { onUnauthorized } from './api/token'
+import { useAuthStore } from './store/useAuthStore'
 
 const SPLASH_MS = 2200
 
@@ -28,6 +30,13 @@ export default function App() {
     const id = window.setTimeout(() => setShowSplash(false), SPLASH_MS)
     return () => window.clearTimeout(id)
   }, [])
+
+  // A 401 from any request means the token is dead. End the session once, centrally, rather
+  // than letting each page discover it and render its own error.
+  useEffect(
+    () => onUnauthorized(() => useAuthStore.getState().logout()),
+    [],
+  )
 
   if (showSplash) {
     return <SplashScreen />
@@ -49,7 +58,7 @@ export default function App() {
             <Route path="library" element={<Library />} />
             <Route path="liked" element={<LikedSongs />} />
             <Route path="album/:id" element={<AlbumDetail />} />
-            <Route path="artist/:name" element={<ArtistDetail />} />
+            <Route path="artist/:id" element={<ArtistDetail />} />
             <Route path="podcasts" element={<Podcasts />} />
             <Route path="sermons" element={<Sermons />} />
             <Route path="playlist/:id" element={<PlaylistDetail />} />

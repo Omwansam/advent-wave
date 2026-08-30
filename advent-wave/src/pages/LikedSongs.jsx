@@ -1,20 +1,28 @@
-import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Heart, Play, Shuffle } from 'lucide-react'
 import { SongRow } from '../components/SongRow'
-import { getSongById } from '../data/mockData'
+import { PageError, PageLoading } from '../components/PageState'
+import { getMediaBatch } from '../api'
+import { useApi } from '../hooks/useApi'
 import { useLibraryStore } from '../store/useLibraryStore'
 import { usePlayerStore } from '../store/usePlayerStore'
 
 export function LikedSongs() {
   const likedSongIds = useLibraryStore((s) => s.likedSongIds)
+  const libraryLoaded = useLibraryStore((s) => s.loaded)
   const playQueue = usePlayerStore((s) => s.playQueue)
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
 
-  const likedSongs = useMemo(
-    () => likedSongIds.map(getSongById).filter(Boolean),
-    [likedSongIds],
+  // The library gives ids; one batch request resolves them, in the order they were liked.
+  const idKey = likedSongIds.join(',')
+  const { data, error, loading, refetch } = useApi(
+    (signal) => getMediaBatch(likedSongIds, { signal }),
+    [idKey],
+    { enabled: libraryLoaded },
   )
+
+  const likedSongs = data ?? []
+  const pending = !libraryLoaded || loading
 
   return (
     <div>
@@ -31,7 +39,7 @@ export function LikedSongs() {
               Liked songs
             </h1>
             <p className="mt-2 text-sm text-[var(--aw-muted)]">
-              {likedSongs.length} saved track{likedSongs.length === 1 ? '' : 's'}
+              {likedSongIds.length} saved track{likedSongIds.length === 1 ? '' : 's'}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <button
@@ -61,7 +69,11 @@ export function LikedSongs() {
       </section>
 
       <div className="mt-10">
-        {likedSongs.length === 0 ? (
+        {error ? (
+          <PageError error={error} onRetry={refetch} what="your liked songs" />
+        ) : pending && likedSongIds.length ? (
+          <PageLoading sections={1} />
+        ) : likedSongs.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[var(--aw-border)] bg-[var(--aw-surface)] p-12 text-center">
             <p className="text-[var(--aw-muted)]">
               Songs you like will appear here.

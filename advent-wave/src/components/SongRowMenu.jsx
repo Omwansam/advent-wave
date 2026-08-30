@@ -111,11 +111,15 @@ export function SongRowMenu({ song, playlistContext }) {
                   type="button"
                   role="menuitem"
                   className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation()
-                    removeSongFromPlaylist(playlistContext.id, song.id)
                     setOpen(false)
-                    showToast('Removed from playlist')
+                    try {
+                      await removeSongFromPlaylist(playlistContext.id, song.id)
+                      showToast('Removed from playlist')
+                    } catch {
+                      showToast('Could not remove from the playlist')
+                    }
                   }}
                 >
                   <Trash2 className="size-4" />
@@ -174,15 +178,19 @@ export function SongRowMenu({ song, playlistContext }) {
                 type="button"
                 role="menuitem"
                 className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-[var(--aw-text)] hover:bg-[var(--aw-surface-elevated)]"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation()
-                  const id = createPlaylist(
-                    `${song.title.slice(0, 48)} mix`,
-                    'Quick playlist from a track',
-                  )
-                  addSongToPlaylist(id, song.id)
-                  showToast('Saved to new playlist')
                   setOpen(false)
+                  try {
+                    const id = await createPlaylist(
+                      `${song.title.slice(0, 48)} mix`,
+                      'Quick playlist from a track',
+                    )
+                    await addSongToPlaylist(id, song.id)
+                    showToast('Saved to new playlist')
+                  } catch {
+                    showToast('Could not create the playlist')
+                  }
                 }}
               >
                 <ListPlus className="size-4 text-[var(--aw-primary)]" />
@@ -200,15 +208,19 @@ export function SongRowMenu({ song, playlistContext }) {
                     type="button"
                     role="menuitem"
                     className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-[var(--aw-text)] hover:bg-[var(--aw-surface-elevated)]"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation()
+                      setOpen(false)
                       if (p.songIds.includes(song.id)) {
                         showToast('Already in that playlist')
-                      } else {
-                        addSongToPlaylist(p.id, song.id)
-                        showToast(`Added to ${p.title}`)
+                        return
                       }
-                      setOpen(false)
+                      try {
+                        await addSongToPlaylist(p.id, song.id)
+                        showToast(`Added to ${p.title}`)
+                      } catch {
+                        showToast('Could not add to that playlist')
+                      }
                     }}
                   >
                     <span className="truncate">{p.title}</span>

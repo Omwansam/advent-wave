@@ -1,42 +1,32 @@
-import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Play, UserPlus, UserCheck } from 'lucide-react'
 import { SongRow } from '../components/SongRow'
-import { getArtistByName, getSongsByIds } from '../data/mockData'
+import { PageError, PageLoading, PageNotFound } from '../components/PageState'
+import { getArtist } from '../api'
+import { useApi } from '../hooks/useApi'
 import { usePlayerStore } from '../store/usePlayerStore'
 import { useLibraryStore } from '../store/useLibraryStore'
 import { useToastStore } from '../store/useToastStore'
 
 export function ArtistDetail() {
-  const { name: nameParam } = useParams()
+  const { id } = useParams()
   const playQueue = usePlayerStore((s) => s.playQueue)
-  const followedArtistNames = useLibraryStore((s) => s.followedArtistNames)
+  const followedArtistIds = useLibraryStore((s) => s.followedArtistIds)
   const toggleFollowArtist = useLibraryStore((s) => s.toggleFollowArtist)
   const showToast = useToastStore((s) => s.showToast)
 
-  const name = nameParam ? decodeURIComponent(nameParam) : ''
-
-  const artist = useMemo(() => getArtistByName(name), [name])
-  const tracks = useMemo(
-    () => (artist ? getSongsByIds(artist.songIds) : []),
-    [artist],
+  const { data: artist, error, loading, refetch } = useApi(
+    (signal) => getArtist(id, { signal }),
+    [id],
   )
 
-  const following = artist && followedArtistNames.includes(artist.name)
+  if (loading) return <PageLoading sections={2} />
+  if (error?.isNotFound) return <PageNotFound what="Artist not found." />
+  if (error) return <PageError error={error} onRetry={refetch} what="this artist" />
+  if (!artist) return null
 
-  if (!artist) {
-    return (
-      <div className="rounded-2xl bg-[var(--aw-surface)] p-12 text-center shadow-[var(--aw-shadow-card)]">
-        <p className="text-[var(--aw-muted)]">Artist not found.</p>
-        <Link
-          to="/search"
-          className="mt-4 inline-block font-medium text-[var(--aw-primary)]"
-        >
-          Search
-        </Link>
-      </div>
-    )
-  }
+  const tracks = artist.tracks ?? []
+  const following = followedArtistIds.includes(artist.id)
 
   return (
     <div>
@@ -79,7 +69,7 @@ export function ArtistDetail() {
                 type="button"
                 onClick={() => {
                   const willFollow = !following
-                  toggleFollowArtist(artist.name)
+                  toggleFollowArtist(artist.id, artist.name)
                   showToast(
                     willFollow
                       ? `Following ${artist.name}`

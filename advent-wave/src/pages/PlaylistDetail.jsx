@@ -13,7 +13,9 @@ import {
 } from 'lucide-react'
 import { SongRow } from '../components/SongRow'
 import { LikeButton } from '../components/LikeButton'
-import { getPlaylistById } from '../data/mockData'
+import { PageError, PageLoading, PageNotFound } from '../components/PageState'
+import { getPlaylist } from '../api'
+import { useApi } from '../hooks/useApi'
 import { usePlayerStore } from '../store/usePlayerStore'
 import { useLibraryStore } from '../store/useLibraryStore'
 import { useToastStore } from '../store/useToastStore'
@@ -205,7 +207,6 @@ function EditPlaylistModal({ title, description, onSave, onClose }) {
 export function PlaylistDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const userPlaylists = useLibraryStore((s) => s.userPlaylists)
   const likedSongIds = useLibraryStore((s) => s.likedSongIds)
   const toggleLikePlaylistTracks = useLibraryStore(
     (s) => s.toggleLikePlaylistTracks,
@@ -221,10 +222,18 @@ export function PlaylistDetail() {
   const [editOpen, setEditOpen] = useState(false)
   const [editNonce, setEditNonce] = useState(0)
 
-  const playlist = useMemo(
-    () => getPlaylistById(id, userPlaylists),
-    [id, userPlaylists],
+  // Adding or removing a track updates the store copy; tracking its membership here means
+  // the resolved playlist is refetched when that happens, from whichever page did it.
+  const storedItemsKey = useLibraryStore(
+    (s) => s.userPlaylists.find((p) => p.id === id)?.songIds?.join(',') ?? '',
   )
+
+  const {
+    data: playlist,
+    error,
+    loading,
+    refetch,
+  } = useApi((signal) => getPlaylist(id, { signal }), [id, storedItemsKey])
 
   const playlistTrackIds = useMemo(
     () => playlist?.songs?.map((s) => s.id) ?? [],
@@ -237,26 +246,26 @@ export function PlaylistDetail() {
     [playlistTrackIds, likedSongIds],
   )
 
-  const isUser = Boolean(id?.startsWith('u-'))
   const isFollowingPlaylist = Boolean(
     playlist && followedPlaylistIds.includes(playlist.id),
   )
 
-  if (!playlist) {
+  if (loading) return <PageLoading sections={2} />
+  if (error?.isNotFound) {
     return (
-      <div className="rounded-2xl bg-[var(--aw-surface)] p-12 text-center shadow-[var(--aw-shadow-card)]">
-        <p className="text-[var(--aw-muted)]">Playlist not found.</p>
-        <Link
-          to="/library"
-          className="mt-4 inline-block font-medium text-[var(--aw-primary)]"
-        >
-          Back to Library
-        </Link>
-      </div>
+      <PageNotFound
+        what="Playlist not found."
+        to="/library"
+        label="Back to Library"
+      />
     )
   }
+  if (error) return <PageError error={error} onRetry={refetch} what="this playlist" />
+  if (!playlist) return null
 
-  const { songs } = playlist
+  // Ownership comes from the server, not from an id prefix: curated playlists have no owner.
+  const isUser = Boolean(playlist.ownerId)
+  const songs = playlist.songs ?? []
 
   const onShufflePlay = () => {
     if (!songs.length) return
@@ -266,7 +275,7 @@ export function PlaylistDetail() {
     showToast('Shuffle play')
   }
 
-  const onDeletePlaylist = () => {
+  const onDeletePlaylist = async () => {
     if (
       !window.confirm(
         `Delete playlist “${playlist.title}”? This cannot be undone.`,
@@ -274,18 +283,19 @@ export function PlaylistDetail() {
     ) {
       return
     }
-    deleteUserPlaylist(playlist.id)
+    await deleteUserPlaylist(playlist.id)
     showToast('Playlist deleted')
     navigate('/library', { replace: true })
   }
 
-  const onSaveEdit = ({ title, description }) => {
-    updateUserPlaylist(playlist.id, {
+  const onSaveEdit = async ({ title, description }) => {
+    await updateUserPlaylist(playlist.id, {
       title: title || 'Untitled',
       description,
     })
     setEditOpen(false)
     showToast('Playlist updated')
+    refetch()
   }
 
   return (

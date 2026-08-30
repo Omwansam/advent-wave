@@ -3,60 +3,61 @@ import { Link } from 'react-router-dom'
 import { ArrowDownAZ, Clock, Heart, ListMusic } from 'lucide-react'
 import { PlaylistCard } from '../components/PlaylistCard'
 import { SongRow } from '../components/SongRow'
-import {
-  playlists,
-  resolvePlaylist,
-  getSongById,
-} from '../data/mockData'
+import { PageError, PageLoading } from '../components/PageState'
+import { getMediaBatch, getPlaylists } from '../api'
+import { useApi } from '../hooks/useApi'
 import { useLibraryStore } from '../store/useLibraryStore'
 
 export function Library() {
   const likedSongIds = useLibraryStore((s) => s.likedSongIds)
-  const userPlaylists = useLibraryStore((s) => s.userPlaylists)
+  const libraryLoaded = useLibraryStore((s) => s.loaded)
 
   const [playlistSort, setPlaylistSort] = useState('recent')
   const [likedSort, setLikedSort] = useState('recent')
 
-  const likedSongs = useMemo(
-    () => likedSongIds.map(getSongById).filter(Boolean),
-    [likedSongIds],
+  // Playlists come back with tracks resolved, so the cards can play without another request.
+  const playlistsQuery = useApi((signal) => getPlaylists({ signal }), [])
+
+  const idKey = likedSongIds.join(',')
+  const likedQuery = useApi(
+    (signal) => getMediaBatch(likedSongIds, { signal }),
+    [idKey],
+    { enabled: libraryLoaded },
   )
+
+  const likedSongs = likedQuery.data
 
   const likedSongsSorted = useMemo(() => {
-    const list = [...likedSongs]
-    if (likedSort === 'alpha') {
-      list.sort((a, b) => a.title.localeCompare(b.title))
-      return list
-    }
-    const order = new Map(likedSongIds.map((id, i) => [id, i]))
-    list.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+    const list = [...(likedSongs ?? [])]
+    // getMediaBatch already returns them in liked order; only A-Z needs re-sorting.
+    if (likedSort === 'alpha') list.sort((a, b) => a.title.localeCompare(b.title))
     return list
-  }, [likedSongs, likedSongIds, likedSort])
+  }, [likedSongs, likedSort])
 
-  const curated = useMemo(
-    () => playlists.map(resolvePlaylist),
-    [],
-  )
-  const mine = useMemo(
-    () => userPlaylists.map((p) => resolvePlaylist(p)),
-    [userPlaylists],
-  )
+  const playlistData = playlistsQuery.data
 
   const mineSorted = useMemo(() => {
-    const list = [...mine]
-    if (playlistSort === 'alpha') {
-      list.sort((a, b) => a.title.localeCompare(b.title))
-    }
+    const list = [...(playlistData?.mine ?? [])]
+    if (playlistSort === 'alpha') list.sort((a, b) => a.title.localeCompare(b.title))
     return list
-  }, [mine, playlistSort])
+  }, [playlistData, playlistSort])
 
   const curatedSorted = useMemo(() => {
-    const list = [...curated]
-    if (playlistSort === 'alpha') {
-      list.sort((a, b) => a.title.localeCompare(b.title))
-    }
+    const list = [...(playlistData?.curated ?? [])]
+    if (playlistSort === 'alpha') list.sort((a, b) => a.title.localeCompare(b.title))
     return list
-  }, [curated, playlistSort])
+  }, [playlistData, playlistSort])
+
+  if (playlistsQuery.loading) return <PageLoading sections={3} />
+  if (playlistsQuery.error) {
+    return (
+      <PageError
+        error={playlistsQuery.error}
+        onRetry={playlistsQuery.refetch}
+        what="your library"
+      />
+    )
+  }
 
   return (
     <div>
@@ -132,7 +133,7 @@ export function Library() {
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            {likedSongs.length > 0 ? (
+            {likedSongsSorted.length > 0 ? (
               <Link
                 to="/liked"
                 className="text-sm font-semibold text-[var(--aw-primary)] hover:underline"
@@ -166,7 +167,7 @@ export function Library() {
             </div>
           </div>
         </div>
-        {likedSongs.length === 0 ? (
+        {likedSongsSorted.length === 0 ? (
           <div className="rounded-2xl border border-[var(--aw-border)] bg-[var(--aw-surface)] p-8 text-center text-[var(--aw-muted)]">
             Tap the heart on any row to build your collection.{' '}
             <Link className="font-medium text-[var(--aw-primary)]" to="/">

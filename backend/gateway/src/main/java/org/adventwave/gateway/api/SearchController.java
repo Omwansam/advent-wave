@@ -29,9 +29,16 @@ public class SearchController {
 
     @GetMapping({"/search"})
     public SearchResultsDto search(AuthenticatedUser caller, @RequestParam("q") String query) {
-        List<PlaylistDto> list = Stream.<PlaylistSummary>concat(this.library.curatedPlaylists().stream(), this.library.userPlaylists(caller.id()).stream())
-            .map(this.playlists::summarise)
-            .toList();
+        // resolveAll rather than summarise: a search result is rendered as a playable card,
+        // and it batches the track lookup across every playlist into one query.
+        List<PlaylistDto> list = this.playlists
+            .resolveAll(
+                Stream.<PlaylistSummary>concat(
+                        this.library.curatedPlaylists().stream(),
+                        this.library.userPlaylists(caller.id()).stream()
+                    )
+                    .toList()
+            );
         return this.search.search(query, list);
     }
 }

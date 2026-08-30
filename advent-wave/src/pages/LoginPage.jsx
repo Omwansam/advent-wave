@@ -2,15 +2,16 @@ import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Sparkles } from 'lucide-react'
 import { useAuthStore } from '../store/useAuthStore'
-import { MOCK_LOGIN } from '../data/mockAuth'
+import { ApiError } from '../api'
+import { DEMO_LOGIN } from '../data/demoLogin'
 
 export function LoginPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const login = useAuthStore((s) => s.login)
 
-  const [email, setEmail] = useState(MOCK_LOGIN.email)
-  const [password, setPassword] = useState(MOCK_LOGIN.password)
+  const [email, setEmail] = useState(DEMO_LOGIN.email)
+  const [password, setPassword] = useState(DEMO_LOGIN.password)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -18,7 +19,7 @@ export function LoginPage() {
     return <Navigate to="/" replace />
   }
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
     setError('')
     const em = email.trim()
@@ -26,16 +27,18 @@ export function LoginPage() {
       setError('Enter a valid email address.')
       return
     }
-    if (password.length < 4) {
-      setError('Password must be at least 4 characters (demo).')
-      return
-    }
     setSubmitting(true)
-    window.setTimeout(() => {
-      login(em, em.split('@')[0])
-      setSubmitting(false)
+    try {
+      await login(em, em.split('@')[0])
       navigate('/', { replace: true })
-    }, 400)
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not reach the AdventWave server. Is the gateway running on :8080?',
+      )
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -65,38 +68,39 @@ export function LoginPage() {
             Log in to continue
           </h2>
           <p className="mt-2 text-center text-sm text-[var(--aw-muted)]">
-            This is a demo — use the mock account below or your own email (4+
-            char password).
+            Any email signs you in and gets its own library. The server issues a
+            real token; the password is not checked until an identity provider
+            is wired up.
           </p>
 
           <div className="mt-6 rounded-2xl border border-[var(--aw-primary)]/25 bg-[var(--aw-primary)]/8 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--aw-primary)]">
-              Mock login (try this)
+              Demo account (try this)
             </p>
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
                 <dt className="shrink-0 text-[var(--aw-muted)]">Email</dt>
                 <dd className="font-mono text-[var(--aw-text)]">
-                  {MOCK_LOGIN.email}
+                  {DEMO_LOGIN.email}
                 </dd>
               </div>
               <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
                 <dt className="shrink-0 text-[var(--aw-muted)]">Password</dt>
                 <dd className="font-mono text-[var(--aw-text)]">
-                  {MOCK_LOGIN.password}
+                  {DEMO_LOGIN.password}
                 </dd>
               </div>
             </dl>
             <button
               type="button"
               onClick={() => {
-                setEmail(MOCK_LOGIN.email)
-                setPassword(MOCK_LOGIN.password)
+                setEmail(DEMO_LOGIN.email)
+                setPassword(DEMO_LOGIN.password)
                 setError('')
               }}
               className="mt-4 w-full rounded-xl border border-[var(--aw-border)] bg-[var(--aw-surface)] py-2.5 text-sm font-semibold text-[var(--aw-text)] transition hover:bg-[var(--aw-surface-elevated)]"
             >
-              Reset fields to mock values
+              Reset fields to demo values
             </button>
           </div>
 

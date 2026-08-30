@@ -2,70 +2,66 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Clock, Trash2 } from 'lucide-react'
 import { SongRow } from '../components/SongRow'
-import { getSongsByIds } from '../data/mockData'
+import { PageError, PageLoading } from '../components/PageState'
+import { getHistory } from '../api'
+import { useApi } from '../hooks/useApi'
 import { useLibraryStore } from '../store/useLibraryStore'
 
+/** Buckets one day's worth of entries, newest first, into today / yesterday / this week. */
+function groupByDay(entries, tracksById) {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfYesterday = new Date(startOfToday)
+  startOfYesterday.setDate(startOfToday.getDate() - 1)
+  const startOfWeek = new Date(startOfToday)
+  startOfWeek.setDate(startOfToday.getDate() - 7)
+
+  const buckets = { today: [], yesterday: [], week: [] }
+
+  entries.forEach((entry) => {
+    const track = tracksById.get(entry.id)
+    if (!track) return
+    const at = new Date(entry.ts || 0)
+    if (Number.isNaN(at.getTime())) return
+    if (at >= startOfToday) buckets.today.push(track)
+    else if (at >= startOfYesterday) buckets.yesterday.push(track)
+    else if (at >= startOfWeek) buckets.week.push(track)
+  })
+
+  return buckets
+}
+
 export function ListeningHistory() {
-  const recentHistory = useLibraryStore((s) => s.recentHistory)
-  const recentTrackIds = useLibraryStore((s) => s.recentTrackIds)
   const clearRecentHistory = useLibraryStore((s) => s.clearRecentHistory)
 
-  const history = useMemo(() => {
-    if (recentHistory?.length) return recentHistory
-    if (!recentTrackIds?.length) return []
-    // Fallback for older persisted state: synthesise timestamps so ordering still works.
-    return recentTrackIds.map((id, index) => ({
-      id,
-      ts: index,
-    }))
-  }, [recentHistory, recentTrackIds])
+  // Server-side history: written only for plays that count (>=30s or >=50%) and never for
+  // private sessions, so this page shows what the server actually recorded — not local echoes.
+  const { data, error, loading, refetch, setData } = useApi(
+    (signal) => getHistory({ signal }),
+    [],
+  )
 
   const grouped = useMemo(() => {
-    if (!history.length) {
-      return {
-        today: [],
-        yesterday: [],
-        week: [],
-      }
-    }
-    const now = new Date()
-    const startOfToday = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-    )
-    const startOfYesterday = new Date(startOfToday)
-    startOfYesterday.setDate(startOfToday.getDate() - 1)
-    const startOfWeek = new Date(startOfToday)
-    startOfWeek.setDate(startOfToday.getDate() - 7)
+    const entries = data?.entries ?? []
+    const tracksById = new Map((data?.tracks ?? []).map((t) => [t.id, t]))
+    return groupByDay(entries, tracksById)
+  }, [data])
 
-    const todayEntries = []
-    const yesterdayEntries = []
-    const weekEntries = []
+  const onClear = async () => {
+    setData({ entries: [], tracks: [] })
+    await clearRecentHistory()
+  }
 
-    history.forEach((entry) => {
-      const d = new Date(entry.ts || 0)
-      if (Number.isNaN(d.getTime())) return
-      if (d >= startOfToday) {
-        todayEntries.push(entry)
-      } else if (d >= startOfYesterday && d < startOfToday) {
-        yesterdayEntries.push(entry)
-      } else if (d >= startOfWeek) {
-        weekEntries.push(entry)
-      }
-    })
-
-    return {
-      today: getSongsByIds(todayEntries.map((e) => e.id)),
-      yesterday: getSongsByIds(yesterdayEntries.map((e) => e.id)),
-      week: getSongsByIds(weekEntries.map((e) => e.id)),
-    }
-  }, [history])
+  if (loading) return <PageLoading sections={2} />
+  if (error) return <PageError error={error} onRetry={refetch} what="your history" />
 
   const hasAny =
-    grouped.today.length > 0 ||
-    grouped.yesterday.length > 0 ||
-    grouped.week.length > 0
+    grouped.today.length > 0 || grouped.yesterday.length > 0 || grouped.week.length > 0
+  const sections = [
+    ['Today', grouped.today],
+    ['Yesterday', grouped.yesterday],
+    ['This week', grouped.week],
+  ]
 
   return (
     <div>
@@ -81,14 +77,14 @@ export function ListeningHistory() {
             Listening history
           </h1>
           <p className="mt-2 max-w-xl text-[var(--aw-muted)]">
-            Tracks you have started on this device — same idea as Spotify’s
-            history, stored locally in the demo.
+            Plays recorded on your account, on any device. Private sessions are
+            never recorded.
           </p>
         </div>
-        {history.length > 0 ? (
+        {hasAny ? (
           <button
             type="button"
-            onClick={() => clearRecentHistory()}
+            onClick={onClear}
             className="inline-flex items-center gap-2 rounded-full border border-[var(--aw-border)] px-4 py-2 text-sm font-semibold text-[var(--aw-muted)] transition hover:border-red-300 hover:bg-red-50 hover:text-red-800 dark:hover:border-red-900 dark:hover:bg-red-950/40 dark:hover:text-red-200"
           >
             <Trash2 className="size-4" />
@@ -100,70 +96,33 @@ export function ListeningHistory() {
       {!hasAny ? (
         <div className="rounded-2xl bg-[var(--aw-surface)] p-12 text-center shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] dark:ring-white/10">
           <p className="text-[var(--aw-muted)]">
-            Nothing here yet. Play a song and it will show up automatically.
+            Nothing here yet. Play a track for 30 seconds and it will show up.
           </p>
-          <Link
-            to="/"
-            className="mt-4 inline-block font-medium text-[var(--aw-primary)]"
-          >
+          <Link to="/" className="mt-4 inline-block font-medium text-[var(--aw-primary)]">
             Go to Home
           </Link>
         </div>
       ) : (
         <div className="space-y-8">
-          {grouped.today.length > 0 ? (
-            <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--aw-muted)]">
-                Today
-              </h2>
-              <div className="space-y-1 rounded-2xl bg-[var(--aw-surface)] p-3 shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] dark:ring-white/10">
-                {grouped.today.map((song, i) => (
-                  <SongRow
-                    key={`${song.id}-today-${i}`}
-                    song={song}
-                    index={i}
-                    queue={grouped.today}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {grouped.yesterday.length > 0 ? (
-            <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--aw-muted)]">
-                Yesterday
-              </h2>
-              <div className="space-y-1 rounded-2xl bg-[var(--aw-surface)] p-3 shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] dark:ring-white/10">
-                {grouped.yesterday.map((song, i) => (
-                  <SongRow
-                    key={`${song.id}-yesterday-${i}`}
-                    song={song}
-                    index={i}
-                    queue={grouped.yesterday}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {grouped.week.length > 0 ? (
-            <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--aw-muted)]">
-                This week
-              </h2>
-              <div className="space-y-1 rounded-2xl bg-[var(--aw-surface)] p-3 shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] dark:ring-white/10">
-                {grouped.week.map((song, i) => (
-                  <SongRow
-                    key={`${song.id}-week-${i}`}
-                    song={song}
-                    index={i}
-                    queue={grouped.week}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : null}
+          {sections.map(([label, tracks]) =>
+            tracks.length ? (
+              <section key={label}>
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--aw-muted)]">
+                  {label}
+                </h2>
+                <div className="space-y-1 rounded-2xl bg-[var(--aw-surface)] p-3 shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] dark:ring-white/10">
+                  {tracks.map((song, i) => (
+                    <SongRow
+                      key={`${song.id}-${label}-${i}`}
+                      song={song}
+                      index={i}
+                      queue={tracks}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null,
+          )}
         </div>
       )}
     </div>

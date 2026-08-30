@@ -71,6 +71,18 @@ adventwave:
   events:
     playback-per-minute: 240     # ~1 progress event every 250ms per listener before limiting
 
+springdoc:
+  # The document is generated from the controllers and dumped to contracts/openapi/ by
+  # tools/dump-openapi.sh. Sorting keeps that file's diff meaningful between regenerations.
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+  writer-with-order-by-keys: true
+  default-produces-media-type: application/json
+
 logging:
   level:
     org.adventwave: INFO

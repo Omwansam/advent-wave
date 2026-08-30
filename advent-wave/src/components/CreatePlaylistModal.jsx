@@ -16,13 +16,23 @@ function CreatePlaylistForm({ onClose }) {
     return () => window.cancelAnimationFrame(id)
   }, [])
 
-  const submit = () => {
-    const id = createPlaylist(
-      title.trim() || 'New playlist',
-      description.trim(),
-    )
-    onClose()
-    navigate(`/playlist/${id}`)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      const id = await createPlaylist(
+        title.trim() || 'New playlist',
+        description.trim(),
+      )
+      onClose()
+      navigate(`/playlist/${id}`)
+    } catch (err) {
+      setError(err.message || 'Could not create the playlist.')
+      setSaving(false)
+    }
   }
 
   return (
@@ -66,6 +76,11 @@ function CreatePlaylistForm({ onClose }) {
           placeholder="What is this list for?"
         />
       </label>
+      {error ? (
+        <p className="mt-4 text-sm text-red-600 dark:text-red-400" role="alert">
+          {error}
+        </p>
+      ) : null}
       <div className="mt-6 flex justify-end gap-2">
         <button
           type="button"
@@ -77,9 +92,10 @@ function CreatePlaylistForm({ onClose }) {
         <button
           type="button"
           onClick={submit}
-          className="rounded-full bg-[var(--aw-primary)] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--aw-primary)]/25 transition hover:bg-[var(--aw-primary-hover)]"
+          disabled={saving}
+          className="rounded-full bg-[var(--aw-primary)] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--aw-primary)]/25 transition hover:bg-[var(--aw-primary-hover)] disabled:opacity-60"
         >
-          Create
+          {saving ? 'Creating…' : 'Create'}
         </button>
       </div>
     </>

@@ -2,9 +2,10 @@ package org.adventwave.gateway.api;
 
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
 import org.adventwave.catalog.CatalogService;
+import org.adventwave.contracts.api.BrowseDto;
 import org.adventwave.contracts.api.DiscoverCategoryDto;
+import org.adventwave.contracts.api.DiscoverDto;
 import org.adventwave.contracts.api.HomeDto;
 import org.adventwave.contracts.api.MediaType;
 import org.adventwave.contracts.api.TrackDto;
@@ -33,24 +34,20 @@ public class HomeController {
     }
 
     @GetMapping({"/discover"})
-    public Map<String, Object> discover(@RequestParam(required = false) String cat) {
-        List<DiscoverCategoryDto> list = this.catalog.discoverCategories();
-        List<TrackDto> list1 = cat != null && !cat.isBlank() && !"all".equals(cat)
+    public DiscoverDto discover(@RequestParam(required = false) String cat) {
+        List<DiscoverCategoryDto> categories = this.catalog.discoverCategories();
+        List<TrackDto> tracks = cat != null && !cat.isBlank() && !"all".equals(cat)
             ? this.catalog.discoverCategoryTracks(cat)
-            : this.catalog.byType(MediaType.SONG, 200);
-        return Map.of("categories", list, "tracks", list1);
+            : this.catalog.byType(MediaType.SONG, BROWSE_LIMIT);
+        return new DiscoverDto(categories, tracks);
     }
 
     @GetMapping({"/browse"})
-    public Map<String, Object> browse() {
-        return Map.of(
-            "songs",
-            this.catalog.byType(MediaType.SONG, 200),
-            "sermons",
-            this.catalog.byType(MediaType.SERMON, 200),
-            "podcasts",
-            this.catalog.byType(MediaType.PODCAST, 200),
-            "categories",
+    public BrowseDto browse() {
+        return new BrowseDto(
+            this.catalog.byType(MediaType.SONG, BROWSE_LIMIT),
+            this.catalog.byType(MediaType.SERMON, BROWSE_LIMIT),
+            this.catalog.byType(MediaType.PODCAST, BROWSE_LIMIT),
             this.catalog.discoverCategories()
         );
     }

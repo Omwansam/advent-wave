@@ -10,12 +10,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
-import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
-import org.springframework.security.config.annotation.web.configurers.SessionManagementConfigurer;
-import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer.AuthorizationManagerRequestMatcherRegistry;
-import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer.AuthorizedUrl;
-import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -27,22 +21,26 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    private static final String[] OPENAPI_PATHS = {
+        "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-ui/**", "/swagger-ui.html"
+    };
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
             .cors(Customizer.withDefaults())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(
-                auth -> ((AuthorizedUrl)((AuthorizedUrl)((AuthorizedUrl)((AuthorizedUrl)auth.requestMatchers(
-                                    new String[]{"/actuator/health/**", "/actuator/info"}
-                                ))
-                                .permitAll()
-                                .requestMatchers(HttpMethod.POST, new String[]{"/v1/auth/session"}))
-                            .permitAll()
-                            .requestMatchers(HttpMethod.GET, new String[]{"/v1/media/*/stream/*"}))
-                        .permitAll()
-                        .anyRequest())
-                    .authenticated()
+                auth -> auth
+                    .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                    // The API document describes the public surface; it carries no data and is
+                    // what the generated client is built from.
+                    .requestMatchers(OPENAPI_PATHS).permitAll()
+                    .requestMatchers(HttpMethod.POST, "/v1/auth/session").permitAll()
+                    // Already authorised by its HMAC signature and expiry, and followed by a
+                    // media player that cannot attach an Authorization header to a redirect.
+                    .requestMatchers(HttpMethod.GET, "/v1/media/*/stream/*").permitAll()
+                    .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
         return (SecurityFilterChain)http.build();

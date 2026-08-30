@@ -1,7 +1,9 @@
 import { ChevronLeft, ChevronRight, Users } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { useUiStore } from '../store/useUiStore'
 
+// Placeholder until a friend-activity endpoint exists. The plan reserves the Redis
+// keyspace (a:friendfeed:{user_id}, §1 day 4) but nothing serves it yet, so these names
+// resolve to no artist id and are shown as plain text rather than dead links.
 const MOCK_FRIENDS = [
   {
     id: 'f1',
@@ -85,12 +87,7 @@ export function FriendActivityPanel() {
                 <p className="truncate text-xs text-[var(--aw-muted)]">
                   <span className="text-[var(--aw-text)]/90">{f.track}</span>
                   <span className="mx-1">·</span>
-                  <Link
-                    to={`/artist/${encodeURIComponent(f.artist)}`}
-                    className="hover:underline"
-                  >
-                    {f.artist}
-                  </Link>
+                  <span>{f.artist}</span>
                 </p>
               </div>
             </div>

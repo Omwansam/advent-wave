@@ -1,19 +1,25 @@
-import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { UserRound } from 'lucide-react'
-import { getArtistByName } from '../data/mockData'
+import { PageError, PageLoading } from '../components/PageState'
+import { getArtist } from '../api'
+import { useApi } from '../hooks/useApi'
 import { useLibraryStore } from '../store/useLibraryStore'
 
 export function FollowedArtists() {
-  const followedArtistNames = useLibraryStore((s) => s.followedArtistNames)
+  const followedArtistIds = useLibraryStore((s) => s.followedArtistIds)
+  const libraryLoaded = useLibraryStore((s) => s.loaded)
 
-  const artists = useMemo(
-    () =>
-      followedArtistNames
-        .map((name) => getArtistByName(name))
-        .filter(Boolean),
-    [followedArtistNames],
+  // No list-artists-by-id endpoint exists; follows are few, so fetch them in parallel.
+  const idKey = followedArtistIds.join(',')
+  const { data, error, loading, refetch } = useApi(
+    (signal) => Promise.all(followedArtistIds.map((id) => getArtist(id, { signal }))),
+    [idKey],
+    { enabled: libraryLoaded && followedArtistIds.length > 0 },
   )
+
+  const artists = data ?? []
+
+  if (error) return <PageError error={error} onRetry={refetch} what="your artists" />
 
   return (
     <div>
@@ -28,12 +34,13 @@ export function FollowedArtists() {
           Your artists
         </h1>
         <p className="mt-2 max-w-xl text-[var(--aw-muted)]">
-          Artists you follow appear here. Open any artist page and tap Follow
-          (Spotify-style).
+          Artists you follow appear here. Open any artist page and tap Follow.
         </p>
       </header>
 
-      {artists.length === 0 ? (
+      {!libraryLoaded || (loading && followedArtistIds.length > 0) ? (
+        <PageLoading sections={1} />
+      ) : artists.length === 0 ? (
         <div className="rounded-2xl bg-[var(--aw-surface)] p-12 text-center shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] dark:ring-white/10">
           <p className="text-[var(--aw-muted)]">
             You are not following anyone yet.
@@ -48,9 +55,9 @@ export function FollowedArtists() {
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {artists.map((a) => (
-            <li key={a.name}>
+            <li key={a.id}>
               <Link
-                to={`/artist/${encodeURIComponent(a.name)}`}
+                to={`/artist/${a.id}`}
                 className="group flex items-center gap-4 rounded-2xl bg-[var(--aw-surface)] p-4 shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] transition hover:ring-[var(--aw-primary)]/30 dark:ring-white/10"
               >
                 <img
@@ -63,8 +70,8 @@ export function FollowedArtists() {
                     {a.name}
                   </p>
                   <p className="text-sm text-[var(--aw-muted)]">
-                    {a.songIds.length} track
-                    {a.songIds.length === 1 ? '' : 's'}
+                    {(a.songIds ?? []).length} track
+                    {(a.songIds ?? []).length === 1 ? '' : 's'}
                   </p>
                 </div>
               </Link>

@@ -1,11 +1,13 @@
 package org.adventwave.gateway.api;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.adventwave.catalog.CatalogService;
 import org.adventwave.catalog.domain.MediaItem;
+import org.adventwave.contracts.api.FollowResultDto;
+import org.adventwave.contracts.api.HistoryDto;
 import org.adventwave.contracts.api.LibraryDto;
+import org.adventwave.contracts.api.LikeResultDto;
 import org.adventwave.contracts.api.MediaType;
 import org.adventwave.contracts.api.TrackDto;
 import org.adventwave.gateway.assemble.LibraryAssembler;
@@ -26,6 +28,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping({"/v1"})
 public class LibraryController {
+    /** ListeningHistory and useLibraryStore both cap recent history at 100 (plan §1 day 4). */
+    private static final int HISTORY_LIMIT = 100;
     private final LibraryService library;
     private final ListeningHistoryService history;
     private final LibraryAssembler assembler;
@@ -44,30 +48,33 @@ public class LibraryController {
     }
 
     @PutMapping({"/library/likes/{mediaItemId}"})
-    public Map<String, Boolean> toggleLike(AuthenticatedUser caller, @PathVariable UUID mediaItemId) {
+    public LikeResultDto toggleLike(AuthenticatedUser caller, @PathVariable UUID mediaItemId) {
         MediaType mediatype = ((MediaItem)this.catalog
                 .entity(mediaItemId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "media item " + mediaItemId + " not found")))
             .getMediaType();
         String s = mediatype == MediaType.SERMON ? "saved_sermons" : "liked_songs";
-        return Map.of("liked", this.library.toggleLike(caller.id(), mediaItemId, s));
+        return new LikeResultDto(this.library.toggleLike(caller.id(), mediaItemId, s));
     }
 
     @PutMapping({"/library/follows/artist/{artistId}"})
-    public Map<String, Boolean> toggleFollowArtist(AuthenticatedUser caller, @PathVariable UUID artistId) {
-        return Map.of("following", this.library.toggleFollowArtist(caller.id(), artistId));
+    public FollowResultDto toggleFollowArtist(AuthenticatedUser caller, @PathVariable UUID artistId) {
+        return new FollowResultDto(this.library.toggleFollowArtist(caller.id(), artistId));
     }
 
     @PutMapping({"/library/follows/playlist/{playlistId}"})
-    public Map<String, Boolean> toggleFollowPlaylist(AuthenticatedUser caller, @PathVariable UUID playlistId) {
-        return Map.of("following", this.library.toggleFollowPlaylist(caller.id(), playlistId));
+    public FollowResultDto toggleFollowPlaylist(AuthenticatedUser caller, @PathVariable UUID playlistId) {
+        return new FollowResultDto(this.library.toggleFollowPlaylist(caller.id(), playlistId));
     }
 
     @GetMapping({"/history"})
-    public Map<String, Object> history(AuthenticatedUser caller) {
-        List<HistoryRow> list = this.history.recent(caller.id(), 100);
-        List<TrackDto> list1 = this.catalog.tracks(list.stream().map(HistoryRow::mediaItemId).toList());
-        return Map.of("entries", list.stream().map(row -> Map.of("id", row.mediaItemId().toString(), "ts", row.playedAtEpochMs())).toList(), "tracks", list1);
+    public HistoryDto history(AuthenticatedUser caller) {
+        List<HistoryRow> rows = this.history.recent(caller.id(), HISTORY_LIMIT);
+        List<TrackDto> tracks = this.catalog.tracks(rows.stream().map(HistoryRow::mediaItemId).toList());
+        List<LibraryDto.HistoryEntry> entries = rows.stream()
+            .map(row -> new LibraryDto.HistoryEntry(row.mediaItemId().toString(), row.playedAtEpochMs()))
+            .toList();
+        return new HistoryDto(entries, tracks);
     }
 
     @DeleteMapping({"/history"})

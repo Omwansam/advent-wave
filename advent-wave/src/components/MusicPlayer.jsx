@@ -19,6 +19,8 @@ import { formatDuration } from '../utils/format'
 import { useUiStore } from '../store/useUiStore'
 import { FullPlayerModal } from './FullPlayerModal'
 import { LikeButton } from './LikeButton'
+import { usePlaybackSource } from '../hooks/usePlaybackSource'
+import { usePlaybackReporter } from '../hooks/usePlaybackReporter'
 
 export function MusicPlayer() {
   const audioRef = useRef(null)
@@ -49,6 +51,11 @@ export function MusicPlayer() {
   const toggleLike = useLibraryStore((s) => s.toggleLike)
   const recordTrackPlay = useLibraryStore((s) => s.recordTrackPlay)
 
+  const normalizeAudio = useUiStore((s) => s.normalizeAudio)
+  const { url: streamUrl, gainFactor, error: streamError } = usePlaybackSource(currentSong?.id)
+
+  usePlaybackReporter(audioRef, currentSong)
+
   useEffect(() => {
     if (!currentSong?.id) return
     recordTrackPlay(currentSong.id)
@@ -56,10 +63,10 @@ export function MusicPlayer() {
 
   useEffect(() => {
     const a = audioRef.current
-    if (!a || !currentSong?.audioUrl) return
-    a.src = currentSong.audioUrl
+    if (!a || !streamUrl) return
+    a.src = streamUrl
     a.load()
-  }, [currentSong?.id, currentSong?.audioUrl])
+  }, [streamUrl])
 
   useEffect(() => {
     const a = audioRef.current
@@ -104,8 +111,10 @@ export function MusicPlayer() {
   useEffect(() => {
     const a = audioRef.current
     if (!a) return
-    a.volume = volume
-  }, [volume])
+    // normalizeAudio applies the server's per-item gain so a studio hymn and a phone
+    // recording of a camp meeting play at the same loudness (plan §11.3).
+    a.volume = normalizeAudio ? volume * gainFactor : volume
+  }, [volume, normalizeAudio, gainFactor])
 
   useEffect(() => {
     if (volume > 0.001) volumeBeforeMuteRef.current = volume
@@ -227,16 +236,22 @@ export function MusicPlayer() {
                   <p className="truncate font-semibold text-[var(--aw-text)]">
                     {currentSong.title}
                   </p>
-                  <Link
-                    to={`/artist/${encodeURIComponent(currentSong.artist)}`}
-                    className="block truncate text-sm text-[var(--aw-muted)] transition hover:text-[var(--aw-text)] hover:underline"
-                  >
-                    {currentSong.artist}
-                  </Link>
+                  {streamError ? (
+                    <p className="truncate text-sm text-red-600 dark:text-red-400">
+                      Unavailable — {streamError.message}
+                    </p>
+                  ) : (
+                    <Link
+                      to={`/artist/${currentSong.artistId}`}
+                      className="block truncate text-sm text-[var(--aw-muted)] transition hover:text-[var(--aw-text)] hover:underline"
+                    >
+                      {currentSong.artist}
+                    </Link>
+                  )}
                 </div>
                 <LikeButton
                   liked={liked}
-                  onToggle={() => currentSong && toggleLike(currentSong.id)}
+                  onToggle={() => currentSong && toggleLike(currentSong.id, currentSong.mediaType)}
                   size="md"
                   className="shrink-0 p-2"
                 />

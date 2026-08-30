@@ -1,12 +1,24 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom'
 import { Disc3, Play, SearchX, Sparkles } from 'lucide-react'
 import { PlaylistCard } from '../components/PlaylistCard'
 import { SongRow } from '../components/SongRow'
 import { SearchHighlight } from '../components/SearchHighlight'
-import { searchCatalogFull, resolvePlaylist } from '../data/mockData'
+import { PageError, PageLoading } from '../components/PageState'
+import { search as searchCatalog } from '../api'
+import { useApi } from '../hooks/useApi'
 import { usePlayerStore } from '../store/usePlayerStore'
-import { useLibraryStore } from '../store/useLibraryStore'
+
+/** Matches SearchResultsDto so the page can render before the first request resolves. */
+const NO_RESULTS = {
+  songs: [],
+  sermons: [],
+  podcasts: [],
+  artists: [],
+  albums: [],
+  playlists: [],
+  topResult: null,
+}
 
 const TABS = [
   { id: 'all', label: 'All' },
@@ -102,7 +114,6 @@ function TopResultCard({ top, query, results }) {
   }
 
   if (type === 'playlist') {
-    const resolved = resolvePlaylist(item)
     return (
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--aw-primary)]">
@@ -112,7 +123,7 @@ function TopResultCard({ top, query, results }) {
         <div className="max-w-xs">
           <PlaylistCard
             playlist={item}
-            songs={resolved.songs}
+            songs={item.songs ?? []}
             showCardMenu
           />
         </div>
@@ -160,7 +171,7 @@ function TopResultCard({ top, query, results }) {
         </p>
         <p className="mt-1 text-xs text-[var(--aw-muted)]">Artist</p>
         <Link
-          to={`/artist/${encodeURIComponent(item.name)}`}
+          to={`/artist/${item.id}`}
           className="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:items-center"
         >
           <img
@@ -182,18 +193,23 @@ function TopResultCard({ top, query, results }) {
 export function SearchResults() {
   const { search: ctxSearch = '' } = useOutletContext() || {}
   const [params] = useSearchParams()
-  const userPlaylists = useLibraryStore((s) => s.userPlaylists)
   const playQueue = usePlayerStore((s) => s.playQueue)
 
   const query = (ctxSearch.trim() || (params.get('q') ?? '')).trim()
   const [tab, setTab] = useState('all')
 
-  const results = useMemo(
-    () => searchCatalogFull(query, userPlaylists),
-    [query, userPlaylists],
+  // Ranking runs on the server, ported score-for-score from searchRank.js including the
+  // Kenya boost — the client no longer has a second, drifting copy of it.
+  const { data, error, loading, refetch } = useApi(
+    (signal) => searchCatalog(query, { signal }),
+    [query],
+    { enabled: query.length > 0 },
   )
 
+  const results = data ?? NO_RESULTS
+
   const show = (id) => tab === 'all' || tab === id
+  const searching = query.length > 0 && loading
 
   const hasAny =
     results.songs.length > 0 ||
@@ -277,7 +293,15 @@ export function SearchResults() {
         ))}
       </div>
 
-      {!hasAny ? (
+      {error ? (
+        <div className="mt-8">
+          <PageError error={error} onRetry={refetch} what="search results" />
+        </div>
+      ) : searching ? (
+        <div className="mt-8">
+          <PageLoading sections={2} />
+        </div>
+      ) : !hasAny ? (
         <div
           className="mt-16 flex flex-col items-center rounded-3xl border border-dashed border-[var(--aw-border)] bg-[var(--aw-surface)]/60 px-6 py-16 text-center"
           role="status"
@@ -369,7 +393,7 @@ export function SearchResults() {
                 {results.artists.map((a) => (
                   <Link
                     key={a.name}
-                    to={`/artist/${encodeURIComponent(a.name)}`}
+                    to={`/artist/${a.id}`}
                     className="aw-card-lift flex w-[9.5rem] flex-col items-center rounded-2xl bg-[var(--aw-surface)] p-4 text-center shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] hover:ring-[var(--aw-primary)]/25 dark:ring-white/10"
                   >
                     <img
@@ -393,17 +417,14 @@ export function SearchResults() {
                 Playlists
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {results.playlists.map((pl) => {
-                  const resolved = resolvePlaylist(pl)
-                  return (
-                    <PlaylistCard
-                      key={pl.id}
-                      playlist={pl}
-                      songs={resolved.songs}
-                      showCardMenu
-                    />
-                  )
-                })}
+                {results.playlists.map((pl) => (
+                  <PlaylistCard
+                    key={pl.id}
+                    playlist={pl}
+                    songs={pl.songs ?? []}
+                    showCardMenu
+                  />
+                ))}
               </div>
             </section>
           ) : null}

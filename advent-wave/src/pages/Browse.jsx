@@ -1,9 +1,48 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Sparkles } from 'lucide-react'
-import { discoverCategories, getAllAlbums, playlists } from '../data/mockData'
+import { PageError, PageLoading } from '../components/PageState'
+import { getBrowse, getRecommendations } from '../api'
+import { useApi } from '../hooks/useApi'
+
+/**
+ * Albums are derived from the tracks the browse endpoint returns rather than fetched.
+ * There is no list-albums operation on the public surface yet; when the catalogue outgrows
+ * the browse response's cap this needs one, because the derivation only sees what came back.
+ */
+function albumsFromTracks(tracks) {
+  const byId = new Map()
+  tracks.forEach((track) => {
+    if (!track.albumId || byId.has(track.albumId)) return
+    byId.set(track.albumId, {
+      id: track.albumId,
+      title: track.album,
+      artist: track.artist,
+      cover: track.cover,
+    })
+  })
+  return [...byId.values()]
+}
 
 export function Browse() {
-  const albums = getAllAlbums()
+  const { data, error, loading, refetch } = useApi(
+    (signal) =>
+      Promise.all([getBrowse({ signal }), getRecommendations({ signal })]).then(
+        ([browse, recommendations]) => ({ browse, recommendations }),
+      ),
+    [],
+  )
+
+  const albums = useMemo(
+    () => albumsFromTracks(data?.browse?.songs ?? []),
+    [data],
+  )
+
+  if (loading) return <PageLoading sections={3} />
+  if (error) return <PageError error={error} onRetry={refetch} what="Browse" />
+
+  const categories = data?.browse?.categories ?? []
+  const staffPicks = (data?.recommendations?.recommendedPlaylists ?? []).slice(0, 4)
   const newOnAdventWave = albums.slice(0, 8)
 
   return (
@@ -17,8 +56,7 @@ export function Browse() {
             Explore everything AdventWave has to offer
           </h1>
           <p className="mt-4 text-[var(--aw-muted)]">
-            New releases, categories, and full album collection — similar to
-            Spotify&apos;s Browse hub.
+            New releases, categories, and the full album collection.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -71,18 +109,16 @@ export function Browse() {
 
       <section className="mt-12">
         <h2 className="mb-4 text-xl font-bold text-[var(--aw-text)]">
-          Moods & ministries
+          Moods &amp; ministries
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {discoverCategories.map((c) => (
+          {categories.map((c) => (
             <Link
               key={c.id}
               to={`/discover?cat=${c.id}`}
-              className={`relative overflow-hidden rounded-2xl p-6 shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] transition hover:scale-[1.01] dark:ring-white/10`}
+              className="relative overflow-hidden rounded-2xl p-6 shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] transition hover:scale-[1.01] dark:ring-white/10"
             >
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${c.gradient}`}
-              />
+              <div className={`absolute inset-0 bg-gradient-to-br ${c.gradient}`} />
               <img
                 src={c.cover}
                 alt=""
@@ -96,27 +132,27 @@ export function Browse() {
         </div>
       </section>
 
-      <section className="mt-12">
-        <h2 className="mb-4 text-xl font-bold text-[var(--aw-text)]">
-          Staff picks (playlists)
-        </h2>
-        <div className="flex flex-wrap gap-4">
-          {playlists.slice(0, 4).map((p) => (
-            <Link
-              key={p.id}
-              to={`/playlist/${p.id}`}
-              className="rounded-xl border border-[var(--aw-border)] bg-[var(--aw-surface)] px-5 py-3 text-sm font-semibold transition hover:border-[var(--aw-primary)] hover:text-[var(--aw-primary)]"
-            >
-              {p.title}
-            </Link>
-          ))}
-        </div>
-      </section>
+      {staffPicks.length ? (
+        <section className="mt-12">
+          <h2 className="mb-4 text-xl font-bold text-[var(--aw-text)]">
+            Recommended playlists
+          </h2>
+          <div className="flex flex-wrap gap-4">
+            {staffPicks.map((p) => (
+              <Link
+                key={p.id}
+                to={`/playlist/${p.id}`}
+                className="rounded-xl border border-[var(--aw-border)] bg-[var(--aw-surface)] px-5 py-3 text-sm font-semibold transition hover:border-[var(--aw-primary)] hover:text-[var(--aw-primary)]"
+              >
+                {p.title}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-12">
-        <h2 className="mb-4 text-xl font-bold text-[var(--aw-text)]">
-          All albums
-        </h2>
+        <h2 className="mb-4 text-xl font-bold text-[var(--aw-text)]">All albums</h2>
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {albums.map((a) => (
             <Link

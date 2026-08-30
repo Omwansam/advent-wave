@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 import java.util.UUID;
 import org.adventwave.contracts.api.PlaylistDto;
+import org.adventwave.contracts.api.PlaylistsDto;
 import org.adventwave.gateway.assemble.PlaylistAssembler;
 import org.adventwave.gateway.security.AuthenticatedUser;
 import org.adventwave.platform.library.LibraryService;
@@ -31,6 +32,18 @@ public class PlaylistController {
     public PlaylistController(LibraryService library, PlaylistAssembler assembler) {
         this.library = library;
         this.assembler = assembler;
+    }
+
+    /**
+     * Curated playlists and the caller's own, tracks resolved. resolveAll batches the track
+     * lookup across every playlist, so this is one query rather than one per playlist.
+     */
+    @GetMapping
+    public PlaylistsDto list(AuthenticatedUser caller) {
+        return new PlaylistsDto(
+            this.assembler.resolveAll(this.library.curatedPlaylists()),
+            this.assembler.resolveAll(this.library.userPlaylists(caller.id()))
+        );
     }
 
     @GetMapping({"/{id}"})
