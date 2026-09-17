@@ -1,0 +1,26 @@
+{
+  "_source": "real outbox row id=49 from the development database, 2026-08-29T18:42:38.241938+03:00",
+  "envelope": {
+    "key": "715304a9-fc79-4b85-b016-b22e26872e99",
+    "headers": {
+      "event_id": "25092028-a25a-4723-ba7a-f86671578471",
+      "event_type": "playback.events.v1",
+      "aggregate_type": "playback"
+    }
+  },
+  "value": {
+    "device": "web",
+    "counted": false,
+    "private": false,
+    "user_id": "715304a9-fc79-4b85-b016-b22e26872e99",
+    "event_id": "3887cb23-58db-4bbb-9621-6d7f3aa44099",
+    "client_ts": "2026-08-29T15:42:38.019Z",
+    "ms_played": 2596,
+    "server_ts": "2026-08-29T15:42:38.241036596Z",
+    "event_type": "skipped",
+    "media_type": "song",
+    "session_id": "d717ea06-83d2-4de3-9d2a-ed533f20fbbd",
+    "duration_ms": 268000,
+    "media_item_id": "f6f77538-812c-5be1-ad5a-a8fa6b2d380c"
+  }
+}

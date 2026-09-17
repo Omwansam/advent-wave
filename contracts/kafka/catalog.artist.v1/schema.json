@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.adventwave.app/kafka/catalog.artist.v1/schema.json",
+  "title": "catalog.artist.v1 (planned)",
+  "description": "Current state of one artist. PLANNED: no producer exists. Fields mirror artists columns. Compacted by artist_id.",
+  "x-adventwave": {
+    "status": "planned",
+    "producer": "none yet (workstream A)",
+    "consumers": [
+      "workstream B",
+      "workstream F"
+    ],
+    "key": "artist_id",
+    "compaction": true,
+    "source": "artists columns in contracts/postgres/schema.sql"
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artist_id",
+        "name",
+        "slug",
+        "verified"
+      ],
+      "properties": {
+        "artist_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "description": "Unique across the catalogue (artists_name_unique)."
+        },
+        "slug": {
+          "type": "string"
+        },
+        "cover_url": {
+          "type": "string"
+        },
+        "bio": {
+          "type": "string"
+        },
+        "church_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Contributing church. Omitted when unknown."
+        },
+        "verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artist_id",
+        "deleted"
+      ],
+      "properties": {
+        "artist_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deleted": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    }
+  ]
+}

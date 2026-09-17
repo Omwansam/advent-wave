@@ -1,0 +1,32 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "POST",
+    "path": "/v1/events/playback",
+    "body": {
+      "mediaItemId": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+      "eventType": "play_started",
+      "msPlayed": 0,
+      "device": "web",
+      "clientTs": "2026-09-17T09:00:00Z"
+    },
+    "authenticated": true
+  },
+  "response": {
+    "status": 202,
+    "body": {
+      "event_id": "c47d1dc3-4728-4031-ab1f-b4f022377c31",
+      "user_id": "715304a9-fc79-4b85-b016-b22e26872e99",
+      "media_item_id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+      "media_type": "song",
+      "event_type": "play_started",
+      "ms_played": 0,
+      "duration_ms": 302000,
+      "counted": false,
+      "private": false,
+      "device": "web",
+      "client_ts": "2026-09-17T09:00:00Z",
+      "server_ts": "2026-09-17T08:54:12.287917290Z"
+    }
+  }
+}

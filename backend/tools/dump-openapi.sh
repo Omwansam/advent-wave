@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerates contracts/openapi/adventwave.yaml from a running gateway.
+# Regenerates <repo>/contracts/openapi/adventwave.yaml from a running gateway.
 #
 # The spec is generated from the controllers, never hand-edited: that is what stops the
 # published contract from drifting away from the code that serves it (plan §1 day 4, §5.1).
@@ -10,7 +10,8 @@
 set -euo pipefail
 
 BASE_URL="${ADVENTWAVE_API_BASE_URL:-http://localhost:8080}"
-OUT="$(cd "$(dirname "$0")/.." && pwd)/contracts/openapi/adventwave.yaml"
+# The contract repo at the repository root, not the Maven module of the same name.
+OUT="$(cd "$(dirname "$0")/../.." && pwd)/contracts/openapi/adventwave.yaml"
 
 # Probe the document itself, not /actuator/health: health reports DOWN whenever Redis is
 # absent, which is a supported local setup (Redis is a cache, never a source of truth).

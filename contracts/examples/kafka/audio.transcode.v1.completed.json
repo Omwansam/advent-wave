@@ -1,0 +1,68 @@
+{
+  "_source": "constructed \u2014 this topic has no producer yet; ids are real seed ids so the example is coherent with the catalogue",
+  "envelope": {
+    "key": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+    "headers": {
+      "event_id": "00000000-0000-4000-8000-00000000d002",
+      "event_type": "audio.transcode.v1"
+    }
+  },
+  "value": {
+    "kind": "completed",
+    "event_id": "00000000-0000-4000-8000-00000000d002",
+    "media_item_id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+    "status": "completed",
+    "duration_ms": 302000,
+    "loudness_lufs": -13.7,
+    "true_peak_dbfs": -0.8,
+    "assets": [
+      {
+        "profile": "aac_24_hev2",
+        "codec": "he-aac-v2",
+        "bitrate_kbps": 24,
+        "container": "m4a",
+        "sample_rate_hz": 44100,
+        "channels": 2,
+        "storage_key": "derived/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/aac_24_hev2.m4a",
+        "byte_size": 906000,
+        "checksum_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "profile": "aac_96",
+        "codec": "aac-lc",
+        "bitrate_kbps": 96,
+        "container": "m4a",
+        "sample_rate_hz": 44100,
+        "channels": 2,
+        "storage_key": "derived/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/aac_96.m4a",
+        "byte_size": 3624000,
+        "checksum_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      {
+        "profile": "aac_160",
+        "codec": "aac-lc",
+        "bitrate_kbps": 160,
+        "container": "m4a",
+        "sample_rate_hz": 44100,
+        "channels": 2,
+        "storage_key": "derived/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/aac_160.m4a",
+        "byte_size": 6040000,
+        "checksum_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      {
+        "profile": "aac_320",
+        "codec": "aac-lc",
+        "bitrate_kbps": 320,
+        "container": "m4a",
+        "sample_rate_hz": 44100,
+        "channels": 2,
+        "storage_key": "derived/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/aac_320.m4a",
+        "byte_size": 12080000,
+        "checksum_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ],
+    "flags": [],
+    "error": null,
+    "completed_at": "2026-09-17T09:00:41Z"
+  }
+}

@@ -1,0 +1,217 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/playlists",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "curated": [
+        {
+          "id": "ab80a2d3-7887-59af-852a-884716e571bd",
+          "title": "Sabbath Morning",
+          "description": "Gentle hymns and worship to begin the day in stillness.",
+          "cover": "https://picsum.photos/seed/p-sabbath-morning/400/400",
+          "songIds": [
+            "2a633ea1-b26f-5521-a040-be85c52face6",
+            "12d30ae4-97cb-561a-a1cd-fc259c11666c"
+          ],
+          "songs": [
+            {
+              "id": "2a633ea1-b26f-5521-a040-be85c52face6",
+              "title": "Come Thou Fount",
+              "artist": "Heritage Singers",
+              "album": "Morning Worship",
+              "duration": 245,
+              "cover": "https://picsum.photos/seed/come-thou/400/400",
+              "audioUrl": "http://localhost:8080/v1/media/2a633ea1-b26f-5521-a040-be85c52face6/stream",
+              "mediaType": "song",
+              "artistId": "0719ce9d-c038-5eb3-b63f-fb28d075f572",
+              "albumId": "a1037c35-29ba-5ae4-b218-9b331fefd2de",
+              "durationMs": 245000,
+              "genre": "worship",
+              "language": "en",
+              "region": "global",
+              "popularity": 86,
+              "legacyId": "s1"
+            },
+            {
+              "id": "12d30ae4-97cb-561a-a1cd-fc259c11666c",
+              "title": "Great Is Thy Faithfulness",
+              "artist": "Loma Linda University Church",
+              "album": "Hymns Reimagined",
+              "duration": 278,
+              "cover": "https://picsum.photos/seed/faithfulness/400/400",
+              "audioUrl": "http://localhost:8080/v1/media/12d30ae4-97cb-561a-a1cd-fc259c11666c/stream",
+              "mediaType": "song",
+              "artistId": "fcae3f97-ab4c-5953-8b85-69bb1276c048",
+              "albumId": "6bc3950d-e1c6-5059-ba0b-3fc8569f386a",
+              "durationMs": 278000,
+              "genre": "worship",
+              "language": "en",
+              "region": "global",
+              "popularity": 84,
+              "legacyId": "s3"
+            }
+          ],
+          "isCurated": true,
+          "legacyId": "p1"
+        },
+        {
+          "id": "de758e47-6931-5aae-94bb-8b0b9fe5a4bc",
+          "title": "Youth Night Live",
+          "description": "High-energy praise from campuses and youth rallies.",
+          "cover": "https://picsum.photos/seed/p-youth-night/400/400",
+          "songIds": [
+            "759cd130-0284-506a-91fc-d63c50b86cb7",
+            "cdc93401-b178-5961-a8b6-f03f32e66c1d"
+          ],
+          "songs": [
+            {
+              "id": "759cd130-0284-506a-91fc-d63c50b86cb7",
+              "title": "In Christ Alone",
+              "artist": "Young Adventists Collective",
+              "album": "Rise & Sing",
+              "duration": 267,
+              "cover": "https://picsum.photos/seed/christ-alone/400/400",
+              "audioUrl": "http://localhost:8080/v1/media/759cd130-0284-506a-91fc-d63c50b86cb7/stream",
+              "mediaType": "song",
+              "artistId": "aa3ca08c-5be0-598a-b345-bcbec21b0c23",
+              "albumId": "c7bac841-15ff-5a52-b765-7777fc538feb",
+              "durationMs": 267000,
+              "genre": "youth",
+              "language": "en",
+              "region": "global",
+              "popularity": 87,
+              "legacyId": "s7"
+            },
+            {
+              "id": "cdc93401-b178-5961-a8b6-f03f32e66c1d",
+              "title": "Cornerstone",
+              "artist": "Urban Praise",
+              "album": "City Lights",
+              "duration": 255,
+              "cover": "https://picsum.photos/seed/cornerstone/400/400",
+              "audioUrl": "http://localhost:8080/v1/media/cdc93401-b178-5961-a8b6-f03f32e66c1d/stream",
+              "mediaType": "song",
+              "artistId": "0728079c-0062-5c66-8dae-b991726353a1",
+              "albumId": "e9c95df6-fa0b-5e62-b803-9d29d982fdb4",
+              "durationMs": 255000,
+              "genre": "youth",
+              "language": "en",
+              "region": "global",
+              "popularity": 82,
+              "legacyId": "s12"
+            }
+          ],
+          "isCurated": true,
+          "legacyId": "p2"
+        }
+      ],
+      "mine": [
+        {
+          "id": "b0000000-0000-4000-8000-000000000001",
+          "title": "Sabbath Drive",
+          "description": "Hymns and choir for the road to church.",
+          "cover": "https://picsum.photos/seed/u-sabbath-drive/400/400",
+          "songIds": [
+            "2a633ea1-b26f-5521-a040-be85c52face6",
+            "b088e229-43e9-5927-a452-304e804423b6"
+          ],
+          "songs": [
+            {
+              "id": "2a633ea1-b26f-5521-a040-be85c52face6",
+              "title": "Come Thou Fount",
+              "artist": "Heritage Singers",
+              "album": "Morning Worship",
+              "duration": 245,
+              "cover": "https://picsum.photos/seed/come-thou/400/400",
+              "audioUrl": "http://localhost:8080/v1/media/2a633ea1-b26f-5521-a040-be85c52face6/stream",
+              "mediaType": "song",
+              "artistId": "0719ce9d-c038-5eb3-b63f-fb28d075f572",
+              "albumId": "a1037c35-29ba-5ae4-b218-9b331fefd2de",
+              "durationMs": 245000,
+              "genre": "worship",
+              "language": "en",
+              "region": "global",
+              "popularity": 86,
+              "legacyId": "s1"
+            },
+            {
+              "id": "b088e229-43e9-5927-a452-304e804423b6",
+              "title": "How Great Thou Art",
+              "artist": "Oakwood University Aeolians",
+              "album": "Live at the Dome",
+              "duration": 356,
+              "cover": "https://picsum.photos/seed/how-great/400/400",
+              "audioUrl": "http://localhost:8080/v1/media/b088e229-43e9-5927-a452-304e804423b6/stream",
+              "mediaType": "song",
+              "artistId": "3c5ea321-382b-5373-9353-1f09c5bd8fed",
+              "albumId": "4887df8f-1267-505e-b5c6-ffe34c8e8c02",
+              "durationMs": 356000,
+              "genre": "choir",
+              "language": "en",
+              "region": "global",
+              "popularity": 92,
+              "legacyId": "s5"
+            }
+          ],
+          "isCurated": false,
+          "ownerId": "715304a9-fc79-4b85-b016-b22e26872e99"
+        },
+        {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "title": "Kenyan Choir Favourites",
+          "description": "The Swahili and Kenyan recordings I keep coming back to.",
+          "cover": "https://picsum.photos/seed/u-kenyan-choir/400/400",
+          "songIds": [
+            "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+            "f6f77538-812c-5be1-ad5a-a8fa6b2d380c"
+          ],
+          "songs": [
+            {
+              "id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+              "title": "Hakuna Mungu Kama Wewe",
+              "artist": "COSACOW Nairobi",
+              "album": "Voices of the City",
+              "duration": 302,
+              "cover": "https://picsum.photos/seed/ke-hakuna-mungu/400/400",
+              "audioUrl": "http://localhost:8080/v1/media/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/stream",
+              "mediaType": "song",
+              "artistId": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
+              "albumId": "0b40986c-8fe0-52d0-9ce2-710da8476805",
+              "durationMs": 302000,
+              "genre": "choir",
+              "language": "mixed",
+              "region": "kenya",
+              "popularity": 94,
+              "legacyId": "s15"
+            },
+            {
+              "id": "f6f77538-812c-5be1-ad5a-a8fa6b2d380c",
+              "title": "Tumsifu Bwana",
+              "artist": "Maxwell SDA Church Choir, Nairobi",
+              "album": "Swahili Praise Live",
+              "duration": 268,
+              "cover": "https://picsum.photos/seed/ke-tumsifu/400/400",
+              "audioUrl": "http://localhost:8080/v1/media/f6f77538-812c-5be1-ad5a-a8fa6b2d380c/stream",
+              "mediaType": "song",
+              "artistId": "cf449d50-3f98-5001-90e3-d56697dccaf1",
+              "albumId": "69d16df1-82d6-5b60-8271-3289f7fdc0cc",
+              "durationMs": 268000,
+              "genre": "gospel_swahili",
+              "language": "sw",
+              "region": "kenya",
+              "popularity": 90,
+              "legacyId": "s13"
+            }
+          ],
+          "isCurated": false,
+          "ownerId": "715304a9-fc79-4b85-b016-b22e26872e99"
+        }
+      ]
+    }
+  }
+}

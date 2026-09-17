@@ -1,0 +1,15 @@
+{
+  "_source": "real outbox row id=42 from the development database, 2026-08-29T17:31:58.672134+03:00",
+  "envelope": {
+    "key": "5b5124c4-da55-4d3b-9a55-40320482bd97",
+    "headers": {
+      "event_id": "5e04449d-4430-45b7-993f-bf15761d14e2",
+      "event_type": "catalog.playlist.v1",
+      "aggregate_type": "playlist"
+    }
+  },
+  "value": {
+    "deleted": true,
+    "playlist_id": "5b5124c4-da55-4d3b-9a55-40320482bd97"
+  }
+}

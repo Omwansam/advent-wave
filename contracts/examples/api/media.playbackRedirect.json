@@ -1,0 +1,15 @@
+{
+  "_source": "live response; the signed URL came from media.manifest.json (audioUrl) and expires 5 minutes after minting",
+  "request": {
+    "method": "GET",
+    "path": "/v1/media/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/stream/aac_160?exp=<epoch>&uid=<user uuid>&sig=<base64url hmac>",
+    "authenticated": false
+  },
+  "response": {
+    "status": 302,
+    "headers": {
+      "Location": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"
+    },
+    "_note": "Location is the seed placeholder today: media_assets is empty, so StreamService falls back to seed_source_url (drift A1)."
+  }
+}

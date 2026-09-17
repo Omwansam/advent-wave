@@ -1,0 +1,17 @@
+{
+  "_source": "real outbox row id=24 from the development database, 2026-08-29T16:46:10.135473+03:00",
+  "envelope": {
+    "key": "7a613c88-ccf2-4f6a-a937-9606b9400c05",
+    "headers": {
+      "event_id": "485085e8-6402-4132-927f-6c35d27be4ec",
+      "event_type": "library.events.v1",
+      "aggregate_type": "library"
+    }
+  },
+  "value": {
+    "action": "liked",
+    "user_id": "7a613c88-ccf2-4f6a-a937-9606b9400c05",
+    "collection": "saved_sermons",
+    "media_item_id": "6ade5605-c3f6-5e34-a73f-a1ab936f1c1e"
+  }
+}

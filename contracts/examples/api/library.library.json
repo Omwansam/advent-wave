@@ -1,0 +1,73 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/library",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "likedSongIds": [
+        "b0ea406a-81c6-5010-9641-4944fdcc11be",
+        "2a633ea1-b26f-5521-a040-be85c52face6"
+      ],
+      "savedSermonIds": [
+        "ff398b29-1758-5ff1-8ac2-c7218aaf3cc5",
+        "6ade5605-c3f6-5e34-a73f-a1ab936f1c1e"
+      ],
+      "userPlaylists": [
+        {
+          "id": "b0000000-0000-4000-8000-000000000001",
+          "title": "Sabbath Drive",
+          "description": "Hymns and choir for the road to church.",
+          "cover": "https://picsum.photos/seed/u-sabbath-drive/400/400",
+          "songIds": [
+            "2a633ea1-b26f-5521-a040-be85c52face6",
+            "b088e229-43e9-5927-a452-304e804423b6"
+          ],
+          "isCurated": false,
+          "ownerId": "715304a9-fc79-4b85-b016-b22e26872e99"
+        },
+        {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "title": "Kenyan Choir Favourites",
+          "description": "The Swahili and Kenyan recordings I keep coming back to.",
+          "cover": "https://picsum.photos/seed/u-kenyan-choir/400/400",
+          "songIds": [
+            "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+            "f6f77538-812c-5be1-ad5a-a8fa6b2d380c"
+          ],
+          "isCurated": false,
+          "ownerId": "715304a9-fc79-4b85-b016-b22e26872e99"
+        }
+      ],
+      "followedArtistNames": [
+        "Oakwood University Aeolians",
+        "Maxwell SDA Church Choir, Nairobi"
+      ],
+      "followedArtistIds": [
+        "3c5ea321-382b-5373-9353-1f09c5bd8fed",
+        "cf449d50-3f98-5001-90e3-d56697dccaf1"
+      ],
+      "followedPlaylistIds": [
+        "ab80a2d3-7887-59af-852a-884716e571bd",
+        "1f63e86e-e367-55d8-911e-354380af7744"
+      ],
+      "recentHistory": [
+        {
+          "id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+          "ts": 1788010245796
+        },
+        {
+          "id": "f6f77538-812c-5be1-ad5a-a8fa6b2d380c",
+          "ts": 1788003045796
+        }
+      ],
+      "recentTrackIds": [
+        "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+        "f6f77538-812c-5be1-ad5a-a8fa6b2d380c"
+      ]
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/artists/b4f12b98-1b92-5b62-bfee-1d1827735da2",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
+      "name": "COSACOW Nairobi",
+      "slug": "cosacow-nairobi",
+      "cover": "https://picsum.photos/seed/ke-hakuna-mungu/400/400",
+      "verified": false,
+      "songIds": [
+        "3268c157-91dc-5e4f-a1ac-5ec9357c98b9"
+      ],
+      "tracks": [
+        {
+          "id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+          "title": "Hakuna Mungu Kama Wewe",
+          "artist": "COSACOW Nairobi",
+          "album": "Voices of the City",
+          "duration": 302,
+          "cover": "https://picsum.photos/seed/ke-hakuna-mungu/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/stream",
+          "mediaType": "song",
+          "artistId": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
+          "albumId": "0b40986c-8fe0-52d0-9ce2-710da8476805",
+          "durationMs": 302000,
+          "genre": "choir",
+          "language": "mixed",
+          "region": "kenya",
+          "popularity": 94,
+          "legacyId": "s15"
+        }
+      ]
+    }
+  }
+}

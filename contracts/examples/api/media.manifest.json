@@ -1,0 +1,20 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/media/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/stream",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "mediaItemId": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+      "durationMs": 302000,
+      "targetLufs": -14.0,
+      "selectedProfile": "aac_160",
+      "audioUrl": "http://localhost:8080/v1/media/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/stream/aac_160?exp=1789635552&uid=715304a9-fc79-4b85-b016-b22e26872e99&sig=1XgjFeTfPRwsWVZZXh8G7k-y_nTBtzFR7ocP5vX0rDg",
+      "expiresAtEpochSeconds": 1789635552,
+      "profiles": []
+    }
+  }
+}

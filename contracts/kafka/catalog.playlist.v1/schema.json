@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.adventwave.app/kafka/catalog.playlist.v1/schema.json",
+  "title": "catalog.playlist.v1",
+  "description": "Current state of one playlist, or its deletion. Compacted by playlist_id: the newest message per key is the truth, and a tombstone is an explicit {deleted:true} message rather than a null value, so it survives the outbox (JSONB NOT NULL).",
+  "x-adventwave": {
+    "status": "implemented",
+    "producer": "platform-core LibraryService via outbox",
+    "consumers": [
+      "workstream B (search index)",
+      "workstream F"
+    ],
+    "key": "playlist_id",
+    "compaction": true,
+    "source": "backend/platform-core/src/main/java/org/adventwave/platform/library/LibraryService.java"
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "playlist_id",
+        "owner_id",
+        "title",
+        "description",
+        "is_curated",
+        "is_public",
+        "song_ids"
+      ],
+      "properties": {
+        "playlist_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "owner_id": {
+          "type": "string",
+          "description": "UUID of the owner, or the empty string for a curated playlist (Map.of cannot hold null)."
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "Empty string when unset."
+        },
+        "is_curated": {
+          "type": "boolean"
+        },
+        "is_public": {
+          "type": "boolean"
+        },
+        "song_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": "Ordered by playlist_items.position."
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "playlist_id",
+        "deleted"
+      ],
+      "properties": {
+        "playlist_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deleted": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    }
+  ]
+}

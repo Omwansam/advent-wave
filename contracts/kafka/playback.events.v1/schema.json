@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.adventwave.app/kafka/playback.events.v1/schema.json",
+  "title": "playback.events.v1",
+  "description": "One playback observation, as ingested by POST /v1/events/playback. The server computes counted, duration_ms, media_type and private; the client cannot set them. Emitted even when private=true, flagged, so every consumer can honour the rule: private events reach neither listening history nor recommendation features nor the friend feed.",
+  "x-adventwave": {
+    "status": "implemented",
+    "producer": "gateway PlaybackIngestService via outbox",
+    "consumers": [
+      "workstream C (Cassandra writer)",
+      "workstream F (features)"
+    ],
+    "key": "user_id",
+    "retention": "30d (plan)",
+    "compaction": false,
+    "source": "backend/contracts/src/main/java/org/adventwave/contracts/events/PlaybackEvent.java"
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "user_id",
+    "media_item_id",
+    "media_type",
+    "event_type",
+    "ms_played",
+    "duration_ms",
+    "counted",
+    "private",
+    "server_ts"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Idempotency key. Client-supplied via PlaybackSubmission.eventId, else generated at ingest."
+    },
+    "user_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "From the JWT, never from the request body."
+    },
+    "media_item_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "media_type": {
+      "type": "string",
+      "enum": [
+        "song",
+        "sermon",
+        "podcast"
+      ],
+      "description": "From the catalogue row, not the request."
+    },
+    "session_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "One per listening session (client-defined). Omitted when the client sent none."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "play_started",
+        "play_progress",
+        "play_completed",
+        "skipped"
+      ]
+    },
+    "ms_played": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "From media_items.duration_ms."
+    },
+    "counted": {
+      "type": "boolean",
+      "description": "PlayCountingPolicy: ms_played >= 30000 OR ms_played >= duration_ms * 0.5. What is reported to contributing churches."
+    },
+    "private": {
+      "type": "boolean",
+      "description": "user_settings.private_session at ingest time. MUST be honoured by every consumer."
+    },
+    "device": {
+      "type": "string",
+      "description": "Free text from the client. Recommended values: web, ios, android. Not validated server-side (see drift K3)."
+    },
+    "client_ts": {
+      "type": "string",
+      "description": "Client wall clock, ISO 8601 by convention. Not validated server-side."
+    },
+    "server_ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Ingest time. Authoritative for ordering within a key."
+    }
+  }
+}

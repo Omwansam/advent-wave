@@ -1,0 +1,20 @@
+{
+  "_source": "constructed \u2014 this topic has no producer yet; ids are real seed ids so the example is coherent with the catalogue",
+  "envelope": {
+    "key": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+    "headers": {
+      "event_id": "00000000-0000-4000-8000-00000000d001",
+      "event_type": "audio.transcode.v1"
+    }
+  },
+  "value": {
+    "kind": "requested",
+    "event_id": "00000000-0000-4000-8000-00000000d001",
+    "media_item_id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+    "media_type": "song",
+    "master_storage_key": "masters/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/original.wav",
+    "ladder": "music_v1",
+    "attempt": 1,
+    "requested_at": "2026-09-17T09:00:00Z"
+  }
+}

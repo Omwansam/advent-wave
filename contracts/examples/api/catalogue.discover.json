@@ -1,0 +1,67 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/discover?cat=kenya",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "categories": [
+        {
+          "id": "worship",
+          "label": "Worship",
+          "gradient": "from-[#6D5DF6]/25 to-[#c9a227]/20",
+          "cover": "https://picsum.photos/seed/cat-worship/400/400",
+          "sortOrder": 0
+        },
+        {
+          "id": "youth",
+          "label": "Youth",
+          "gradient": "from-[#5b8def]/25 to-[#6D5DF6]/20",
+          "cover": "https://picsum.photos/seed/cat-youth/400/400",
+          "sortOrder": 1
+        }
+      ],
+      "tracks": [
+        {
+          "id": "f6f77538-812c-5be1-ad5a-a8fa6b2d380c",
+          "title": "Tumsifu Bwana",
+          "artist": "Maxwell SDA Church Choir, Nairobi",
+          "album": "Swahili Praise Live",
+          "duration": 268,
+          "cover": "https://picsum.photos/seed/ke-tumsifu/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/f6f77538-812c-5be1-ad5a-a8fa6b2d380c/stream",
+          "mediaType": "song",
+          "artistId": "cf449d50-3f98-5001-90e3-d56697dccaf1",
+          "albumId": "69d16df1-82d6-5b60-8271-3289f7fdc0cc",
+          "durationMs": 268000,
+          "genre": "gospel_swahili",
+          "language": "sw",
+          "region": "kenya",
+          "popularity": 90,
+          "legacyId": "s13"
+        },
+        {
+          "id": "845076a9-a3b7-541b-be0c-aa598058b16b",
+          "title": "Jina Lake Yesu",
+          "artist": "Kisumu Central SDA Cathedral Praise",
+          "album": "Lake Basin Worship",
+          "duration": 241,
+          "cover": "https://picsum.photos/seed/ke-jina-yesu/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/845076a9-a3b7-541b-be0c-aa598058b16b/stream",
+          "mediaType": "song",
+          "artistId": "232226a5-98c9-5e6d-bba5-bedf2033e4af",
+          "albumId": "805fa184-812d-5bb3-9563-818c5e6d6494",
+          "durationMs": 241000,
+          "genre": "gospel_swahili",
+          "language": "sw",
+          "region": "kenya",
+          "popularity": 89,
+          "legacyId": "s14"
+        }
+      ]
+    }
+  }
+}

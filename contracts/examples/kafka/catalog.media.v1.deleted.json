@@ -1,0 +1,14 @@
+{
+  "_source": "constructed \u2014 this topic has no producer yet; ids are real seed ids so the example is coherent with the catalogue",
+  "envelope": {
+    "key": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+    "headers": {
+      "event_id": "00000000-0000-4000-8000-00000000f001",
+      "event_type": "catalog.media.v1"
+    }
+  },
+  "value": {
+    "media_item_id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+    "deleted": true
+  }
+}

@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.adventwave.app/kafka/audio.transcode.v1/schema.json",
+  "title": "audio.transcode.v1 (planned)",
+  "description": "Transcode job lifecycle for workstream D's worker. PLANNED: no producer or consumer exists. `requested` is produced by the upload service; `completed` by the worker and consumed by workstream A, which writes media_assets rows, the loudness fields, and moves status processing \u2192 published \u2014 which the database refuses without a granted licence. Keyed by media_item_id so a job and its result share a partition.",
+  "x-adventwave": {
+    "status": "planned",
+    "producer": "none yet (workstream D upload service / transcode worker)",
+    "consumers": [
+      "workstream A (media_assets writer)"
+    ],
+    "key": "media_item_id",
+    "compaction": false,
+    "dead_letter": "audio.transcode.v1.dlq (planned)",
+    "source": "advent-wave/BACKEND_BUILD_PLAN.md \u00a711.6 + media_assets columns"
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "event_id",
+        "media_item_id",
+        "media_type",
+        "master_storage_key",
+        "ladder",
+        "attempt",
+        "requested_at"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "requested"
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "media_item_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "media_type": {
+          "type": "string",
+          "enum": [
+            "song",
+            "sermon",
+            "podcast"
+          ]
+        },
+        "master_storage_key": {
+          "type": "string",
+          "description": "masters/{media_item_id}/original.{ext}. Masters are never served and never deleted."
+        },
+        "ladder": {
+          "type": "string",
+          "enum": [
+            "music_v1",
+            "speech_v1"
+          ],
+          "description": "BitrateLadder.ladderFor(media_type): songs \u2192 music_v1, sermons and podcasts \u2192 speech_v1."
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "3 attempts with exponential backoff, then the dead-letter topic."
+        },
+        "requested_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "event_id",
+        "media_item_id",
+        "status",
+        "completed_at"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "completed"
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "media_item_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "failed"
+          ]
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Probed from the encode; must match the master within \u00b1100 ms."
+        },
+        "loudness_lufs": {
+          "type": "number",
+          "description": "Integrated loudness measured once from the master (ebur128). \u2192 media_items.loudness_lufs"
+        },
+        "true_peak_dbfs": {
+          "type": "number",
+          "description": "\u2192 media_items.true_peak_dbfs"
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "profile",
+              "codec",
+              "bitrate_kbps",
+              "container",
+              "sample_rate_hz",
+              "channels",
+              "storage_key",
+              "byte_size",
+              "checksum_sha256"
+            ],
+            "properties": {
+              "profile": {
+                "type": "string",
+                "enum": [
+                  "aac_24_hev2",
+                  "aac_64",
+                  "aac_96",
+                  "aac_128",
+                  "aac_160",
+                  "aac_320"
+                ]
+              },
+              "codec": {
+                "type": "string",
+                "description": "e.g. aac-lc, he-aac-v2"
+              },
+              "bitrate_kbps": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "container": {
+                "type": "string",
+                "const": "m4a"
+              },
+              "sample_rate_hz": {
+                "type": "integer",
+                "minimum": 8000
+              },
+              "channels": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "Preserved from the master, never forced."
+              },
+              "storage_key": {
+                "type": "string",
+                "description": "derived/{media_item_id}/{profile}.m4a \u2014 deterministic, so retries overwrite identically."
+              },
+              "byte_size": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Read from the encoded file, never bitrate \u00d7 duration."
+              },
+              "checksum_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          },
+          "description": "One per profile in the ladder. Empty on failure."
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "lossy_master",
+              "long_leading_silence",
+              "long_trailing_silence"
+            ]
+          },
+          "description": "Conditions for human review in the admin portal. Never auto-corrected (plan \u00a711.1, \u00a711.7)."
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "probe_failed",
+                "encode_failed",
+                "verification_failed",
+                "upload_failed"
+              ]
+            },
+            "message": {
+              "type": "string"
+            },
+            "stage": {
+              "type": "string",
+              "enum": [
+                "probe",
+                "encode",
+                "verify",
+                "waveform",
+                "upload"
+              ]
+            }
+          }
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "completed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "duration_ms",
+          "loudness_lufs",
+          "true_peak_dbfs",
+          "assets"
+        ]
+      },
+      "else": {
+        "required": [
+          "error"
+        ]
+      }
+    }
+  ]
+}

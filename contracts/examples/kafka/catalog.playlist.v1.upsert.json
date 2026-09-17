@@ -1,0 +1,20 @@
+{
+  "_source": "real outbox row id=41 from the development database, 2026-08-29T17:31:58.644537+03:00",
+  "envelope": {
+    "key": "5b5124c4-da55-4d3b-9a55-40320482bd97",
+    "headers": {
+      "event_id": "1131add7-a883-42e9-a785-7475ec583218",
+      "event_type": "catalog.playlist.v1",
+      "aggregate_type": "playlist"
+    }
+  },
+  "value": {
+    "title": "Renamed",
+    "owner_id": "7a613c88-ccf2-4f6a-a937-9606b9400c05",
+    "song_ids": [],
+    "is_public": true,
+    "is_curated": false,
+    "description": "x",
+    "playlist_id": "5b5124c4-da55-4d3b-9a55-40320482bd97"
+  }
+}

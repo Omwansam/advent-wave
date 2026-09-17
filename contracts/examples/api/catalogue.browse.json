@@ -1,0 +1,143 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/browse",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "songs": [
+        {
+          "id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+          "title": "Hakuna Mungu Kama Wewe",
+          "artist": "COSACOW Nairobi",
+          "album": "Voices of the City",
+          "duration": 302,
+          "cover": "https://picsum.photos/seed/ke-hakuna-mungu/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/stream",
+          "mediaType": "song",
+          "artistId": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
+          "albumId": "0b40986c-8fe0-52d0-9ce2-710da8476805",
+          "durationMs": 302000,
+          "genre": "choir",
+          "language": "mixed",
+          "region": "kenya",
+          "popularity": 94,
+          "legacyId": "s15"
+        },
+        {
+          "id": "297caa2e-a047-58ba-86d8-b5da8b024801",
+          "title": "We Have This Hope",
+          "artist": "Adventist Youth Choir Kenya",
+          "album": "East-Central Africa Division Youth",
+          "duration": 248,
+          "cover": "https://picsum.photos/seed/ke-we-have-hope/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/297caa2e-a047-58ba-86d8-b5da8b024801/stream",
+          "mediaType": "song",
+          "artistId": "e1671121-3bbf-5c7b-be76-9a5d672aee3b",
+          "albumId": "53974ae7-ec8d-5cf4-a6e5-3a36a8e37aae",
+          "durationMs": 248000,
+          "genre": "choir",
+          "language": "mixed",
+          "region": "kenya",
+          "popularity": 93,
+          "legacyId": "s30"
+        }
+      ],
+      "sermons": [
+        {
+          "id": "6ade5605-c3f6-5e34-a73f-a1ab936f1c1e",
+          "title": "Grace That Transforms",
+          "artist": "Pastor Dwight Nelson",
+          "album": "Pioneer Memorial Church",
+          "duration": 2580,
+          "cover": "https://picsum.photos/seed/ser-dwight/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/6ade5605-c3f6-5e34-a73f-a1ab936f1c1e/stream",
+          "mediaType": "sermon",
+          "artistId": "263d3f37-aa18-5bd4-a596-550bb5ea171f",
+          "albumId": "09b5bfc1-4e48-5c03-9efa-7ed52f3b3b2e",
+          "durationMs": 2580000,
+          "genre": "worship",
+          "language": "en",
+          "region": "global",
+          "popularity": 60,
+          "legacyId": "ser1"
+        },
+        {
+          "id": "ff398b29-1758-5ff1-8ac2-c7218aaf3cc5",
+          "title": "The Rest Remains",
+          "artist": "Pastor Mark Finley",
+          "album": "Prophecy & Peace",
+          "duration": 2820,
+          "cover": "https://picsum.photos/seed/ser-finley/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/ff398b29-1758-5ff1-8ac2-c7218aaf3cc5/stream",
+          "mediaType": "sermon",
+          "artistId": "b903ef64-301d-5f48-afbd-f0917808774e",
+          "albumId": "65469fa5-4ee9-5b39-9739-0e868adf6a1a",
+          "durationMs": 2820000,
+          "genre": "worship",
+          "language": "en",
+          "region": "global",
+          "popularity": 60,
+          "legacyId": "ser2"
+        }
+      ],
+      "podcasts": [
+        {
+          "id": "c9aecd72-1f6b-52d6-8efd-25e7f7bc6f6d",
+          "title": "Faith on the Front Lines",
+          "artist": "Adventist World Radio",
+          "album": "Weekly Episode",
+          "duration": 1842,
+          "cover": "https://picsum.photos/seed/pod-awr/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/c9aecd72-1f6b-52d6-8efd-25e7f7bc6f6d/stream",
+          "mediaType": "podcast",
+          "artistId": "6a44b11c-aa1f-5165-8f9a-f12785f673a1",
+          "albumId": "9f1c2909-17a9-59da-a520-a90067cd7edb",
+          "durationMs": 1842000,
+          "genre": "worship",
+          "language": "en",
+          "region": "global",
+          "popularity": 60,
+          "legacyId": "ep1"
+        },
+        {
+          "id": "61613639-ae5b-54d7-8a82-759f70620eb4",
+          "title": "Hope Lives Here \u2014 Community Stories",
+          "artist": "Hope Channel Podcast",
+          "album": "Season 4",
+          "duration": 2205,
+          "cover": "https://picsum.photos/seed/pod-hope/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/61613639-ae5b-54d7-8a82-759f70620eb4/stream",
+          "mediaType": "podcast",
+          "artistId": "d4b9fcec-4311-58fa-adf1-f9f30b161427",
+          "albumId": "ebbe57b6-7466-51b0-ad30-b7a38d0a7890",
+          "durationMs": 2205000,
+          "genre": "worship",
+          "language": "en",
+          "region": "global",
+          "popularity": 60,
+          "legacyId": "ep2"
+        }
+      ],
+      "categories": [
+        {
+          "id": "worship",
+          "label": "Worship",
+          "gradient": "from-[#6D5DF6]/25 to-[#c9a227]/20",
+          "cover": "https://picsum.photos/seed/cat-worship/400/400",
+          "sortOrder": 0
+        },
+        {
+          "id": "youth",
+          "label": "Youth",
+          "gradient": "from-[#5b8def]/25 to-[#6D5DF6]/20",
+          "cover": "https://picsum.photos/seed/cat-youth/400/400",
+          "sortOrder": 1
+        }
+      ]
+    }
+  }
+}

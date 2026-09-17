@@ -1,0 +1,26 @@
+{
+  "_source": "constructed \u2014 this topic has no producer yet; ids are real seed ids so the example is coherent with the catalogue",
+  "envelope": {
+    "key": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+    "headers": {
+      "event_id": "00000000-0000-4000-8000-00000000f001",
+      "event_type": "catalog.media.v1"
+    }
+  },
+  "value": {
+    "media_item_id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+    "media_type": "song",
+    "title": "Hakuna Mungu Kama Wewe",
+    "artist_id": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
+    "album_id": "0b40986c-8fe0-52d0-9ce2-710da8476805",
+    "duration_ms": 302000,
+    "cover_url": "https://picsum.photos/seed/ke-hakuna-mungu/400/400",
+    "genre": "choir",
+    "language": "mixed",
+    "region": "kenya",
+    "popularity": 94,
+    "status": "published",
+    "published_at": "2026-08-29T12:00:00Z",
+    "updated_at": "2026-08-29T12:00:00Z"
+  }
+}

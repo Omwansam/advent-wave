@@ -1,0 +1,16 @@
+{
+  "_source": "real outbox row id=25 from the development database, 2026-08-29T16:46:10.162583+03:00",
+  "envelope": {
+    "key": "7a613c88-ccf2-4f6a-a937-9606b9400c05",
+    "headers": {
+      "event_id": "cd222bf2-e0a1-49ca-bef7-e20cdc47e06c",
+      "event_type": "library.events.v1",
+      "aggregate_type": "library"
+    }
+  },
+  "value": {
+    "action": "followed_artist",
+    "user_id": "7a613c88-ccf2-4f6a-a937-9606b9400c05",
+    "artist_id": "b4f12b98-1b92-5b62-bfee-1d1827735da2"
+  }
+}

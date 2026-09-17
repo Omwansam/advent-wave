@@ -1,0 +1,160 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/recommendations",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "recommendedSongs": [
+        {
+          "id": "a7e29274-7869-5bc4-9ee8-ecf818f949df",
+          "title": "Bwana U Karibu",
+          "artist": "Karen SDA Church Worship Team",
+          "album": "Evening Light Nairobi",
+          "duration": 254,
+          "cover": "https://picsum.photos/seed/ke-bwana-karibu/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/a7e29274-7869-5bc4-9ee8-ecf818f949df/stream",
+          "mediaType": "song",
+          "artistId": "12ac2320-e51b-5e9f-beb4-b0a76335f22a",
+          "albumId": "dca237bd-d056-50cc-b176-496dada91d57",
+          "durationMs": 254000,
+          "genre": "worship",
+          "language": "mixed",
+          "region": "kenya",
+          "popularity": 88,
+          "legacyId": "s18"
+        },
+        {
+          "id": "959e1eb6-53cc-573a-bfc0-ff30d6e10383",
+          "title": "Taifa Lako, Bwana (Your Nation, Lord)",
+          "artist": "University of Nairobi Adventist Students",
+          "album": "Pray for Kenya",
+          "duration": 259,
+          "cover": "https://picsum.photos/seed/ke-taifa/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/959e1eb6-53cc-573a-bfc0-ff30d6e10383/stream",
+          "mediaType": "song",
+          "artistId": "980b65ca-6027-5f44-a6d7-f2a4ab41b017",
+          "albumId": "1053648f-d367-57ab-8414-9305f324c328",
+          "durationMs": 259000,
+          "genre": "youth",
+          "language": "sw",
+          "region": "kenya",
+          "popularity": 88,
+          "legacyId": "s28"
+        }
+      ],
+      "recommendedPlaylists": [
+        {
+          "id": "1f63e86e-e367-55d8-911e-354380af7744",
+          "title": "Kenya \u2014 Sabbath & streets",
+          "description": "Choirs and praise teams from Nairobi, Kisumu, Mombasa, and the Rift \u2014 mock catalogue celebrating Kenya.",
+          "cover": "https://picsum.photos/seed/p-kenya-sabbath/400/400",
+          "songIds": [
+            "f6f77538-812c-5be1-ad5a-a8fa6b2d380c",
+            "845076a9-a3b7-541b-be0c-aa598058b16b"
+          ],
+          "isCurated": true,
+          "legacyId": "p5"
+        },
+        {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "title": "Kenyan Choir Favourites",
+          "description": "The Swahili and Kenyan recordings I keep coming back to.",
+          "cover": "https://picsum.photos/seed/u-kenyan-choir/400/400",
+          "songIds": [
+            "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+            "f6f77538-812c-5be1-ad5a-a8fa6b2d380c"
+          ],
+          "isCurated": false,
+          "ownerId": "715304a9-fc79-4b85-b016-b22e26872e99"
+        }
+      ],
+      "becauseYouListened": {
+        "artistName": "COSACOW Nairobi",
+        "songs": [
+          {
+            "id": "fb1faa85-f656-5ca9-9dc3-810fd3f7fb9a",
+            "title": "Holy, Holy, Holy",
+            "artist": "Pacific Union College",
+            "album": "Camp Meeting 2024",
+            "duration": 293,
+            "cover": "https://picsum.photos/seed/holy3/400/400",
+            "audioUrl": "http://localhost:8080/v1/media/fb1faa85-f656-5ca9-9dc3-810fd3f7fb9a/stream",
+            "mediaType": "song",
+            "artistId": "eb7548dc-f5f3-5293-9ebb-a1d0722907e7",
+            "albumId": "9a821d7b-694f-5fa3-a402-230e2d2b9fe1",
+            "durationMs": 293000,
+            "genre": "choir",
+            "language": "en",
+            "region": "global",
+            "popularity": 85,
+            "legacyId": "s11"
+          },
+          {
+            "id": "1f53823a-bc15-5ca3-8c94-6592fb21b097",
+            "title": "I'll Go Where You Want Me to Go",
+            "artist": "Kisii County SDA Youth Mass Choir",
+            "album": "Green Hills Sendoff",
+            "duration": 276,
+            "cover": "https://picsum.photos/seed/ke-ill-go/400/400",
+            "audioUrl": "http://localhost:8080/v1/media/1f53823a-bc15-5ca3-8c94-6592fb21b097/stream",
+            "mediaType": "song",
+            "artistId": "008cdb7d-3874-5463-aefc-25333b2daf8a",
+            "albumId": "f6095727-c73c-5610-81a2-19a231ab66e2",
+            "durationMs": 276000,
+            "genre": "choir",
+            "language": "mixed",
+            "region": "kenya",
+            "popularity": 85,
+            "legacyId": "s21"
+          }
+        ]
+      },
+      "trendingInRegion": {
+        "label": "Kenya & East Africa",
+        "region": "kenya",
+        "songs": [
+          {
+            "id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+            "title": "Hakuna Mungu Kama Wewe",
+            "artist": "COSACOW Nairobi",
+            "album": "Voices of the City",
+            "duration": 302,
+            "cover": "https://picsum.photos/seed/ke-hakuna-mungu/400/400",
+            "audioUrl": "http://localhost:8080/v1/media/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/stream",
+            "mediaType": "song",
+            "artistId": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
+            "albumId": "0b40986c-8fe0-52d0-9ce2-710da8476805",
+            "durationMs": 302000,
+            "genre": "choir",
+            "language": "mixed",
+            "region": "kenya",
+            "popularity": 94,
+            "legacyId": "s15"
+          },
+          {
+            "id": "297caa2e-a047-58ba-86d8-b5da8b024801",
+            "title": "We Have This Hope",
+            "artist": "Adventist Youth Choir Kenya",
+            "album": "East-Central Africa Division Youth",
+            "duration": 248,
+            "cover": "https://picsum.photos/seed/ke-we-have-hope/400/400",
+            "audioUrl": "http://localhost:8080/v1/media/297caa2e-a047-58ba-86d8-b5da8b024801/stream",
+            "mediaType": "song",
+            "artistId": "e1671121-3bbf-5c7b-be76-9a5d672aee3b",
+            "albumId": "53974ae7-ec8d-5cf4-a6e5-3a36a8e37aae",
+            "durationMs": 248000,
+            "genre": "choir",
+            "language": "mixed",
+            "region": "kenya",
+            "popularity": 93,
+            "legacyId": "s30"
+          }
+        ]
+      }
+    }
+  }
+}

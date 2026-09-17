@@ -1,0 +1,11 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/home",
+    "authenticated": false
+  },
+  "response": {
+    "status": 401
+  }
+}

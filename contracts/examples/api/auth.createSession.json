@@ -1,0 +1,26 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "POST",
+    "path": "/v1/auth/session",
+    "body": {
+      "email": "listener@adventwave.app",
+      "name": "Listener"
+    },
+    "authenticated": false
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhZHZlbnR3YXZlLWRldiIsIm5hbWUiOiJMaXN0ZW5lciIsInN1YiI6ImRldnxsaXN0ZW5lckBhZHZlbnR3YXZlLmFwcCIsImV4cCI6MTc4OTY3ODQ1MSwiaWF0IjoxNzg5NjM1MjUxLCJlbWFpbCI6Imxpc3RlbmVyQGFkdmVudHdhdmUuYXBwIn0.k9v_sG5GL2oGvOp4mhDr4xnBYVMROwp6SPlLtf979Q8",
+      "tokenType": "Bearer",
+      "expiresIn": 43200,
+      "user": {
+        "id": "715304a9-fc79-4b85-b016-b22e26872e99",
+        "email": "listener@adventwave.app",
+        "name": "Listener",
+        "createdAt": "2026-08-29T12:32:04.056023Z"
+      }
+    }
+  }
+}

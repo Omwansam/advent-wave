@@ -1,0 +1,17 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/media/00000000-0000-0000-0000-000000000000",
+    "authenticated": true
+  },
+  "response": {
+    "status": 404,
+    "body": {
+      "timestamp": "2026-09-17T08:54:12.311079345Z",
+      "message": "media item 00000000-0000-0000-0000-000000000000 not found",
+      "error": "Not Found",
+      "status": 404
+    }
+  }
+}

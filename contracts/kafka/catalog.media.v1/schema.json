@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.adventwave.app/kafka/catalog.media.v1/schema.json",
+  "title": "catalog.media.v1 (planned)",
+  "description": "Current state of one media item, or its withdrawal. PLANNED: no producer exists. The first producer is the ingest/admin path (workstream A/H) and the transcode consumer that flips status to published (workstream D \u2192 A). Fields mirror media_items columns; changing them is an RFC. Compacted by media_item_id.",
+  "x-adventwave": {
+    "status": "planned",
+    "producer": "none yet (workstream A ingest / D\u2192A transcode consumer)",
+    "consumers": [
+      "workstream B (search index)",
+      "workstream F"
+    ],
+    "key": "media_item_id",
+    "compaction": true,
+    "source": "media_items columns in contracts/postgres/schema.sql"
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "media_item_id",
+        "media_type",
+        "title",
+        "artist_id",
+        "duration_ms",
+        "status",
+        "updated_at"
+      ],
+      "properties": {
+        "media_item_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "media_type": {
+          "type": "string",
+          "enum": [
+            "song",
+            "sermon",
+            "podcast"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "artist_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "album_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Omitted when the item has no album."
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cover_url": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "popularity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "processing",
+            "published",
+            "withdrawn",
+            "failed"
+          ],
+          "description": "Consumers index only 'published'. The publication gate trigger guarantees a granted licence behind it."
+        },
+        "published_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "media_item_id",
+        "deleted"
+      ],
+      "properties": {
+        "media_item_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deleted": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    }
+  ]
+}

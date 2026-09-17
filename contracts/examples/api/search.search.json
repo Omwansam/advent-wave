@@ -1,0 +1,125 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/search?q=nairobi",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "songs": [
+        {
+          "id": "214e61c3-61c9-59b0-84aa-4cc8280c3792",
+          "title": "Blessed Assurance (Karen Session)",
+          "artist": "Westlands SDA Praise & Worship",
+          "album": "Nairobi Nights of Worship",
+          "duration": 265,
+          "cover": "https://picsum.photos/seed/ke-blessed-karen/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/214e61c3-61c9-59b0-84aa-4cc8280c3792/stream",
+          "mediaType": "song",
+          "artistId": "e5cd6b15-4d03-5f3e-9b68-0fd11870659d",
+          "albumId": "ed0349c6-fe72-5205-8e8d-3b89d9f96474",
+          "durationMs": 265000,
+          "genre": "worship",
+          "language": "en",
+          "region": "kenya",
+          "popularity": 84,
+          "legacyId": "s26"
+        },
+        {
+          "id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+          "title": "Hakuna Mungu Kama Wewe",
+          "artist": "COSACOW Nairobi",
+          "album": "Voices of the City",
+          "duration": 302,
+          "cover": "https://picsum.photos/seed/ke-hakuna-mungu/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/stream",
+          "mediaType": "song",
+          "artistId": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
+          "albumId": "0b40986c-8fe0-52d0-9ce2-710da8476805",
+          "durationMs": 302000,
+          "genre": "choir",
+          "language": "mixed",
+          "region": "kenya",
+          "popularity": 94,
+          "legacyId": "s15"
+        }
+      ],
+      "sermons": [],
+      "podcasts": [],
+      "artists": [
+        {
+          "id": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
+          "name": "COSACOW Nairobi",
+          "slug": "cosacow-nairobi",
+          "cover": "https://picsum.photos/seed/ke-hakuna-mungu/400/400",
+          "verified": false,
+          "songIds": []
+        },
+        {
+          "id": "980b65ca-6027-5f44-a6d7-f2a4ab41b017",
+          "name": "University of Nairobi Adventist Students",
+          "slug": "university-of-nairobi-adventist-students",
+          "cover": "https://picsum.photos/seed/ke-taifa/400/400",
+          "verified": false,
+          "songIds": []
+        }
+      ],
+      "albums": [
+        {
+          "id": "ed0349c6-fe72-5205-8e8d-3b89d9f96474",
+          "title": "Nairobi Nights of Worship",
+          "artist": "Westlands SDA Praise & Worship",
+          "artistId": "e5cd6b15-4d03-5f3e-9b68-0fd11870659d",
+          "cover": "https://picsum.photos/seed/ke-blessed-karen/400/400",
+          "songIds": []
+        },
+        {
+          "id": "0b40986c-8fe0-52d0-9ce2-710da8476805",
+          "title": "Voices of the City",
+          "artist": "COSACOW Nairobi",
+          "artistId": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
+          "cover": "https://picsum.photos/seed/ke-hakuna-mungu/400/400",
+          "songIds": []
+        }
+      ],
+      "playlists": [
+        {
+          "id": "1f63e86e-e367-55d8-911e-354380af7744",
+          "title": "Kenya \u2014 Sabbath & streets",
+          "description": "Choirs and praise teams from Nairobi, Kisumu, Mombasa, and the Rift \u2014 mock catalogue celebrating Kenya.",
+          "cover": "https://picsum.photos/seed/p-kenya-sabbath/400/400",
+          "songIds": [
+            "f6f77538-812c-5be1-ad5a-a8fa6b2d380c",
+            "845076a9-a3b7-541b-be0c-aa598058b16b"
+          ],
+          "isCurated": true,
+          "legacyId": "p5"
+        }
+      ],
+      "topResult": {
+        "type": "song",
+        "item": {
+          "id": "214e61c3-61c9-59b0-84aa-4cc8280c3792",
+          "title": "Blessed Assurance (Karen Session)",
+          "artist": "Westlands SDA Praise & Worship",
+          "album": "Nairobi Nights of Worship",
+          "duration": 265,
+          "cover": "https://picsum.photos/seed/ke-blessed-karen/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/214e61c3-61c9-59b0-84aa-4cc8280c3792/stream",
+          "mediaType": "song",
+          "artistId": "e5cd6b15-4d03-5f3e-9b68-0fd11870659d",
+          "albumId": "ed0349c6-fe72-5205-8e8d-3b89d9f96474",
+          "durationMs": 265000,
+          "genre": "worship",
+          "language": "en",
+          "region": "kenya",
+          "popularity": 84,
+          "legacyId": "s26"
+        },
+        "score": 10675
+      }
+    }
+  }
+}

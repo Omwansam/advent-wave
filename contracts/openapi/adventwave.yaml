@@ -1,0 +1,1825 @@
+openapi: 3.1.0
+info:
+  description: |
+    The public REST surface for the AdventWave web and mobile clients.
+
+    Every endpoint except `POST /v1/auth/session` and the signed playback
+    redirect requires a bearer JWT. Until the managed IdP is chosen, tokens come from `POST /v1/auth/session`, which verifies no credential and is disabled by setting `spring.security.oauth2.resourceserver.jwt.issuer-uri`.
+  license:
+    name: Proprietary
+  title: AdventWave API
+  version: 1.0.0
+servers:
+- description: This instance
+  url: http://localhost:8080
+security:
+- bearerAuth: []
+paths:
+  /v1/albums/{id}:
+    get:
+      operationId: album
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlbumDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - media
+  /v1/artists/{id}:
+    get:
+      operationId: artist
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - media
+  /v1/auth/session:
+    post:
+      operationId: createSession
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security: []
+      tags:
+      - auth
+  /v1/browse:
+    get:
+      operationId: browse
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrowseDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - catalogue
+  /v1/discover:
+    get:
+      operationId: discover
+      parameters:
+      - in: query
+        name: cat
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoverDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - catalogue
+  /v1/events/playback:
+    post:
+      operationId: playback
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaybackSubmission"
+        required: true
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaybackEvent"
+          description: Accepted
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: More than adventwave.events.playback-per-minute events this
+            minute
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - events
+  /v1/history:
+    delete:
+      operationId: clearHistory
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - library
+    get:
+      operationId: history
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - library
+  /v1/home:
+    get:
+      operationId: home
+      parameters:
+      - in: query
+        name: tz
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - catalogue
+  /v1/library:
+    get:
+      operationId: library
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LibraryDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - library
+  /v1/library/follows/artist/{artistId}:
+    put:
+      operationId: toggleFollowArtist
+      parameters:
+      - in: path
+        name: artistId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowResultDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - library
+  /v1/library/follows/playlist/{playlistId}:
+    put:
+      operationId: toggleFollowPlaylist
+      parameters:
+      - in: path
+        name: playlistId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowResultDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - library
+  /v1/library/likes/{mediaItemId}:
+    put:
+      operationId: toggleLike
+      parameters:
+      - in: path
+        name: mediaItemId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeResultDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - library
+  /v1/me:
+    get:
+      operationId: me
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - account
+  /v1/media:
+    get:
+      operationId: batch
+      parameters:
+      - in: query
+        name: ids
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrackDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - media
+  /v1/media/{id}:
+    get:
+      operationId: media
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - media
+  /v1/media/{id}/stream:
+    get:
+      operationId: manifest
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamManifestDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - media
+  /v1/media/{id}/stream/{profile}:
+    get:
+      operationId: playback_1
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: path
+        name: profile
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: exp
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: uid
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: sig
+        required: true
+        schema:
+          type: string
+      responses:
+        "302":
+          description: "Redirect to the media bytes for this profile. Follow it with\
+            \ the media player, not fetch."
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Signature invalid or expired
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security: []
+      tags:
+      - media
+  /v1/player-state:
+    get:
+      operationId: get
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerStateDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - player
+    put:
+      operationId: save
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerStateDto"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerStateDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - player
+  /v1/playlists:
+    get:
+      operationId: list
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistsDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - playlists
+    post:
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistDto"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - playlists
+  /v1/playlists/{id}:
+    delete:
+      operationId: delete
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Deleted
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - playlists
+    get:
+      operationId: playlist
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - playlists
+    patch:
+      operationId: update
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - playlists
+  /v1/playlists/{id}/items:
+    put:
+      operationId: addItems
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemsRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - playlists
+  /v1/playlists/{id}/items/{mediaItemId}:
+    delete:
+      operationId: removeItem
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: path
+        name: mediaItemId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - playlists
+  /v1/recommendations:
+    get:
+      operationId: recommendations
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationsDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - recommendations
+  /v1/search:
+    get:
+      operationId: search
+      parameters:
+      - in: query
+        name: q
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResultsDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - search
+  /v1/settings:
+    get:
+      operationId: settings
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettingsDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - account
+    put:
+      operationId: updateSettings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSettingsDto"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettingsDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - account
+components:
+  schemas:
+    AlbumDto:
+      type: object
+      properties:
+        artist:
+          type: string
+        artistId:
+          type: string
+        cover:
+          type: string
+        id:
+          type: string
+        songIds:
+          type: array
+          items:
+            type: string
+        title:
+          type: string
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+    ArtistDto:
+      type: object
+      properties:
+        cover:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        songIds:
+          type: array
+          items:
+            type: string
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+        verified:
+          type: boolean
+    BecauseYouListened:
+      type: object
+      properties:
+        artistName:
+          type: string
+        songs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+    BrowseDto:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiscoverCategoryDto"
+        podcasts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+        sermons:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+        songs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+    CreateRequest:
+      type: object
+      properties:
+        cover:
+          type: string
+        description:
+          type: string
+        title:
+          type: string
+    DiscoverCategoryDto:
+      type: object
+      properties:
+        cover:
+          type: string
+        gradient:
+          type: string
+        id:
+          type: string
+        label:
+          type: string
+        sortOrder:
+          type: integer
+          format: int32
+    DiscoverDto:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiscoverCategoryDto"
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+    Error:
+      type: object
+      description: Body of every error the API produces (ApiExceptionHandler).
+      properties:
+        error:
+          type: string
+          description: HTTP reason phrase
+        message:
+          type: string
+          description: "What went wrong, in one sentence"
+        status:
+          type: integer
+          format: int32
+          description: "HTTP status code, repeated"
+        timestamp:
+          type: string
+          format: date-time
+      required:
+      - status
+      - error
+      - message
+      - timestamp
+    FollowResultDto:
+      type: object
+      properties:
+        following:
+          type: boolean
+    HistoryDto:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryEntry"
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+    HistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        ts:
+          type: integer
+          format: int64
+    HomeDto:
+      type: object
+      properties:
+        greetingPeriod:
+          type: string
+        recentlyPlayed:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+        recommendations:
+          $ref: "#/components/schemas/RecommendationsDto"
+        sabbathWorship:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaylistDto"
+        sermons:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+        trendingNow:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+    ItemsRequest:
+      type: object
+      properties:
+        mediaItemIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+      required:
+      - mediaItemIds
+    LibraryDto:
+      type: object
+      properties:
+        followedArtistIds:
+          type: array
+          items:
+            type: string
+        followedArtistNames:
+          type: array
+          items:
+            type: string
+        followedPlaylistIds:
+          type: array
+          items:
+            type: string
+        likedSongIds:
+          type: array
+          items:
+            type: string
+        recentHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryEntry"
+        recentTrackIds:
+          type: array
+          items:
+            type: string
+        savedSermonIds:
+          type: array
+          items:
+            type: string
+        userPlaylists:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaylistDto"
+    LikeResultDto:
+      type: object
+      properties:
+        liked:
+          type: boolean
+    PlaybackEvent:
+      type: object
+      properties:
+        client_ts:
+          type: string
+        counted:
+          type: boolean
+        device:
+          type: string
+        duration_ms:
+          type: integer
+          format: int32
+        event_id:
+          type: string
+        event_type:
+          type: string
+        media_item_id:
+          type: string
+        media_type:
+          type: string
+          enum:
+          - song
+          - sermon
+          - podcast
+        ms_played:
+          type: integer
+          format: int32
+        private:
+          type: boolean
+        server_ts:
+          type: string
+        session_id:
+          type: string
+        user_id:
+          type: string
+    PlaybackSubmission:
+      type: object
+      properties:
+        clientTs:
+          type: string
+        device:
+          type: string
+        eventId:
+          type: string
+        eventType:
+          type: string
+          minLength: 1
+        mediaItemId:
+          type: string
+          format: uuid
+        msPlayed:
+          type: integer
+          format: int32
+          minimum: 0
+        sessionId:
+          type: string
+          format: uuid
+      required:
+      - eventType
+      - mediaItemId
+    PlayerStateDto:
+      type: object
+      properties:
+        currentIndex:
+          type: integer
+          format: int32
+          minimum: 0
+        currentSongId:
+          type: string
+        orderedQueue:
+          type: array
+          items:
+            type: string
+        positionMs:
+          type: integer
+          format: int32
+          minimum: 0
+        queue:
+          type: array
+          items:
+            type: string
+        repeat:
+          type: string
+        shuffle:
+          type: boolean
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+        updatedAt:
+          type: string
+        volume:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+    PlaylistDto:
+      type: object
+      properties:
+        cover:
+          type: string
+        description:
+          type: string
+        id:
+          type: string
+        isCurated:
+          type: boolean
+        legacyId:
+          type: string
+        ownerId:
+          type: string
+        songIds:
+          type: array
+          items:
+            type: string
+        songs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+        title:
+          type: string
+    PlaylistsDto:
+      type: object
+      properties:
+        curated:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaylistDto"
+        mine:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaylistDto"
+    Profile:
+      type: object
+      properties:
+        bitrateKbps:
+          type: integer
+          format: int32
+        byteSize:
+          type: integer
+          format: int64
+        codec:
+          type: string
+        profile:
+          type: string
+    RecommendationsDto:
+      type: object
+      properties:
+        becauseYouListened:
+          $ref: "#/components/schemas/BecauseYouListened"
+        recommendedPlaylists:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaylistDto"
+        recommendedSongs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+        trendingInRegion:
+          $ref: "#/components/schemas/TrendingInRegion"
+    SearchResultsDto:
+      type: object
+      properties:
+        albums:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlbumDto"
+        artists:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistDto"
+        playlists:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaylistDto"
+        podcasts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+        sermons:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+        songs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+        topResult:
+          $ref: "#/components/schemas/TopResult"
+    SessionRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          minLength: 1
+        name:
+          type: string
+      required:
+      - email
+    SessionResponse:
+      type: object
+      properties:
+        expiresIn:
+          type: integer
+          format: int64
+        token:
+          type: string
+        tokenType:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserDto"
+    StreamManifestDto:
+      type: object
+      properties:
+        audioUrl:
+          type: string
+        durationMs:
+          type: integer
+          format: int32
+        expiresAtEpochSeconds:
+          type: integer
+          format: int64
+        gainDb:
+          type: number
+          format: double
+        loudnessLufs:
+          type: number
+          format: double
+        mediaItemId:
+          type: string
+        profiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Profile"
+        selectedProfile:
+          type: string
+        targetLufs:
+          type: number
+          format: double
+        waveformUrl:
+          type: string
+    TopResult:
+      type: object
+      properties:
+        item: {}
+        score:
+          type: integer
+          format: int32
+        type:
+          type: string
+    TrackDto:
+      type: object
+      properties:
+        album:
+          type: string
+        albumId:
+          type: string
+        artist:
+          type: string
+        artistId:
+          type: string
+        audioUrl:
+          type: string
+        cover:
+          type: string
+        duration:
+          type: integer
+          format: int32
+        durationMs:
+          type: integer
+          format: int32
+        genre:
+          type: string
+        id:
+          type: string
+        language:
+          type: string
+        legacyId:
+          type: string
+        mediaType:
+          type: string
+          enum:
+          - song
+          - sermon
+          - podcast
+        popularity:
+          type: integer
+          format: int32
+        region:
+          type: string
+        title:
+          type: string
+    TrendingInRegion:
+      type: object
+      properties:
+        label:
+          type: string
+        region:
+          type: string
+        songs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
+    UpdateRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        title:
+          type: string
+    UserDto:
+      type: object
+      properties:
+        createdAt:
+          type: string
+        email:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        region:
+          type: string
+    UserSettingsDto:
+      type: object
+      properties:
+        audioQuality:
+          type: string
+          pattern: data_saver|normal|high|very_high
+        crossfadeEnabled:
+          type: boolean
+        crossfadeSec:
+          type: integer
+          format: int32
+          maximum: 12
+          minimum: 0
+        friendActivityCollapsed:
+          type: boolean
+        normalizeAudio:
+          type: boolean
+        privateSession:
+          type: boolean
+        sidebarCollapsed:
+          type: boolean
+        theme:
+          type: string
+          pattern: light|dark
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      in: header
+      name: Authorization
+      scheme: bearer
+      type: http

@@ -1,0 +1,61 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/history",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "entries": [
+        {
+          "id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+          "ts": 1788010245796
+        },
+        {
+          "id": "f6f77538-812c-5be1-ad5a-a8fa6b2d380c",
+          "ts": 1788003045796
+        }
+      ],
+      "tracks": [
+        {
+          "id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+          "title": "Hakuna Mungu Kama Wewe",
+          "artist": "COSACOW Nairobi",
+          "album": "Voices of the City",
+          "duration": 302,
+          "cover": "https://picsum.photos/seed/ke-hakuna-mungu/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/stream",
+          "mediaType": "song",
+          "artistId": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
+          "albumId": "0b40986c-8fe0-52d0-9ce2-710da8476805",
+          "durationMs": 302000,
+          "genre": "choir",
+          "language": "mixed",
+          "region": "kenya",
+          "popularity": 94,
+          "legacyId": "s15"
+        },
+        {
+          "id": "f6f77538-812c-5be1-ad5a-a8fa6b2d380c",
+          "title": "Tumsifu Bwana",
+          "artist": "Maxwell SDA Church Choir, Nairobi",
+          "album": "Swahili Praise Live",
+          "duration": 268,
+          "cover": "https://picsum.photos/seed/ke-tumsifu/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/f6f77538-812c-5be1-ad5a-a8fa6b2d380c/stream",
+          "mediaType": "song",
+          "artistId": "cf449d50-3f98-5001-90e3-d56697dccaf1",
+          "albumId": "69d16df1-82d6-5b60-8271-3289f7fdc0cc",
+          "durationMs": 268000,
+          "genre": "gospel_swahili",
+          "language": "sw",
+          "region": "kenya",
+          "popularity": 90,
+          "legacyId": "s13"
+        }
+      ]
+    }
+  }
+}

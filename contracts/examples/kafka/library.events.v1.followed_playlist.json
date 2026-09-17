@@ -1,0 +1,16 @@
+{
+  "_source": "constructed from LibraryService.toggleFollowPlaylist's Map.of(); no row in the dev database yet",
+  "envelope": {
+    "key": "715304a9-fc79-4b85-b016-b22e26872e99",
+    "headers": {
+      "event_id": "00000000-0000-4000-8000-00000000e001",
+      "event_type": "library.events.v1",
+      "aggregate_type": "library"
+    }
+  },
+  "value": {
+    "user_id": "715304a9-fc79-4b85-b016-b22e26872e99",
+    "playlist_id": "ab80a2d3-7887-59af-852a-884716e571bd",
+    "action": "followed_playlist"
+  }
+}

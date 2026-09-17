@@ -1,0 +1,27 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "PUT",
+    "path": "/v1/settings",
+    "body": {
+      "theme": "sepia",
+      "privateSession": false,
+      "normalizeAudio": false,
+      "crossfadeEnabled": false,
+      "crossfadeSec": 6,
+      "sidebarCollapsed": false,
+      "friendActivityCollapsed": false,
+      "audioQuality": "normal"
+    },
+    "authenticated": true
+  },
+  "response": {
+    "status": 400,
+    "body": {
+      "timestamp": "2026-09-17T08:54:12.335632381Z",
+      "message": "theme must match \"light|dark\"",
+      "error": "Bad Request",
+      "status": 400
+    }
+  }
+}
