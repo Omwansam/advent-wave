@@ -1,20 +1,21 @@
 {
-  "_source": "constructed \u2014 this topic has no producer yet; ids are real seed ids so the example is coherent with the catalogue",
+  "_source": "real outbox row id=72 produced by the /v1/admin ingest path, 2026-09-17T18:26:56.541158+03:00",
   "envelope": {
-    "key": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+    "key": "3568157c-8701-4569-911b-43c3afbda084",
     "headers": {
-      "event_id": "00000000-0000-4000-8000-00000000d001",
-      "event_type": "audio.transcode.v1"
+      "event_id": "3830b63f-2e26-45c0-a05d-a9551570bd0c",
+      "event_type": "audio.transcode.v1",
+      "aggregate_type": "media_item"
     }
   },
   "value": {
     "kind": "requested",
-    "event_id": "00000000-0000-4000-8000-00000000d001",
-    "media_item_id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
-    "media_type": "song",
-    "master_storage_key": "masters/3268c157-91dc-5e4f-a1ac-5ec9357c98b9/original.wav",
-    "ladder": "music_v1",
+    "ladder": "speech_v1",
     "attempt": 1,
-    "requested_at": "2026-09-17T09:00:00Z"
+    "event_id": "3830b63f-2e26-45c0-a05d-a9551570bd0c",
+    "media_type": "sermon",
+    "requested_at": "2026-09-17T15:26:56.539871747Z",
+    "media_item_id": "3568157c-8701-4569-911b-43c3afbda084",
+    "master_storage_key": "masters/3568157c-8701-4569-911b-43c3afbda084/original.flac"
   }
 }

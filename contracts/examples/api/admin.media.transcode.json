@@ -1,0 +1,32 @@
+{
+  "_source": "live response; emits audio.transcode.v1 requested (see ../kafka/audio.transcode.v1.requested.json)",
+  "request": {
+    "method": "POST",
+    "path": "/v1/admin/media/ea55fe10-3dd8-49fa-80ca-4b0424525829/transcode",
+    "body": {
+      "masterStorageKey": "masters/ea55fe10-3dd8-49fa-80ca-4b0424525829/original.wav"
+    },
+    "authenticated": true,
+    "scope": "catalog:write"
+  },
+  "response": {
+    "status": 202,
+    "body": {
+      "id": "ea55fe10-3dd8-49fa-80ca-4b0424525829",
+      "mediaType": "song",
+      "title": "Example Draft",
+      "artistId": "774f6ba9-170c-44e4-a677-c2e299f69309",
+      "durationMs": 180000,
+      "genre": "choir",
+      "language": "sw",
+      "region": "kenya",
+      "popularity": 60,
+      "status": "processing",
+      "licenseId": "36642837-e2c1-4b52-875c-0ff72968b69c",
+      "masterStorageKey": "masters/ea55fe10-3dd8-49fa-80ca-4b0424525829/original.wav",
+      "createdAt": "2026-09-17T15:30:56.406615Z",
+      "updatedAt": "2026-09-17T15:30:56.570334569Z",
+      "assets": []
+    }
+  }
+}

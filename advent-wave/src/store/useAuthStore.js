@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { createSession } from '../api'
 import { setAuthToken } from '../api/token'
 import { useLibraryStore } from './useLibraryStore'
+import { usePlayerStore } from './usePlayerStore'
 import { useUiStore } from './useUiStore'
 
 /**
@@ -34,6 +35,7 @@ export const useAuthStore = create(
         set({ user: null, token: null })
         // The library and settings are another account's data the moment the token changes.
         useLibraryStore.getState().reset()
+        usePlayerStore.getState().resetForLogout()
         useUiStore.getState().resetSettings()
       },
     }),

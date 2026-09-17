@@ -29,5 +29,14 @@ a migration detail.
   Cassandra writer applies it again on the event. It is a conformance test in C's pipeline.
 - **Idempotency.** Consumers dedupe on the envelope `event_id` (`../kafka/README.md`). A replayed
   event must not produce a second history row or a second counter increment.
-- **Play counts** (`play_counts_by_*`) have no interim at all — nothing counts plays today. The
-  home page's "Trending now" is `ORDER BY popularity DESC` on the seed's static column.
+- **Play counts** — since 1.1.0 the two `play_counts_by_*` tables exist in PostgreSQL with the
+  CQL's column names (`plays` as an integer the writer increments), written by
+  `PlayCountRecorder` from `playback.events.v1` and read by `TrendingService`. "Trending now" is
+  real: most-played over the last 7 days, filled with static `popularity` while counts are thin.
+  The Cassandra writer inherits the same three rules the interim applies, in this order:
+  1. `private: true` is never counted;
+  2. only `counted: true` events count — the server's verdict, not re-derived;
+  3. **one listen, one count:** only terminal events (`play_completed`, `skipped`) increment.
+     `play_progress` events can also clear the threshold, so counting them would count a single
+     listen several times. Proven by `OutboxDispatchTest.progressEventsDoNotDoubleCount`.
+  The `day` is `server_ts` in UTC.

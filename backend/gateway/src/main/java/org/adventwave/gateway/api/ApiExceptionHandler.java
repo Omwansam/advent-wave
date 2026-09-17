@@ -4,10 +4,14 @@ import java.time.Instant;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.adventwave.gateway.admin.AdminConflictException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
@@ -43,6 +47,35 @@ public class ApiExceptionHandler {
     @ExceptionHandler({MethodArgumentTypeMismatchException.class})
     public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
         return this.body(HttpStatus.BAD_REQUEST, "invalid value for '" + e.getName() + "'");
+    }
+
+    /** A required query parameter is absent — `q` on /v1/search, `ids` on /v1/media, `sig` on the redirect. */
+    @ExceptionHandler({MissingServletRequestParameterException.class})
+    public ResponseEntity<Map<String, Object>> handleMissingParameter(MissingServletRequestParameterException e) {
+        return this.body(HttpStatus.BAD_REQUEST, "missing required parameter '" + e.getParameterName() + "'");
+    }
+
+    /** Empty, truncated or non-JSON request body. */
+    @ExceptionHandler({HttpMessageNotReadableException.class})
+    public ResponseEntity<Map<String, Object>> handleUnreadableBody(HttpMessageNotReadableException e) {
+        return this.body(HttpStatus.BAD_REQUEST, "request body is missing or not valid JSON");
+    }
+
+    /**
+     * A foreign key refused the write: following an artist or playlist that does not exist,
+     * adding an unknown media item to a playlist. The referenced thing is what was not found,
+     * so this is a 404 on the reference rather than a 400 on the request shape.
+     */
+    @ExceptionHandler({DataIntegrityViolationException.class})
+    public ResponseEntity<Map<String, Object>> handleIntegrity(DataIntegrityViolationException e) {
+        log.debug("integrity violation: {}", e.getMostSpecificCause().getMessage());
+        return this.body(HttpStatus.NOT_FOUND, "a referenced item does not exist");
+    }
+
+    /** The target exists and the request is well-formed; its current state refuses the operation. */
+    @ExceptionHandler({AdminConflictException.class})
+    public ResponseEntity<Map<String, Object>> handleConflict(AdminConflictException e) {
+        return this.body(HttpStatus.CONFLICT, e.getMessage());
     }
 
     @ExceptionHandler({IllegalArgumentException.class})

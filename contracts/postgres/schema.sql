@@ -174,6 +174,18 @@ CREATE SEQUENCE public.outbox_id_seq
     NO MAXVALUE
     CACHE 1;
 ALTER SEQUENCE public.outbox_id_seq OWNED BY public.outbox.id;
+CREATE TABLE public.play_counts_by_artist_day (
+    artist_id uuid NOT NULL,
+    day date NOT NULL,
+    plays integer DEFAULT 0 NOT NULL,
+    CONSTRAINT play_counts_by_artist_day_plays_check CHECK ((plays >= 0))
+);
+CREATE TABLE public.play_counts_by_item_day (
+    media_item_id uuid NOT NULL,
+    day date NOT NULL,
+    plays integer DEFAULT 0 NOT NULL,
+    CONSTRAINT play_counts_by_item_day_plays_check CHECK ((plays >= 0))
+);
 CREATE TABLE public.player_state (
     user_id uuid NOT NULL,
     media_item_id uuid,
@@ -209,6 +221,11 @@ CREATE TABLE public.playlists (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     legacy_id text,
     CONSTRAINT playlists_curated_has_no_owner CHECK ((NOT (is_curated AND (owner_id IS NOT NULL))))
+);
+CREATE TABLE public.processed_events (
+    event_id uuid NOT NULL,
+    handler text NOT NULL,
+    processed_at timestamp with time zone DEFAULT now() NOT NULL
 );
 CREATE TABLE public.user_follows_artist (
     user_id uuid NOT NULL,
@@ -286,6 +303,10 @@ ALTER TABLE ONLY public.outbox
     ADD CONSTRAINT outbox_event_id_key UNIQUE (event_id);
 ALTER TABLE ONLY public.outbox
     ADD CONSTRAINT outbox_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.play_counts_by_artist_day
+    ADD CONSTRAINT play_counts_by_artist_day_pkey PRIMARY KEY (artist_id, day);
+ALTER TABLE ONLY public.play_counts_by_item_day
+    ADD CONSTRAINT play_counts_by_item_day_pkey PRIMARY KEY (media_item_id, day);
 ALTER TABLE ONLY public.player_state
     ADD CONSTRAINT player_state_pkey PRIMARY KEY (user_id);
 ALTER TABLE ONLY public.playlist_items
@@ -294,6 +315,8 @@ ALTER TABLE ONLY public.playlists
     ADD CONSTRAINT playlists_legacy_id_key UNIQUE (legacy_id);
 ALTER TABLE ONLY public.playlists
     ADD CONSTRAINT playlists_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.processed_events
+    ADD CONSTRAINT processed_events_pkey PRIMARY KEY (event_id, handler);
 ALTER TABLE ONLY public.user_follows_artist
     ADD CONSTRAINT user_follows_artist_pkey PRIMARY KEY (user_id, artist_id);
 ALTER TABLE ONLY public.user_follows_playlist
@@ -320,6 +343,8 @@ CREATE INDEX media_items_title_trgm_idx ON public.media_items USING gin (title p
 CREATE INDEX media_items_type_status_idx ON public.media_items USING btree (media_type, status);
 CREATE INDEX outbox_aggregate_idx ON public.outbox USING btree (aggregate_type, aggregate_id);
 CREATE INDEX outbox_unpublished_idx ON public.outbox USING btree (id) WHERE (published_at IS NULL);
+CREATE INDEX play_counts_by_artist_day_recent_idx ON public.play_counts_by_artist_day USING btree (day DESC, plays DESC);
+CREATE INDEX play_counts_by_item_day_recent_idx ON public.play_counts_by_item_day USING btree (day DESC, plays DESC);
 CREATE INDEX playlist_items_order_idx ON public.playlist_items USING btree (playlist_id, "position");
 CREATE INDEX playlists_owner_idx ON public.playlists USING btree (owner_id);
 CREATE INDEX user_likes_user_created_idx ON public.user_likes USING btree (user_id, created_at DESC);
@@ -346,6 +371,10 @@ ALTER TABLE ONLY public.media_items
     ADD CONSTRAINT media_items_artist_id_fkey FOREIGN KEY (artist_id) REFERENCES public.artists(id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.media_items
     ADD CONSTRAINT media_items_license_id_fkey FOREIGN KEY (license_id) REFERENCES public.licenses(id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.play_counts_by_artist_day
+    ADD CONSTRAINT play_counts_by_artist_day_artist_id_fkey FOREIGN KEY (artist_id) REFERENCES public.artists(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.play_counts_by_item_day
+    ADD CONSTRAINT play_counts_by_item_day_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.player_state
     ADD CONSTRAINT player_state_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE SET NULL;
 ALTER TABLE ONLY public.player_state

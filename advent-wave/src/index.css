@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* `dark:` utilities follow the app theme toggle (the .dark class), not the OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --aw-primary: #6d5df6;
   --aw-primary-hover: #5a4ae8;
@@ -14,6 +17,9 @@
   --aw-text: #2d2a35;
   --aw-muted: #6b6578;
   --aw-border: #e8e7ed;
+  --aw-tile: rgba(0, 0, 0, 0.05);
+  --aw-tile-hover: rgba(0, 0, 0, 0.1);
+  --aw-card-hover: rgba(0, 0, 0, 0.05);
   --aw-sidebar-w: 16rem;
   --aw-shadow-card:
     0 4px 6px -1px rgba(109, 93, 246, 0.06),
@@ -34,6 +40,9 @@
   --aw-text: #eceaf2;
   --aw-muted: #9b95ad;
   --aw-border: #2e2c3a;
+  --aw-tile: rgba(255, 255, 255, 0.1);
+  --aw-tile-hover: rgba(255, 255, 255, 0.2);
+  --aw-card-hover: rgba(255, 255, 255, 0.1);
   --aw-gold-soft: #3d3520;
   --aw-shadow-card:
     0 4px 6px -1px rgba(0, 0, 0, 0.35),
@@ -174,6 +183,23 @@ a {
 
 .aw-play-icon-swap {
   animation: aw-play-toggle 0.38s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+/* Horizontal shelf: scrolls, but without a visible scrollbar */
+.aw-rail {
+  scrollbar-width: none;
+}
+
+.aw-rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* Home page: colour wash behind the quick picks that follows the hovered tile */
+.aw-home-tint {
+  background-color: var(--aw-home-tint);
+  -webkit-mask-image: linear-gradient(to bottom, black, transparent);
+  mask-image: linear-gradient(to bottom, black, transparent);
+  transition: background-color 0.7s ease;
 }
 
 /* Shared card lift */

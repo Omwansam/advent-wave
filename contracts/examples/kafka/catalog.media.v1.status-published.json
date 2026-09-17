@@ -1,0 +1,25 @@
+{
+  "_source": "real outbox row id=70 produced by the /v1/admin ingest path, 2026-09-17T18:26:55.952778+03:00",
+  "envelope": {
+    "key": "b8e13c77-e7b8-46d6-a95d-931fb5804b7d",
+    "headers": {
+      "event_id": "2b032b03-1a27-4155-995f-26ab218f0561",
+      "event_type": "catalog.media.v1",
+      "aggregate_type": "media_item"
+    }
+  },
+  "value": {
+    "genre": "choir",
+    "title": "Mwamba Wa Milele",
+    "region": "kenya",
+    "status": "published",
+    "language": "sw",
+    "artist_id": "774f6ba9-170c-44e4-a677-c2e299f69309",
+    "media_type": "song",
+    "popularity": 60,
+    "updated_at": "2026-09-17T15:26:55.946266629Z",
+    "duration_ms": 251400,
+    "published_at": "2026-09-17T15:26:55.946265735Z",
+    "media_item_id": "b8e13c77-e7b8-46d6-a95d-931fb5804b7d"
+  }
+}

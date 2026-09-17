@@ -1,0 +1,55 @@
+{
+  "_source": "live response from the gateway; admin@adventwave.app holds the catalog:write scope from the dev issuer; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/admin/media/b8e13c77-e7b8-46d6-a95d-931fb5804b7d",
+    "authenticated": true,
+    "scope": "catalog:write"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": "b8e13c77-e7b8-46d6-a95d-931fb5804b7d",
+      "mediaType": "song",
+      "title": "Mwamba Wa Milele",
+      "artistId": "774f6ba9-170c-44e4-a677-c2e299f69309",
+      "durationMs": 251400,
+      "genre": "choir",
+      "language": "sw",
+      "region": "kenya",
+      "popularity": 60,
+      "status": "published",
+      "licenseId": "36642837-e2c1-4b52-875c-0ff72968b69c",
+      "masterStorageKey": "masters/b8e13c77-e7b8-46d6-a95d-931fb5804b7d/original.wav",
+      "loudnessLufs": -15.2,
+      "truePeakDbfs": -1.1,
+      "publishedAt": "2026-09-17T15:26:55.946266Z",
+      "createdAt": "2026-09-17T15:22:50.280930Z",
+      "updatedAt": "2026-09-17T15:26:55.946267Z",
+      "assets": [
+        {
+          "profile": "aac_24_hev2",
+          "codec": "he-aac-v2",
+          "bitrateKbps": 24,
+          "container": "m4a",
+          "sampleRateHz": 44100,
+          "channels": 2,
+          "storageKey": "derived/b8e13c77-e7b8-46d6-a95d-931fb5804b7d/aac_24_hev2.m4a",
+          "byteSize": 753000,
+          "checksumSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "profile": "aac_96",
+          "codec": "aac-lc",
+          "bitrateKbps": 96,
+          "container": "m4a",
+          "sampleRateHz": 44100,
+          "channels": 2,
+          "storageKey": "derived/b8e13c77-e7b8-46d6-a95d-931fb5804b7d/aac_96.m4a",
+          "byteSize": 3012000,
+          "checksumSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    }
+  }
+}

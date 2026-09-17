@@ -1,0 +1,31 @@
+{
+  "_source": "live response from the gateway; admin@adventwave.app holds the catalog:write scope from the dev issuer; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/admin/churches",
+    "authenticated": true,
+    "scope": "catalog:write"
+  },
+  "response": {
+    "status": 200,
+    "body": [
+      {
+        "id": "c9483745-dfe9-529f-bfec-7b69e614e1c1",
+        "name": "AdventWave Reference Catalogue (seed)",
+        "country": "KE",
+        "region": "kenya",
+        "contactEmail": "catalog@adventwave.app",
+        "consentStatus": "granted",
+        "createdAt": "2026-08-29T12:27:12.699695Z"
+      },
+      {
+        "id": "6c44c084-bd79-4f73-af58-2920778e698d",
+        "name": "Kisumu Bay SDA",
+        "country": "KE",
+        "region": "kenya",
+        "consentStatus": "none",
+        "createdAt": "2026-09-17T15:26:56.081257Z"
+      }
+    ]
+  }
+}

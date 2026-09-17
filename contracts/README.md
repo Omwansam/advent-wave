@@ -10,12 +10,12 @@ an RFC says otherwise — and the disagreement is recorded, never silently patch
 | Path | Contract | Status at 1.0.0 | Generated from |
 |---|---|---|---|
 | [`postgres/`](postgres/) | Schema, constraints, trigger, outbox | **implemented** | `backend/tools/dump-schema.sh` (pg_dump of a migrated DB) |
-| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 31 operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
-| [`kafka/`](kafka/) | Six topics, JSON Schema per message value | 3 implemented, 3 planned | `playback.events.v1`, `library.events.v1`, `catalog.playlist.v1` from the event classes and `LibraryService`; the rest from the plan and table columns |
+| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 31 listener + 23 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
+| [`kafka/`](kafka/) | Six topics, JSON Schema per message value | 5 implemented, 1 partial (`audio.transcode.v1` awaits the worker) | `playback.events.v1`, `library.events.v1`, `catalog.playlist.v1` from the event classes and `LibraryService`; the rest from the plan and table columns |
 | [`redis/`](redis/) | Key registry, TTLs, owners | **implemented** | `RedisKeys.java` + call sites |
 | [`cassandra/`](cassandra/) | History and play-count tables | **planned** (Postgres interim) | plan §1 day 4 |
 | [`proto/`](proto/) | gRPC service contracts | **deferred** — no service boundary exists | one README per service, mapping planned RPCs to the Java that backs them |
-| [`audio/transcode.md`](audio/transcode.md) | Transcode worker input/output, serving | serving implemented, ingest planned | plan §11 + `media_assets` |
+| [`audio/transcode.md`](audio/transcode.md) | Transcode worker input/output, serving | serving + both sides of the seam implemented; the worker itself is planned | plan §11 + `media_assets` |
 | [`examples/`](examples/) | Kafka messages and API responses | — | real outbox rows and live API responses; constructed where nothing exists yet |
 
 The Java module `backend/contracts` is the **executable consumer** of this directory — DTOs,
@@ -81,21 +81,46 @@ Verbatim, because they are contract terms and not code-review preferences:
 - **Never return an unsigned media URL.** One signed URL per manifest, short-lived.
 - **Redis is never a source of truth.** The only tolerated loss is ≤30s of playback position.
 
-## Known drift at 1.0.0
+## Changes
+
+### 1.2.0
+- **Added** `openapi`: the ingest surface, 23 operations under `/v1/admin/**` — churches,
+  licences, artists, albums, media items through `draft → processing → published → withdrawn`.
+  Requires the `catalog:write` scope (`403` without it); state refusals are `409`.
+- **Added** `kafka`: producers for `catalog.media.v1` and `catalog.artist.v1`, the `requested`
+  half of `audio.transcode.v1`, and the `completed` consumer (`TranscodeCompletedHandler`).
+  Examples for all three now come from real outbox rows.
+- **Added** entities for `churches` and `licenses` (schema unchanged).
+- No breaking change.
+
+### 1.1.0
+- **Added** `postgres`: `play_counts_by_item_day`, `play_counts_by_artist_day` (Cassandra interim),
+  `processed_events` (consumer idempotency, permanent). Additive.
+- **Added** `kafka`: consumers `PlayCountRecorder` and `HomeCacheInvalidationHandler` on the
+  interim in-process dispatcher (`kafka/README.md` → Consumers).
+- **Changed** `openapi`: `PlaybackSubmission.eventId` is `format: uuid` (the Kafka contract
+  always required it; a client sending anything else now gets 400 where it silently got a
+  second id before — K1); operationId `playback_1` → `redirectToAsset`.
+- **Changed** `openapi`: four error paths that returned 500 now return 400/404 as documented
+  (O1–O3); they were always declared, they were just wrong.
+- **Resolved drift:** K1, K5, O1, O2, O3, O7, R1.
+
+### 1.0.0
+Initial lock. Tag `contracts@v1.0.0`.
+
+## Known drift
 
 Every place the implementation and the plan disagree is recorded in the relevant contract's
 "Documented drift" table with the smallest correction. None is silently resolved. Summary:
 
 | Id | Where | One line |
 |---|---|---|
-| K1 | kafka | `playback.events.v1` carries two different `event_id`s (payload vs outbox row) |
 | K2 | kafka | `event_id` placement differs by topic; rule adopted: envelope carries it |
 | K3 | kafka | `device` is unvalidated free text |
-| O1–O3 | openapi | three error paths return 500 instead of 400/404 (missing query param, FK violation, unreadable body) |
-| O7 | openapi | operationId `playback_1` is a springdoc collision suffix (two controller methods named `playback`) |
-| R1 | redis | `a:player:dirty` hardcoded, absent from `RedisKeys.java` |
 | A1–A3 | audio | 302 target path unserved; no waveform row type; profile enum not a CHECK |
 | C1 | cassandra | interim history is one-row-per-item; target is one-row-per-play |
+
+Resolved in 1.1.0: K1, K5, O1–O3, O7, R1 (struck through in the per-contract tables).
 
 ## Ownership
 

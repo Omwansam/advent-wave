@@ -12,6 +12,8 @@ import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 import org.adventwave.contracts.api.UserDto;
 import org.adventwave.platform.domain.UserAccount;
 import org.adventwave.platform.user.UserService;
@@ -34,10 +36,18 @@ public class DevSessionController {
     private static final Duration TOKEN_TTL = Duration.ofHours(12L);
     private final UserService users;
     private final String secret;
+    private final List<String> adminEmails;
 
-    public DevSessionController(UserService users, @Value("${adventwave.auth.dev-secret}") String secret) {
+    public DevSessionController(
+        UserService users,
+        @Value("${adventwave.auth.dev-secret}") String secret,
+        // Who gets the catalog:write scope from the dev issuer. A real IdP assigns scopes
+        // itself; this list disappears with the endpoint.
+        @Value("${adventwave.auth.admin-emails:}") List<String> adminEmails
+    ) {
         this.users = users;
         this.secret = secret;
+        this.adminEmails = adminEmails.stream().map(e -> e.trim().toLowerCase(Locale.ROOT)).filter(e -> !e.isEmpty()).toList();
     }
 
     @PostMapping({"/session"})
@@ -51,14 +61,17 @@ public class DevSessionController {
 
     private String mint(String subject, String email, String name) {
         Instant instant = Instant.now();
-        JWTClaimsSet jwtclaimsset = new Builder()
+        Builder builder = new Builder()
             .subject(subject)
             .issuer("adventwave-dev")
             .claim("email", email)
             .claim("name", name)
             .issueTime(Date.from(instant))
-            .expirationTime(Date.from(instant.plus(TOKEN_TTL)))
-            .build();
+            .expirationTime(Date.from(instant.plus(TOKEN_TTL)));
+        if (this.adminEmails.contains(email)) {
+            builder.claim("scope", SecurityConfig.CATALOG_WRITE_SCOPE);
+        }
+        JWTClaimsSet jwtclaimsset = builder.build();
         SignedJWT signedjwt = new SignedJWT(new com.nimbusds.jose.JWSHeader.Builder(JWSAlgorithm.HS256).type(JOSEObjectType.JWT).build(), jwtclaimsset);
 
         try {

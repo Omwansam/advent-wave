@@ -1,10 +1,10 @@
 # `catalog.media.v1`
 
-**Status: PLANNED.** Key: `media_item_id`. Compacted.
+**Status: IMPLEMENTED.** Key: `media_item_id`. Compacted.
 
-Current state of one media item, or its withdrawal. PLANNED: no producer exists. The first producer is the ingest/admin path (workstream A/H) and the transcode consumer that flips status to published (workstream D → A). Fields mirror media_items columns; changing them is an RFC. Compacted by media_item_id.
+Current state of one media item, or its withdrawal. The first producer is the ingest/admin path (workstream A/H) and the transcode consumer that flips status to published (workstream D → A). Fields mirror media_items columns; changing them is an RFC. Compacted by media_item_id.
 
-- **Producer:** none yet (workstream A ingest / D→A transcode consumer)
+- **Producer:** gateway CatalogAdminService + TranscodeCompletedHandler via outbox (every status change)
 - **Consumers:** workstream B (search index), workstream F
 - **Source of truth for the payload:** `media_items columns in contracts/postgres/schema.sql`
 
@@ -38,4 +38,4 @@ Current state of one media item, or its withdrawal. PLANNED: no producer exists.
 
 ## Examples
 
-See `../../examples/kafka/catalog.media.v1.*.json`. Constructed — no producer exists yet.
+See `../../examples/kafka/catalog.media.v1.*.json`. Real outbox rows.

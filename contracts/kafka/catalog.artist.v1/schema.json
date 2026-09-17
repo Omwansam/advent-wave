@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://contracts.adventwave.app/kafka/catalog.artist.v1/schema.json",
-  "title": "catalog.artist.v1 (planned)",
-  "description": "Current state of one artist. PLANNED: no producer exists. Fields mirror artists columns. Compacted by artist_id.",
+  "title": "catalog.artist.v1",
+  "description": "Current state of one artist. Fields mirror artists columns. Compacted by artist_id.",
   "x-adventwave": {
-    "status": "planned",
-    "producer": "none yet (workstream A)",
+    "status": "implemented",
+    "producer": "gateway CatalogAdminService via outbox (POST/PUT /v1/admin/artists)",
     "consumers": [
       "workstream B",
       "workstream F"

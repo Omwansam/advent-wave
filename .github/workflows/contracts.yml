@@ -1,0 +1,101 @@
+# Contract-conformance CI (BACKEND_BUILD_PLAN.md §5). Three jobs:
+#
+#   validate    examples ⟷ schemas, VERSION ⟷ openapi info.version, Topics.java ⟷ kafka/ dirs
+#   drift       regenerate the generated contracts from a migrated database and a running
+#               gateway; the tree must not move. After the tag, a diff here means the
+#               implementation changed a frozen contract without an RFC.
+#   invariants  the tests that are contract terms: privacy, outbox atomicity, publication gate
+#
+# Runs on GitHub's runners, which provide Docker for Testcontainers and the Postgres service.
+name: contracts
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "contracts/**"
+      - "backend/**"
+      - ".github/workflows/contracts.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install jsonschema pyyaml
+      - run: python3 backend/tools/validate-contracts.py
+
+  drift:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: adventwave
+          POSTGRES_USER: adventwave
+          POSTGRES_PASSWORD: adventwave
+        ports: ["5434:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: register the JDK with the toolchains plugin
+        working-directory: backend
+        run: ./mvnw -q -N toolchains:generate-jdk-toolchains-xml -Dtoolchain.file=$HOME/.m2/toolchains.xml
+      - name: build
+        working-directory: backend
+        run: ./mvnw -q -DskipTests install
+      - name: start the gateway against the service database
+        working-directory: backend
+        env:
+          ADVENTWAVE_DB_URL: jdbc:postgresql://localhost:5434/adventwave
+          ADVENTWAVE_DB_PASSWORD: adventwave
+        run: |
+          nohup ./mvnw -q spring-boot:run -pl gateway > gateway.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -sf localhost:8080/v3/api-docs > /dev/null && exit 0
+            sleep 2
+          done
+          echo "gateway did not start"; tail -50 gateway.log; exit 1
+      - run: sudo apt-get install -y -q postgresql-client
+      - name: regenerate the generated contracts
+        env:
+          ADVENTWAVE_DB_PORT: "5434"
+          ADVENTWAVE_DB_PASSWORD: adventwave
+        run: |
+          ./backend/tools/dump-openapi.sh
+          ./backend/tools/dump-schema.sh
+      - name: the contracts must not have moved
+        run: |
+          git diff --stat -- contracts/
+          git diff --exit-code -- contracts/
+
+  invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - working-directory: backend
+        run: ./mvnw -q -N toolchains:generate-jdk-toolchains-xml -Dtoolchain.file=$HOME/.m2/toolchains.xml
+      - name: privacy, outbox atomicity, publication gate, outbox dispatch, catalogue ingest
+        working-directory: backend
+        run: >
+          ./mvnw -q test -pl gateway -am
+          -Dtest='PrivateSessionConformanceTest,OutboxAtomicityTest,PublicationGateTest,OutboxDispatchTest,CatalogAdminTest'
+          -Dsurefire.failIfNoSpecifiedTests=false

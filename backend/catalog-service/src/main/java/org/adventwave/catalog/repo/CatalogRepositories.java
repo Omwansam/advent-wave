@@ -5,6 +5,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.adventwave.catalog.domain.Album;
 import org.adventwave.catalog.domain.Artist;
+import org.adventwave.catalog.domain.Church;
+import org.adventwave.catalog.domain.License;
 import org.adventwave.catalog.domain.DiscoverCategory;
 import org.adventwave.catalog.domain.MediaAsset;
 import org.adventwave.catalog.domain.MediaItem;
@@ -47,6 +49,16 @@ public final class CatalogRepositories {
 
     public interface MediaAssetRepository extends JpaRepository<MediaAsset, UUID> {
         List<MediaAsset> findByMediaItemIdOrderByBitrateKbpsAsc(UUID mediaItemId);
+
+        void deleteByMediaItemId(UUID mediaItemId);
+    }
+
+    public interface ChurchRepository extends JpaRepository<Church, UUID> {
+        List<Church> findAllByOrderByNameAsc();
+    }
+
+    public interface LicenseRepository extends JpaRepository<License, UUID> {
+        List<License> findByChurchIdOrderByCreatedAtDesc(UUID churchId);
     }
 
     public interface MediaItemRepository extends JpaRepository<MediaItem, UUID> {
@@ -72,6 +84,15 @@ public final class CatalogRepositories {
         List<MediaItem> findPublishedByRegion(@Param("region") String region, Limit limit);
 
         Optional<MediaItem> findByLegacyId(String legacyId);
+
+        @Query("select m from MediaItem m join fetch m.artist left join fetch m.album where m.status = :status order by m.updatedAt desc")
+        List<MediaItem> findByStatus(@Param("status") String status, Limit limit);
+
+        @Query("select m from MediaItem m join fetch m.artist left join fetch m.album order by m.updatedAt desc")
+        List<MediaItem> findAllForAdmin(Limit limit);
+
+        @Query("select m from MediaItem m join fetch m.artist left join fetch m.album where m.id = :id")
+        Optional<MediaItem> findAnyStatus(@Param("id") UUID id);
 
         @Query("select m from MediaItem m\n  join fetch m.artist a\n  left join fetch m.album al\nwhere m.status = 'published'\n  and (lower(m.title) like lower(concat('%', :q, '%'))\n    or lower(a.name)   like lower(concat('%', :q, '%'))\n    or lower(al.title) like lower(concat('%', :q, '%')))\n")
         List<MediaItem> searchCandidates(@Param("q") String query, Limit limit);

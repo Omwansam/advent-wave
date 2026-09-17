@@ -35,6 +35,14 @@ export const usePlayerStore = create(
       currentSong: null,
       isPlaying: false,
       queue: [],
+      /**
+       * Position to seek to once the resumed track's metadata loads, in seconds. Set by
+       * hydrateFromServer, consumed by MusicPlayer, then cleared. Kept separate from
+       * currentTime so a seek is applied exactly once, not on every re-render.
+       */
+      pendingSeekSec: null,
+      /** True once the server's copy has been applied (or found empty) for this session. */
+      hydrated: false,
       /** When shuffle is on: non-shuffled copy for turning shuffle off. */
       orderedQueue: null,
       currentIndex: 0,
@@ -45,6 +53,57 @@ export const usePlayerStore = create(
       /** @type {RepeatMode} */
       repeat: 'off',
       queuePanelOpen: false,
+
+      /**
+       * Applies the account's server-side player state: the queue with tracks resolved, the
+       * current index, and where playback stopped. Never starts playing — browsers block
+       * autoplay, and resuming into sound the listener did not ask for is worse anyway.
+       *
+       * @param {{ tracks: object[], currentIndex: number, positionMs: number, volume: number,
+       *           shuffle: boolean, repeat: string, orderedQueue: string[] | null } | null} state
+       */
+      hydrateFromServer: (state) => {
+        if (!state || !state.tracks?.length) {
+          set({ hydrated: true })
+          return
+        }
+        const queue = state.tracks
+        const idx = Math.min(Math.max(0, state.currentIndex ?? 0), queue.length - 1)
+        // orderedQueue holds ids; rebuild it from the resolved tracks so it stays objects here.
+        const byId = new Map(queue.map((t) => [t.id, t]))
+        const orderedQueue = state.orderedQueue?.length
+          ? state.orderedQueue.map((id) => byId.get(id)).filter(Boolean)
+          : null
+        set({
+          queue,
+          orderedQueue,
+          currentIndex: idx,
+          currentSong: queue[idx],
+          isPlaying: false,
+          currentTime: (state.positionMs ?? 0) / 1000,
+          pendingSeekSec: (state.positionMs ?? 0) / 1000,
+          volume: typeof state.volume === 'number' ? state.volume : get().volume,
+          shuffle: Boolean(state.shuffle),
+          repeat: ['off', 'all', 'one'].includes(state.repeat) ? state.repeat : 'off',
+          hydrated: true,
+        })
+      },
+
+      clearPendingSeek: () => set({ pendingSeekSec: null }),
+
+      /** On logout: the next account must not resume this one's queue. */
+      resetForLogout: () =>
+        set({
+          currentSong: null,
+          isPlaying: false,
+          queue: [],
+          orderedQueue: null,
+          currentIndex: 0,
+          currentTime: 0,
+          duration: 0,
+          pendingSeekSec: null,
+          hydrated: false,
+        }),
 
       setQueuePanelOpen: (v) => set({ queuePanelOpen: Boolean(v) }),
       toggleQueuePanel: () => set((s) => ({ queuePanelOpen: !s.queuePanelOpen })),

@@ -45,7 +45,7 @@ class PrivateSessionConformanceTest extends IntegrationTest {
         return this.ingest
             .ingest(
                 this.userId,
-                new Submission(UUID.randomUUID().toString(), this.mediaItemId, UUID.randomUUID(), "play_progress", msPlayed, "web", Instant.now().toString())
+                new Submission(UUID.randomUUID(), this.mediaItemId, UUID.randomUUID(), "play_progress", msPlayed, "web", Instant.now().toString())
             );
     }
 
@@ -65,6 +65,23 @@ class PrivateSessionConformanceTest extends IntegrationTest {
         this.users.updateSettings(this.userId, this.privateSession(false));
         this.play(120000);
         Assertions.assertThat(this.history.recent(this.userId, 100)).extracting(row -> row.mediaItemId()).containsExactly(new UUID[]{this.mediaItemId});
+    }
+
+    @Test
+    @DisplayName("one event, one id: the payload's event_id and the outbox row's are the same value (contract K1)")
+    void oneEventIdPerEvent() {
+        UUID clientEventId = UUID.randomUUID();
+        PlaybackEvent playbackevent = this.ingest
+            .ingest(
+                this.userId,
+                new Submission(clientEventId, this.mediaItemId, UUID.randomUUID(), "play_progress", 45000, "web", Instant.now().toString())
+            );
+        Assertions.assertThat(playbackevent.eventId()).isEqualTo(clientEventId.toString());
+        Assertions.assertThat(this.outbox.findAll())
+            .filteredOn(row -> row.getPayload().contains(clientEventId.toString()))
+            .singleElement()
+            .extracting(OutboxEvent::getEventId)
+            .isEqualTo(clientEventId);
     }
 
     @Test

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.adventwave</groupId>
+    <artifactId>adventwave-backend</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>events-pipeline</artifactId>
+  <name>AdventWave Events Pipeline</name>
+  <description>
+    Workstream C: consumers of the event topics, and the interim in-process dispatcher that
+    delivers outbox rows to them until Debezium and Kafka carry them instead. Depends only on
+    contracts; reads the outbox and writes its own tables through JDBC so it can be lifted into
+    its own deployable without touching platform-core.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.adventwave</groupId>
+      <artifactId>contracts</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-json</artifactId>
+    </dependency>
+  </dependencies>
+</project>

@@ -1,10 +1,10 @@
 # `catalog.artist.v1`
 
-**Status: PLANNED.** Key: `artist_id`. Compacted.
+**Status: IMPLEMENTED.** Key: `artist_id`. Compacted.
 
-Current state of one artist. PLANNED: no producer exists. Fields mirror artists columns. Compacted by artist_id.
+Current state of one artist. Fields mirror artists columns. Compacted by artist_id.
 
-- **Producer:** none yet (workstream A)
+- **Producer:** gateway CatalogAdminService via outbox (POST/PUT /v1/admin/artists)
 - **Consumers:** workstream B, workstream F
 - **Source of truth for the payload:** `artists columns in contracts/postgres/schema.sql`
 
@@ -31,4 +31,4 @@ Current state of one artist. PLANNED: no producer exists. Fields mirror artists 
 
 ## Examples
 
-See `../../examples/kafka/catalog.artist.v1.*.json`. Constructed — no producer exists yet.
+See `../../examples/kafka/catalog.artist.v1.*.json`. Real outbox rows.

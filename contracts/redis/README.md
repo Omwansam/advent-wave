@@ -29,4 +29,4 @@ the ≤30s player-position window above.
 
 | # | Finding | Smallest correction |
 |---|---|---|
-| R1 | `a:player:dirty` is a string literal in `PlayerStateService` (`DIRTY_SET`) and is not in `RedisKeys.java`, though `keys.md` lists it. | Add `RedisKeys.PLAYER_DIRTY` and use it. |
+| R1 | ~~`a:player:dirty` was a string literal in `PlayerStateService`.~~ **Resolved in 1.1.0:** `RedisKeys.PLAYER_DIRTY`. | — |

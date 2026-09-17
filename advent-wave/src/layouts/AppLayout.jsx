@@ -12,6 +12,7 @@ import { FriendActivityPanel } from '../components/FriendActivityPanel'
 import { useUiStore } from '../store/useUiStore'
 import { useAuthStore } from '../store/useAuthStore'
 import { useLibraryStore } from '../store/useLibraryStore'
+import { usePlayerSync } from '../hooks/usePlayerSync'
 
 const LEGACY_THEME_KEY = 'adventwave-theme'
 
@@ -42,6 +43,9 @@ export function AppLayout() {
     loadLibrary()
     hydrateSettings()
   }, [token, loadLibrary, hydrateSettings])
+
+  // Resume where this account stopped, and keep the server's copy of the player current.
+  usePlayerSync(token)
 
   const theme = useUiStore((s) => s.theme)
   const toggleTheme = useUiStore((s) => s.toggleTheme)

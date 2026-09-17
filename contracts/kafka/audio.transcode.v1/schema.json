@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://contracts.adventwave.app/kafka/audio.transcode.v1/schema.json",
-  "title": "audio.transcode.v1 (planned)",
-  "description": "Transcode job lifecycle for workstream D's worker. PLANNED: no producer or consumer exists. `requested` is produced by the upload service; `completed` by the worker and consumed by workstream A, which writes media_assets rows, the loudness fields, and moves status processing \u2192 published \u2014 which the database refuses without a granted licence. Keyed by media_item_id so a job and its result share a partition.",
+  "title": "audio.transcode.v1 (partial)",
+  "description": "Transcode job lifecycle for workstream D's worker. PARTIAL: `requested` is produced and `completed` is consumed; nothing produces `completed` until workstream D's worker exists. `requested` is produced by the upload service; `completed` by the worker and consumed by workstream A, which writes media_assets rows, the loudness fields, and moves status processing \u2192 published \u2014 which the database refuses without a granted licence. Keyed by media_item_id so a job and its result share a partition.",
   "x-adventwave": {
-    "status": "planned",
-    "producer": "none yet (workstream D upload service / transcode worker)",
+    "status": "partial",
+    "producer": "requested: gateway CatalogAdminService (POST /v1/admin/media/{id}/transcode). completed: none yet \u2014 workstream D's worker",
     "consumers": [
-      "workstream A (media_assets writer)"
+      "gateway TranscodeCompletedHandler (completed \u2192 media_assets, loudness, publish)"
     ],
     "key": "media_item_id",
     "compaction": false,

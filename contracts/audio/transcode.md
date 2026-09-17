@@ -1,6 +1,6 @@
 # Audio contract — `audio.transcode.v1` and the serving side
 
-**Status:** serving side IMPLEMENTED; ingest side (upload, worker, storage, CDN) NOT IMPLEMENTED.
+**Status:** serving side IMPLEMENTED; the seam on both ends IMPLEMENTED (1.2.0: `POST /v1/admin/media/{id}/transcode` emits `requested`; `TranscodeCompletedHandler` consumes `completed`); the worker, upload, storage and CDN NOT IMPLEMENTED.
 Owner: workstream D. Source: plan §11, and the columns of `media_items` / `media_assets`, which
 were designed from it. Message schemas: `../kafka/audio.transcode.v1/schema.json`.
 

@@ -1,0 +1,21 @@
+{
+  "_source": "live response from the gateway; admin@adventwave.app holds the catalog:write scope from the dev issuer; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/admin/churches/19ce0653-0fff-401b-95fa-31b5e5c8b619",
+    "authenticated": true,
+    "scope": "catalog:write"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": "19ce0653-0fff-401b-95fa-31b5e5c8b619",
+      "name": "Nairobi Central SDA",
+      "country": "KE",
+      "region": "kenya",
+      "contactEmail": "music@nairobicentral.org",
+      "consentStatus": "none",
+      "createdAt": "2026-09-17T15:22:49.821086Z"
+    }
+  }
+}

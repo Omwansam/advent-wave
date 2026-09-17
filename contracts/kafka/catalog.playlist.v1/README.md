@@ -31,4 +31,4 @@ Current state of one playlist, or its deletion. Compacted by playlist_id: the ne
 
 ## Examples
 
-See `../../examples/kafka/catalog.playlist.v1.*.json`. Copied from real outbox rows.
+See `../../examples/kafka/catalog.playlist.v1.*.json`. Real outbox rows.

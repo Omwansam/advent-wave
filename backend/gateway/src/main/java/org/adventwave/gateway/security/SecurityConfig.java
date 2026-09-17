@@ -21,6 +21,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    /** The scope that grants the ingest surface — the string an IdP puts in the `scope` claim. */
+    public static final String CATALOG_WRITE_SCOPE = "catalog:write";
+    static final String CATALOG_WRITE_AUTHORITY = "SCOPE_" + CATALOG_WRITE_SCOPE;
+
     private static final String[] OPENAPI_PATHS = {
         "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-ui/**", "/swagger-ui.html"
     };
@@ -40,6 +44,10 @@ public class SecurityConfig {
                     // Already authorised by its HMAC signature and expiry, and followed by a
                     // media player that cannot attach an Authorization header to a redirect.
                     .requestMatchers(HttpMethod.GET, "/v1/media/*/stream/*").permitAll()
+                    // The ingest surface. Spring's default JWT converter turns a `scope` claim into
+                    // SCOPE_* authorities, so this works unchanged with any OAuth IdP that issues
+                    // scopes; the dev issuer mints it for adventwave.auth.admin-emails.
+                    .requestMatchers("/v1/admin/**").hasAuthority(CATALOG_WRITE_AUTHORITY)
                     .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));

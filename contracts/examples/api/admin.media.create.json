@@ -1,0 +1,38 @@
+{
+  "_source": "live response from the gateway; admin@adventwave.app holds the catalog:write scope from the dev issuer; lists truncated to two items",
+  "request": {
+    "method": "POST",
+    "path": "/v1/admin/media",
+    "body": {
+      "mediaType": "song",
+      "title": "Example Draft",
+      "artistId": "774f6ba9-170c-44e4-a677-c2e299f69309",
+      "durationMs": 180000,
+      "genre": "choir",
+      "language": "sw",
+      "region": "kenya",
+      "licenseId": "36642837-e2c1-4b52-875c-0ff72968b69c"
+    },
+    "authenticated": true,
+    "scope": "catalog:write"
+  },
+  "response": {
+    "status": 201,
+    "body": {
+      "id": "ea55fe10-3dd8-49fa-80ca-4b0424525829",
+      "mediaType": "song",
+      "title": "Example Draft",
+      "artistId": "774f6ba9-170c-44e4-a677-c2e299f69309",
+      "durationMs": 180000,
+      "genre": "choir",
+      "language": "sw",
+      "region": "kenya",
+      "popularity": 60,
+      "status": "draft",
+      "licenseId": "36642837-e2c1-4b52-875c-0ff72968b69c",
+      "createdAt": "2026-09-17T15:30:56.406614527Z",
+      "updatedAt": "2026-09-17T15:30:56.406615005Z",
+      "assets": []
+    }
+  }
+}

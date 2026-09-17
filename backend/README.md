@@ -86,12 +86,12 @@ deployable without a rewrite. None of them depend on each other — only on `con
 what makes that true rather than aspirational.
 
 ```
-contracts/         THE source of truth: Flyway DDL, API DTOs, event payloads, Redis registry
+contracts/         Java consumer of <repo>/contracts (the source of truth): Flyway DDL, DTOs, event records, RedisKeys
 platform-core/     WS A — users, settings, library, playlists, player state, outbox
 catalog-service/   WS B — media items, artists, albums, search, stream manifests
 reco-service/      WS F — content-based recommender (v1)
 gateway/           the only bootable artifact: REST surface, security, response assembly
-tools/             generate-seed.mjs — regenerates the seed migration from the client's mock data
+tools/             dump-openapi.sh / dump-schema.sh regenerate the generated contracts; validate-contracts.py checks them
 ```
 
 ## What is real and what is scaffolding
@@ -151,16 +151,10 @@ The three that matter most:
 - `PrivateSessionConformanceTest` — the privacy rule from §4 weeks 5–6.
 - `PublicationGateTest` — no unlicensed item can be published, enforced in SQL.
 
-## Regenerating the seed
+## The seed
 
-```bash
-node backend/tools/generate-seed.mjs
-```
-
-Reads `src/data/mockData.js` and `src/data/recommendationMeta.js`, writes
-`V2__seed_reference_catalogue.sql`. Ids are UUIDv5 over a fixed namespace, so regeneration is
-byte-identical and the Flyway checksum holds. Editing the generated SQL by hand is how the two
-drift apart.
+V2 was generated from `src/data/mockData.js` with ids that are UUIDv5 over a fixed namespace; the
+generator is not in the tree. Treat V2 as frozen — edit V3 (demo accounts) or add a migration.
 
 ## Configuration
 
@@ -185,3 +179,22 @@ For local work, put overrides in `application-local.yml` and run with
 
 Setting `spring.security.oauth2.resourceserver.jwt.issuer-uri` switches to real IdP validation and
 retires both the dev decoder and the session endpoint.
+
+## The ingest surface
+
+`/v1/admin/**` — churches, licences, artists, albums, media items and their lifecycle
+(`draft → processing → published → withdrawn`). It requires the `catalog:write` scope in the JWT;
+the dev issuer grants it to `ADVENTWAVE_ADMIN_EMAILS` (default `admin@adventwave.app`), a real
+IdP assigns it itself. Nothing is visible to listeners before `published`, and publication is the
+database trigger's decision, not the API's.
+
+```bash
+ADMIN=$(curl -s localhost:8080/v1/auth/session -H 'Content-Type: application/json' \
+  -d '{"email":"admin@adventwave.app"}' | jq -r .token)
+curl -s localhost:8080/v1/admin/media?status=processing -H "Authorization: Bearer $ADMIN" | jq
+```
+
+The transcode worker does not exist yet. `POST /v1/admin/media/{id}/transcode` emits the
+`audio.transcode.v1` `requested` message it will consume; its `completed` message is consumed
+by `TranscodeCompletedHandler`. `CatalogAdminTest` drives that consumer by inserting the message
+the worker will produce.

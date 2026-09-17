@@ -77,7 +77,7 @@ public class MediaController {
     }
 
     @GetMapping({"/media/{id}/stream/{profile}"})
-    public ResponseEntity<Void> playback(
+    public ResponseEntity<Void> redirectToAsset(
         @PathVariable UUID id,
         @PathVariable String profile,
         @RequestParam("exp") long expiresAt,

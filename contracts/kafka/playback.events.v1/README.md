@@ -30,4 +30,4 @@ One playback observation, as ingested by POST /v1/events/playback. The server co
 
 ## Examples
 
-See `../../examples/kafka/playback.events.v1.*.json`. Copied from real outbox rows.
+See `../../examples/kafka/playback.events.v1.*.json`. Real outbox rows.

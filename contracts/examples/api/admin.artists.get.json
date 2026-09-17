@@ -1,0 +1,21 @@
+{
+  "_source": "live response from the gateway; admin@adventwave.app holds the catalog:write scope from the dev issuer; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/admin/artists/774f6ba9-170c-44e4-a677-c2e299f69309",
+    "authenticated": true,
+    "scope": "catalog:write"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": "774f6ba9-170c-44e4-a677-c2e299f69309",
+      "name": "Nairobi Central Choir",
+      "slug": "nairobi-central-choir",
+      "coverUrl": "https://picsum.photos/seed/ncc/400/400",
+      "churchId": "19ce0653-0fff-401b-95fa-31b5e5c8b619",
+      "verified": false,
+      "createdAt": "2026-09-17T15:22:50.137860Z"
+    }
+  }
+}

@@ -8,16 +8,1362 @@ info:
   license:
     name: Proprietary
   title: AdventWave API
-  version: 1.0.0
+  version: 1.2.0
 servers:
 - description: This instance
   url: http://localhost:8080
 security:
 - bearerAuth: []
 paths:
-  /v1/albums/{id}:
+  /v1/admin/albums:
+    post:
+      operationId: createAlbum
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAlbumDto"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/admin/albums/{id}:
     get:
       operationId: album
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAlbumDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+    patch:
+      operationId: updateAlbum
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Update"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAlbumDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/admin/artists:
+    get:
+      operationId: listArtists
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminArtistDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+    post:
+      operationId: createArtist
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminArtistDto"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/admin/artists/{id}:
+    get:
+      operationId: artist
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminArtistDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+    put:
+      operationId: updateArtist
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminArtistDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/admin/churches:
+    get:
+      operationId: listChurches
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChurchDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: contributors"
+    post:
+      operationId: createChurch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchDto"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: contributors"
+  /v1/admin/churches/{id}:
+    get:
+      operationId: church
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: contributors"
+    put:
+      operationId: updateChurch
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: contributors"
+  /v1/admin/churches/{id}/consent:
+    put:
+      operationId: setChurchConsent
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsentRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChurchDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: contributors"
+  /v1/admin/churches/{id}/licenses:
+    get:
+      operationId: licensesForChurch
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LicenseDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: contributors"
+  /v1/admin/licenses:
+    post:
+      operationId: createLicense
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseDto"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: contributors"
+  /v1/admin/licenses/{id}:
+    get:
+      operationId: license
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: contributors"
+  /v1/admin/licenses/{id}/status:
+    put:
+      operationId: setLicenseStatus
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: contributors"
+  /v1/admin/media:
+    get:
+      operationId: listMedia
+      parameters:
+      - in: query
+        name: status
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 100
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminMediaItemDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+    post:
+      operationId: createMedia
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMediaItemDto"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/admin/media/{id}:
+    get:
+      operationId: media
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMediaItemDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+    patch:
+      operationId: updateMedia
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Update"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMediaItemDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/admin/media/{id}/publish:
+    post:
+      operationId: publish
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMediaItemDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/admin/media/{id}/transcode:
+    post:
+      operationId: requestTranscode
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TranscodeRequest"
+        required: true
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMediaItemDto"
+          description: Accepted
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/admin/media/{id}/withdraw:
+    post:
+      operationId: withdraw
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMediaItemDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The token lacks the catalog:write scope
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/albums/{id}:
+    get:
+      operationId: album_1
       parameters:
       - in: path
         name: id
@@ -64,7 +1410,7 @@ paths:
       - media
   /v1/artists/{id}:
     get:
-      operationId: artist
+      operationId: artist_1
       parameters:
       - in: path
         name: id
@@ -577,7 +1923,7 @@ paths:
       - media
   /v1/media/{id}:
     get:
-      operationId: media
+      operationId: media_1
       parameters:
       - in: path
         name: id
@@ -671,7 +2017,7 @@ paths:
       - media
   /v1/media/{id}/stream/{profile}:
     get:
-      operationId: playback_1
+      operationId: redirectToAsset
       parameters:
       - in: path
         name: id
@@ -1245,6 +2591,89 @@ paths:
       - account
 components:
   schemas:
+    AdminAlbumDto:
+      type: object
+      properties:
+        artistId:
+          type: string
+        coverUrl:
+          type: string
+        createdAt:
+          type: string
+        id:
+          type: string
+        releaseDate:
+          type: string
+        title:
+          type: string
+    AdminArtistDto:
+      type: object
+      properties:
+        bio:
+          type: string
+        churchId:
+          type: string
+        coverUrl:
+          type: string
+        createdAt:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        verified:
+          type: boolean
+    AdminMediaItemDto:
+      type: object
+      properties:
+        albumId:
+          type: string
+        artistId:
+          type: string
+        assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Asset"
+        coverUrl:
+          type: string
+        createdAt:
+          type: string
+        durationMs:
+          type: integer
+          format: int32
+        genre:
+          type: string
+        id:
+          type: string
+        language:
+          type: string
+        licenseId:
+          type: string
+        loudnessLufs:
+          type: number
+          format: double
+        masterStorageKey:
+          type: string
+        mediaType:
+          type: string
+        popularity:
+          type: integer
+          format: int32
+        publishedAt:
+          type: string
+        region:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        truePeakDbfs:
+          type: number
+          format: double
+        updatedAt:
+          type: string
     AlbumDto:
       type: object
       properties:
@@ -1287,6 +2716,31 @@ components:
             $ref: "#/components/schemas/TrackDto"
         verified:
           type: boolean
+    Asset:
+      type: object
+      properties:
+        bitrateKbps:
+          type: integer
+          format: int32
+        byteSize:
+          type: integer
+          format: int64
+        channels:
+          type: integer
+          format: int32
+        checksumSha256:
+          type: string
+        codec:
+          type: string
+        container:
+          type: string
+        profile:
+          type: string
+        sampleRateHz:
+          type: integer
+          format: int32
+        storageKey:
+          type: string
     BecauseYouListened:
       type: object
       properties:
@@ -1315,6 +2769,32 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TrackDto"
+    ChurchDto:
+      type: object
+      properties:
+        consentStatus:
+          type: string
+        contactEmail:
+          type: string
+        country:
+          type: string
+        createdAt:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        region:
+          type: string
+    ConsentRequest:
+      type: object
+      properties:
+        consentStatus:
+          type: string
+          minLength: 1
+          pattern: none|pending|granted|revoked
+      required:
+      - consentStatus
     CreateRequest:
       type: object
       properties:
@@ -1464,6 +2944,27 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PlaylistDto"
+    LicenseDto:
+      type: object
+      properties:
+        churchId:
+          type: string
+        consentDocumentUrl:
+          type: string
+        consentStatus:
+          type: string
+        createdAt:
+          type: string
+        expiresAt:
+          type: string
+        grantedAt:
+          type: string
+        id:
+          type: string
+        revenueSharePct:
+          type: number
+        territory:
+          type: string
     LikeResultDto:
       type: object
       properties:
@@ -1513,6 +3014,7 @@ components:
           type: string
         eventId:
           type: string
+          format: uuid
         eventType:
           type: string
           minLength: 1
@@ -1629,6 +3131,20 @@ components:
             $ref: "#/components/schemas/TrackDto"
         trendingInRegion:
           $ref: "#/components/schemas/TrendingInRegion"
+    Request:
+      type: object
+      properties:
+        contactEmail:
+          type: string
+        country:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        region:
+          type: string
+      required:
+      - name
     SearchResultsDto:
       type: object
       properties:
@@ -1680,6 +3196,15 @@ components:
           type: string
         user:
           $ref: "#/components/schemas/UserDto"
+    StatusRequest:
+      type: object
+      properties:
+        consentStatus:
+          type: string
+          minLength: 1
+          pattern: pending|granted|revoked|expired
+      required:
+      - consentStatus
     StreamManifestDto:
       type: object
       properties:
@@ -1761,6 +3286,14 @@ components:
           type: string
         title:
           type: string
+    TranscodeRequest:
+      type: object
+      properties:
+        masterStorageKey:
+          type: string
+          minLength: 1
+      required:
+      - masterStorageKey
     TrendingInRegion:
       type: object
       properties:
@@ -1772,6 +3305,34 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TrackDto"
+    Update:
+      type: object
+      properties:
+        albumId:
+          type: string
+          format: uuid
+        coverUrl:
+          type: string
+        durationMs:
+          type: integer
+          format: int32
+          minimum: 1
+        genre:
+          type: string
+        language:
+          type: string
+        licenseId:
+          type: string
+          format: uuid
+        popularity:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 0
+        region:
+          type: string
+        title:
+          type: string
     UpdateRequest:
       type: object
       properties:

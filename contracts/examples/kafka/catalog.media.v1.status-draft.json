@@ -1,0 +1,21 @@
+{
+  "_source": "real outbox row id=71 produced by the /v1/admin ingest path, 2026-09-17T18:26:56.429077+03:00",
+  "envelope": {
+    "key": "3568157c-8701-4569-911b-43c3afbda084",
+    "headers": {
+      "event_id": "61824535-b3ea-4530-9c88-fae3be558262",
+      "event_type": "catalog.media.v1",
+      "aggregate_type": "media_item"
+    }
+  },
+  "value": {
+    "title": "The Rest That Remains (Kisumu)",
+    "status": "draft",
+    "artist_id": "774f6ba9-170c-44e4-a677-c2e299f69309",
+    "media_type": "sermon",
+    "popularity": 60,
+    "updated_at": "2026-09-17T15:26:56.414552211Z",
+    "duration_ms": 1800000,
+    "media_item_id": "3568157c-8701-4569-911b-43c3afbda084"
+  }
+}

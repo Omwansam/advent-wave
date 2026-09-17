@@ -71,7 +71,18 @@ export function MusicPlayer() {
   useEffect(() => {
     const a = audioRef.current
     if (!a) return
-    const onMeta = () => setDuration(Number.isFinite(a.duration) ? a.duration : 0)
+    const onMeta = () => {
+      setDuration(Number.isFinite(a.duration) ? a.duration : 0)
+      // A resumed session: seek to where the account stopped, once, then forget it.
+      const { pendingSeekSec, clearPendingSeek } = usePlayerStore.getState()
+      if (pendingSeekSec != null) {
+        if (pendingSeekSec > 0 && pendingSeekSec < a.duration) {
+          a.currentTime = pendingSeekSec
+          setCurrentTime(pendingSeekSec)
+        }
+        clearPendingSeek()
+      }
+    }
     const onEnd = () => {
       const st = usePlayerStore.getState()
       if (st.repeat === 'one') {
@@ -87,7 +98,7 @@ export function MusicPlayer() {
       a.removeEventListener('loadedmetadata', onMeta)
       a.removeEventListener('ended', onEnd)
     }
-  }, [currentSong?.id, setDuration])
+  }, [currentSong?.id, setDuration, setCurrentTime])
 
   useEffect(() => {
     const a = audioRef.current

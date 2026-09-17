@@ -55,7 +55,9 @@ public class EventsController {
     }
 
     public record PlaybackSubmission(
-        String eventId, @NotNull UUID mediaItemId, UUID sessionId, @NotBlank String eventType, @Min(0L) int msPlayed, String device, String clientTs
+        // The event's idempotency key, per contracts/kafka/playback.events.v1 (format uuid).
+        // Optional: the server generates one when absent.
+        UUID eventId, @NotNull UUID mediaItemId, UUID sessionId, @NotBlank String eventType, @Min(0L) int msPlayed, String device, String clientTs
     ) {
     }
 }

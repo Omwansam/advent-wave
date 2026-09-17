@@ -1,11 +1,11 @@
 # `audio.transcode.v1`
 
-**Status: PLANNED.** Key: `media_item_id`. Not compacted.
+**Status: PARTIAL.** Key: `media_item_id`. Not compacted.
 
-Transcode job lifecycle for workstream D's worker. PLANNED: no producer or consumer exists. `requested` is produced by the upload service; `completed` by the worker and consumed by workstream A, which writes media_assets rows, the loudness fields, and moves status processing → published — which the database refuses without a granted licence. Keyed by media_item_id so a job and its result share a partition.
+Transcode job lifecycle for workstream D's worker. PARTIAL: `requested` is produced and `completed` is consumed; nothing produces `completed` until workstream D's worker exists. `requested` is produced by the upload service; `completed` by the worker and consumed by workstream A, which writes media_assets rows, the loudness fields, and moves status processing → published — which the database refuses without a granted licence. Keyed by media_item_id so a job and its result share a partition.
 
-- **Producer:** none yet (workstream D upload service / transcode worker)
-- **Consumers:** workstream A (media_assets writer)
+- **Producer:** requested: gateway CatalogAdminService (POST /v1/admin/media/{id}/transcode). completed: none yet — workstream D's worker
+- **Consumers:** gateway TranscodeCompletedHandler (completed → media_assets, loudness, publish)
 - **Source of truth for the payload:** `advent-wave/BACKEND_BUILD_PLAN.md §11.6 + media_assets columns`
 - **Dead letter:** `audio.transcode.v1.dlq (planned)`
 
@@ -44,4 +44,4 @@ Conditional: when `status` = `completed`, ['duration_ms', 'loudness_lufs', 'true
 
 ## Examples
 
-See `../../examples/kafka/audio.transcode.v1.*.json`. Constructed — no producer exists yet.
+See `../../examples/kafka/audio.transcode.v1.*.json`. `requested` examples are real outbox rows from `POST /v1/admin/media/{id}/transcode`; `completed`/`failed` are constructed — no worker exists yet.

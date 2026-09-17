@@ -1,6 +1,6 @@
 # Kafka contract
 
-**Status: 3 of 6 topics IMPLEMENTED (as outbox rows), 3 PLANNED. No broker, no schema registry, no consumer exists.**
+**Status: 5 of 6 topics have a producer (as outbox rows), `audio.transcode.v1` has its `requested` half; 3 consumers run on the interim dispatcher. No broker or schema registry exists.**
 
 Each topic directory holds `schema.json` (JSON Schema 2020-12) for the message **value**. Every
 file under `../examples/kafka/` validates against its topic's schema; CI must re-run that check.
@@ -14,9 +14,9 @@ hand-typed.
 | `playback.events.v1` | `user_id` | no (30d retention) | gateway `PlaybackIngestService` | C (Cassandra writer), F (features) | **implemented** |
 | `library.events.v1` | `user_id` | no | platform-core `LibraryService` | F | **implemented** |
 | `catalog.playlist.v1` | `playlist_id` | yes | platform-core `LibraryService` | B (search index), F | **implemented** |
-| `catalog.media.v1` | `media_item_id` | yes | *none yet* — ingest path (A/H), transcode consumer (A) | B, F | planned |
-| `catalog.artist.v1` | `artist_id` | yes | *none yet* — ingest path (A) | B, F | planned |
-| `audio.transcode.v1` | `media_item_id` | no | *none yet* — D upload service / worker | A | planned |
+| `catalog.media.v1` | `media_item_id` | yes | gateway `CatalogAdminService` (every status change), `TranscodeCompletedHandler` | B, F | **implemented** (1.2.0) |
+| `catalog.artist.v1` | `artist_id` | yes | gateway `CatalogAdminService` (`/v1/admin/artists`) | B, F | **implemented** (1.2.0) |
+| `audio.transcode.v1` | `media_item_id` | no | `requested`: gateway `CatalogAdminService`. `completed`: *workstream D's worker — none yet* | A `TranscodeCompletedHandler` | **partial** (1.2.0) |
 
 Topic names are constants in `org.adventwave.contracts.events.Topics`. Schema compatibility
 mode, when a registry exists: `BACKWARD` (plan §1 day 2).
@@ -50,6 +50,33 @@ be represented, and an explicit tombstone also survives a JSON-validating consum
 **Retry / dead-letter:** not defined for the three implemented topics — they have no consumer.
 `audio.transcode.v1` specifies 3 attempts then `audio.transcode.v1.dlq` (plan §11.7).
 
+## Consumers — how the rows reach handlers today
+
+**Status: 3 consumers IMPLEMENTED, on an INTERIM transport.** Module `backend/events-pipeline`
+(workstream C's home in the monolith).
+
+| Consumer | Topic | Does |
+|---|---|---|
+| `PlayCountRecorder` | `playback.events.v1` | Increments `play_counts_by_item_day` / `play_counts_by_artist_day` (Postgres interim for the Cassandra tables — `../cassandra/README.md`) |
+| `HomeCacheInvalidationHandler` | `catalog.playlist.v1` | Drops the cached home rails (`a:home:*`) |
+| `TranscodeCompletedHandler` | `audio.transcode.v1` (`completed` only) | Stores `media_assets` + loudness, then publishes — the licence trigger decides; a refusal leaves the item `processing` with its outputs kept |
+
+Every handler implements `EventHandler { topic(); handle(EventEnvelope) }` where `EventEnvelope`
+is the envelope above as a Java record — the handler cannot tell which transport delivered it.
+
+**Interim transport:** `OutboxDispatcher`, a scheduled in-process poller that takes unpublished
+rows in `id` order (`FOR UPDATE SKIP LOCKED`, one transaction per batch), delivers each to its
+topic's handlers, and sets `published_at`. This is the poller the outbox DDL anticipates and
+the thing Debezium replaces; it is switched off with `adventwave.events.dispatcher.enabled=false`
+once Debezium publishes the table, and the handlers become Kafka listeners with no code change.
+Its semantics deliberately match Kafka's so nothing is learnt twice: delivery marks the row,
+not successful processing (a throwing handler is logged at ERROR with the `event_id` and the row
+advances); order is per key; delivery is at-least-once.
+
+**Idempotency, concretely:** `processed_events (event_id, handler)` — a handler claims the pair
+before acting; a redelivery finds the row and does nothing. `OutboxDispatchTest` proves a
+redelivered counted play counts once.
+
 ## The privacy rule (verbatim, plan §1 day 2)
 
 > Events with `private: true` must be excluded from listening history, from recommendation
@@ -63,8 +90,8 @@ again; it is a contract-conformance test in each pipeline, not a code-review com
 
 | # | Finding | Smallest correction |
 |---|---|---|
-| K1 | `playback.events.v1` rows carry **two different `event_id`s**: `payload.event_id` (from the client submission or generated in `PlaybackIngestService`) and `outbox.event_id` (generated again in `OutboxEvent`). A consumer deduping on the header and one deduping on the body disagree. | `OutboxWriter.append` takes an optional event id; `PlaybackIngestService` passes the payload's. One line each. |
+| K1 | ~~`playback.events.v1` rows carried two different `event_id`s.~~ **Resolved in 1.1.0:** `OutboxWriter.append(…, eventId)`; the payload's id is the row's id. `PlaybackSubmission.eventId` is now typed `UUID` (the Kafka contract always said `format: uuid`). Proven by `PrivateSessionConformanceTest.oneEventIdPerEvent`. | — |
 | K2 | `event_id` appears inside the payload for playback but not for library or playlist events. | Adopted rule: **the envelope carries `event_id`**. Payload copies are permitted, must be equal (K1). |
 | K3 | `device` is free text; the plan enumerates `web \| ios \| android`. Nothing validates it. | Schema documents it as a string with recommended values. Tightening it is an RFC. |
 | K4 | `outbox.event_type` holds the topic name; the event *name* (`liked`, `deleted`) is inside the payload as `action` or shape. | Documented as-is. Consistent with Debezium's router. |
-| K5 | `HomeSectionCache.invalidateAll()` exists and has no caller. The plan says invalidation rides `catalog.*`. | It is the intended consumer hook for `catalog.playlist.v1`. Not a G0 item. |
+| K5 | ~~`HomeSectionCache.invalidateAll()` had no caller.~~ **Resolved in 1.1.0:** `HomeCacheInvalidationHandler` consumes `catalog.playlist.v1`. | — |

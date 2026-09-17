@@ -17,6 +17,7 @@ import org.adventwave.contracts.api.MediaType;
 import org.adventwave.contracts.api.PlaylistDto;
 import org.adventwave.contracts.api.RecommendationsDto;
 import org.adventwave.contracts.api.TrackDto;
+import org.adventwave.events.counts.TrendingService;
 import org.adventwave.platform.library.LibraryService;
 import org.adventwave.platform.library.LibrarySnapshot;
 import org.adventwave.platform.library.PlaylistSummary;
@@ -30,6 +31,8 @@ public class HomeAssembler {
     private static final int TRENDING = 18;
     private static final int SERMONS = 12;
     private static final int SABBATH_PLAYLISTS = 8;
+    /** "Trending now" looks back this many days of play counts. */
+    private static final int TRENDING_WINDOW_DAYS = 7;
     private static final Pattern SABBATH = Pattern.compile("\\bsabbath\\b");
     private static final Pattern WORSHIP = Pattern.compile("\\bworship\\b|\\bhymn\\b|\\bpraise\\b|\\bquiet\\b|\\brest\\b");
     private static final String FALLBACK_PLAYLIST = "home-recently-played-fallback";
@@ -38,6 +41,7 @@ public class HomeAssembler {
     private final PlaylistAssembler playlists;
     private final RecommendationAssembler recommendations;
     private final HomeSectionCache cache;
+    private final TrendingService trending;
     private final ExecutorService fanOut;
 
     public HomeAssembler(
@@ -46,6 +50,7 @@ public class HomeAssembler {
         PlaylistAssembler playlists,
         RecommendationAssembler recommendations,
         HomeSectionCache cache,
+        TrendingService trending,
         @Qualifier("fanOutExecutor") ExecutorService fanOut
     ) {
         this.catalog = catalog;
@@ -53,13 +58,14 @@ public class HomeAssembler {
         this.playlists = playlists;
         this.recommendations = recommendations;
         this.cache = cache;
+        this.trending = trending;
         this.fanOut = fanOut;
     }
 
     public HomeDto assemble(UUID userId, ZoneId zone) {
         LibrarySnapshot librarysnapshot = this.library.snapshot(userId);
         Future<List<TrackDto>> future = this.fanOut.submit(() -> this.recentlyPlayed(librarysnapshot));
-        Future<List<TrackDto>> future1 = this.fanOut.submit(() -> this.cache.trending(() -> this.catalog.trending(18)));
+        Future<List<TrackDto>> future1 = this.fanOut.submit(() -> this.cache.trending(this::trendingNow));
         Future<List<PlaylistDto>> future2 = this.fanOut.submit(() -> this.cache.sabbathWorship(this::sabbathWorship));
         Future<List<TrackDto>> future3 = this.fanOut.submit(() -> this.cache.sermons(() -> this.catalog.byType(MediaType.SERMON, 12)));
         Future<RecommendationsDto> future4 = this.fanOut.submit(() -> this.recommendations.forUser(userId, librarysnapshot));
@@ -71,6 +77,25 @@ public class HomeAssembler {
         return !list.isEmpty()
             ? this.catalog.tracks(list)
             : this.library.playlistByLegacyId("home-recently-played-fallback").map(playlist -> this.catalog.tracks(playlist.songIds())).orElseGet(List::of);
+    }
+
+    /**
+     * What listeners actually played over the last week, from the play counts workstream C
+     * maintains from playback.events.v1 — filled up with the catalogue's static popularity
+     * when there are not enough counted plays yet. On a fresh database that is all of it,
+     * which is the cold start the plan expects; after the first counted play it is not.
+     */
+    private List<TrackDto> trendingNow() {
+        List<UUID> played = this.trending.topItemIds(TRENDING_WINDOW_DAYS, TRENDING);
+        List<TrackDto> list = new java.util.ArrayList<>(this.catalog.tracks(played));
+        if (list.size() < TRENDING) {
+            java.util.Set<String> seen = list.stream().map(TrackDto::id).collect(java.util.stream.Collectors.toSet());
+            this.catalog.trending(TRENDING).stream()
+                .filter(t -> seen.add(t.id()))
+                .limit(TRENDING - list.size())
+                .forEach(list::add);
+        }
+        return list;
     }
 
     private List<PlaylistDto> sabbathWorship() {

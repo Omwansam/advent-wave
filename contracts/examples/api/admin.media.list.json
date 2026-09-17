@@ -1,0 +1,30 @@
+{
+  "_source": "live response from the gateway; admin@adventwave.app holds the catalog:write scope from the dev issuer; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/admin/media?status=processing&limit=5",
+    "authenticated": true,
+    "scope": "catalog:write"
+  },
+  "response": {
+    "status": 200,
+    "body": [
+      {
+        "id": "3568157c-8701-4569-911b-43c3afbda084",
+        "mediaType": "sermon",
+        "title": "The Rest That Remains (Kisumu)",
+        "artistId": "774f6ba9-170c-44e4-a677-c2e299f69309",
+        "durationMs": 1799500,
+        "popularity": 60,
+        "status": "processing",
+        "licenseId": "99b61164-35c2-4ed0-a42d-d1eb9dd31507",
+        "masterStorageKey": "masters/3568157c-8701-4569-911b-43c3afbda084/original.flac",
+        "loudnessLufs": -18.4,
+        "truePeakDbfs": -2.0,
+        "createdAt": "2026-09-17T15:26:56.414552Z",
+        "updatedAt": "2026-09-17T15:26:58.494393Z",
+        "assets": []
+      }
+    ]
+  }
+}

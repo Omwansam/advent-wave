@@ -51,7 +51,8 @@ Every write that changes library or catalogue state appends a row **in the same 
 direction). `event_type` holds the **Kafka topic name**; `aggregate_id` is the Kafka key;
 `event_id` is the idempotency key. See `../kafka/README.md` for the envelope.
 
-`published_at` is set by whatever publishes the row. Nothing does yet — the table accumulates.
+`published_at` is set by whatever publishes the row. Since 1.1.0 that is the interim
+`OutboxDispatcher` (`../kafka/README.md` → Consumers); Debezium takes over the same column.
 
 ## Deviations from the plan's starting DDL
 
@@ -66,6 +67,8 @@ All additive. Each is annotated `ADDED` in V1 with its reason.
 | `discover_category_items` | The client's Discover page had a hardcoded id map; it needed a home |
 | `listening_history` | Interim for Cassandra `listening_history_by_user`; accessed only via `ListeningHistoryRepository` |
 | `outbox.event_id` | Consumers are idempotent on it (plan §6) |
+| `play_counts_by_item_day`, `play_counts_by_artist_day` (1.1.0) | Interim for the Cassandra tables of the same name and columns; written only by `PlayCountRecorder`, read only by `TrendingService` |
+| `processed_events` (1.1.0) | **Permanent, not interim.** `(event_id, handler)` claims — how a consumer is idempotent under any transport |
 
 ## Not in the schema
 

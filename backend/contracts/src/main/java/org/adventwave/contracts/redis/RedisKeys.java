@@ -13,6 +13,9 @@ public final class RedisKeys {
     public static final Duration RECO_TTL = Duration.ofHours(6L);
     public static final Duration PLAY_SESSION_TTL = Duration.ofMinutes(15L);
 
+    /** SET of user ids whose a:player:* buffer has not been flushed to Postgres yet. No TTL: drained each flush. */
+    public static final String PLAYER_DIRTY = "a:player:dirty";
+
     public static String player(String userId) {
         return "a:player:" + userId;
     }

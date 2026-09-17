@@ -129,17 +129,19 @@ public class OpenApiConfig {
         "GET /v1/media/{id}/stream/{profile}"
     );
 
-    private static final Map<String, String> TAG_BY_CONTROLLER = Map.of(
-        "dev-session-controller", "auth",
-        "me-controller", "account",
-        "home-controller", "catalogue",
-        "media-controller", "media",
-        "search-controller", "search",
-        "library-controller", "library",
-        "playlist-controller", "playlists",
-        "player-state-controller", "player",
-        "recommendation-controller", "recommendations",
-        "events-controller", "events"
+    private static final Map<String, String> TAG_BY_CONTROLLER = Map.ofEntries(
+        Map.entry("dev-session-controller", "auth"),
+        Map.entry("me-controller", "account"),
+        Map.entry("home-controller", "catalogue"),
+        Map.entry("media-controller", "media"),
+        Map.entry("search-controller", "search"),
+        Map.entry("library-controller", "library"),
+        Map.entry("playlist-controller", "playlists"),
+        Map.entry("player-state-controller", "player"),
+        Map.entry("recommendation-controller", "recommendations"),
+        Map.entry("events-controller", "events"),
+        Map.entry("church-admin-controller", "admin: contributors"),
+        Map.entry("catalog-admin-controller", "admin: catalogue")
     );
 
     private static void tagByResource(Operation op) {
@@ -185,6 +187,16 @@ public class OpenApiConfig {
         }
         if (path.equals("/v1/events/playback")) {
             error(op, "429", "More than adventwave.events.playback-per-minute events this minute");
+        }
+        if (path.startsWith("/v1/admin/")) {
+            // SecurityConfig: hasAuthority(SCOPE_catalog:write). A valid token without the scope is 403.
+            error(op, "403", "The token lacks the catalog:write scope");
+            if (method != HttpMethod.GET) {
+                // CatalogAdminService throws AdminConflictException for state refusals:
+                // duplicate name/slug/title, wrong status for the transition, licence not granted.
+                error(op, "409", "The target's current state refuses this operation; the message says why");
+            }
+            op.setSecurity(List.of(new SecurityRequirement().addList(BEARER_SCHEME, List.of("catalog:write"))));
         }
         error(op, "500", "Unhandled failure; the body carries no detail");
     }

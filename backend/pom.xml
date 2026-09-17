@@ -43,6 +43,7 @@
     <module>platform-core</module>
     <module>catalog-service</module>
     <module>reco-service</module>
+    <module>events-pipeline</module>
     <module>gateway</module>
   </modules>
 
@@ -66,6 +67,11 @@
       <dependency>
         <groupId>org.adventwave</groupId>
         <artifactId>reco-service</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.adventwave</groupId>
+        <artifactId>events-pipeline</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

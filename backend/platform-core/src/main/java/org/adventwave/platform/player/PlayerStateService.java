@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PlayerStateService {
     private static final Logger log = LoggerFactory.getLogger(PlayerStateService.class);
-    private static final String DIRTY_SET = "a:player:dirty";
     private final PlatformRepositories.PlayerStateRepository repository;
     private final PlayerStateService.PlayerStatePersister persister;
     private final StringRedisTemplate redis;
@@ -60,7 +59,7 @@ public class PlayerStateService {
             this.redis
                 .opsForValue()
                 .set(RedisKeys.player(userId.toString()), this.objectMapper.writeValueAsString(playerstateservice$buffered), RedisKeys.PLAYER_TTL);
-            this.redis.opsForSet().add("a:player:dirty", new String[]{userId.toString()});
+            this.redis.opsForSet().add(RedisKeys.PLAYER_DIRTY, new String[]{userId.toString()});
         } catch (Exception exception) {
             log.warn("player-state buffer unavailable for {}, writing through to Postgres", userId, exception);
             this.persister.persist(userId, playerstateservice$buffered);
@@ -73,12 +72,12 @@ public class PlayerStateService {
     public void flushBuffer() {
         Set<String> set;
         try {
-            set = this.redis.opsForSet().members("a:player:dirty");
+            set = this.redis.opsForSet().members(RedisKeys.PLAYER_DIRTY);
             if (set == null || set.isEmpty()) {
                 return;
             }
 
-            this.redis.opsForSet().remove("a:player:dirty", set.toArray());
+            this.redis.opsForSet().remove(RedisKeys.PLAYER_DIRTY, set.toArray());
         } catch (Exception exception1) {
             log.warn("could not read player-state dirty set; skipping this flush", exception1);
             return;
@@ -93,7 +92,7 @@ public class PlayerStateService {
                 i++;
             } catch (Exception exception) {
                 log.warn("failed to flush player state for {}", s, exception);
-                this.redis.opsForSet().add("a:player:dirty", new String[]{s});
+                this.redis.opsForSet().add(RedisKeys.PLAYER_DIRTY, new String[]{s});
             }
         }
 

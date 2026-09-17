@@ -37,4 +37,4 @@ A change to one user's library: a like toggled, an artist or playlist followed o
 
 ## Examples
 
-See `../../examples/kafka/library.events.v1.*.json`. Copied from real outbox rows.
+See `../../examples/kafka/library.events.v1.*.json`. Real outbox rows.

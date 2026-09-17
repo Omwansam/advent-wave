@@ -1,0 +1,23 @@
+{
+  "_source": "live response from the gateway; admin@adventwave.app holds the catalog:write scope from the dev issuer; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/admin/churches/19ce0653-0fff-401b-95fa-31b5e5c8b619/licenses",
+    "authenticated": true,
+    "scope": "catalog:write"
+  },
+  "response": {
+    "status": 200,
+    "body": [
+      {
+        "id": "36642837-e2c1-4b52-875c-0ff72968b69c",
+        "churchId": "19ce0653-0fff-401b-95fa-31b5e5c8b619",
+        "consentStatus": "granted",
+        "territory": "worldwide",
+        "grantedAt": "2026-09-17T15:22:51.560998Z",
+        "revenueSharePct": 50.0,
+        "createdAt": "2026-09-17T15:22:50.002984Z"
+      }
+    ]
+  }
+}

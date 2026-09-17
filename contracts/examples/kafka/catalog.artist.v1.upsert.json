@@ -1,18 +1,19 @@
 {
-  "_source": "constructed \u2014 this topic has no producer yet; ids are real seed ids so the example is coherent with the catalogue",
+  "_source": "real outbox row id=62 produced by the /v1/admin ingest path, 2026-09-17T18:22:50.162424+03:00",
   "envelope": {
-    "key": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
+    "key": "774f6ba9-170c-44e4-a677-c2e299f69309",
     "headers": {
-      "event_id": "00000000-0000-4000-8000-00000000f001",
-      "event_type": "catalog.artist.v1"
+      "event_id": "dbf47f4c-26bb-45bd-b76a-2a1eac350c0c",
+      "event_type": "catalog.artist.v1",
+      "aggregate_type": "artist"
     }
   },
   "value": {
-    "artist_id": "b4f12b98-1b92-5b62-bfee-1d1827735da2",
-    "name": "COSACOW Nairobi",
-    "slug": "cosacow-nairobi",
-    "cover_url": "https://picsum.photos/seed/ke-hakuna-mungu/400/400",
-    "church_id": "c9483745-dfe9-529f-bfec-7b69e614e1c1",
-    "verified": false
+    "name": "Nairobi Central Choir",
+    "slug": "nairobi-central-choir",
+    "verified": false,
+    "artist_id": "774f6ba9-170c-44e4-a677-c2e299f69309",
+    "church_id": "19ce0653-0fff-401b-95fa-31b5e5c8b619",
+    "cover_url": "https://picsum.photos/seed/ncc/400/400"
   }
 }

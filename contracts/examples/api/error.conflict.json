@@ -1,0 +1,18 @@
+{
+  "_source": "live response from the gateway; admin@adventwave.app holds the catalog:write scope from the dev issuer; lists truncated to two items",
+  "request": {
+    "method": "POST",
+    "path": "/v1/admin/media/3568157c-8701-4569-911b-43c3afbda084/publish",
+    "authenticated": true,
+    "scope": "catalog:write"
+  },
+  "response": {
+    "status": 409,
+    "body": {
+      "status": 409,
+      "error": "Conflict",
+      "message": "licence 99b61164-35c2-4ed0-a42d-d1eb9dd31507 is pending, not granted",
+      "timestamp": "2026-09-17T15:30:56.546420540Z"
+    }
+  }
+}

@@ -58,6 +58,9 @@ adventwave:
     # dev decoder.
     dev-issuer: ${ADVENTWAVE_DEV_ISSUER:true}
     dev-secret: ${ADVENTWAVE_DEV_SECRET:dev-only-secret-at-least-32-bytes-long-change-me}
+    # Emails the dev issuer grants the catalog:write scope (the /v1/admin surface). A real IdP
+    # assigns scopes itself and this list goes away with the dev issuer.
+    admin-emails: ${ADVENTWAVE_ADMIN_EMAILS:admin@adventwave.app}
 
   catalog:
     api-base-url: ${ADVENTWAVE_API_BASE_URL:http://localhost:8080}
@@ -70,6 +73,18 @@ adventwave:
 
   events:
     playback-per-minute: 240     # ~1 progress event every 250ms per listener before limiting
+    dispatcher:
+      # INTERIM: delivers outbox rows to the in-process handlers (events-pipeline module).
+      # Set false once Debezium publishes the outbox to Kafka; the handlers then consume
+      # from there. See contracts/kafka/README.md.
+      enabled: ${ADVENTWAVE_EVENTS_DISPATCHER:true}
+      interval-ms: 2000
+      batch-size: 500
+
+  contracts:
+    # The contract version this build implements — <repo>/contracts/VERSION. CI asserts the
+    # generated OpenAPI carries the same value.
+    version: 1.2.0
 
 springdoc:
   # The document is generated from the controllers and dumped to contracts/openapi/ by

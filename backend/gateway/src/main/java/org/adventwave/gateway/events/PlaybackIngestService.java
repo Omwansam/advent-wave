@@ -39,8 +39,11 @@ public class PlaybackIngestService {
             boolean flag = PlayCountingPolicy.counts(i, j);
             boolean flag1 = PlayCountingPolicy.isCompleted(i, j);
             boolean flag2 = this.users.isPrivateSession(userId);
+            // One id for the event: the same value goes into the payload and onto the outbox row,
+            // so header- and body-based deduplication agree (contracts/kafka/README.md, K1).
+            UUID eventId = submission.eventId() == null ? UUID.randomUUID() : submission.eventId();
             PlaybackEvent playbackevent = new PlaybackEvent(
-                submission.eventId() == null ? UUID.randomUUID().toString() : submission.eventId(),
+                eventId.toString(),
                 userId.toString(),
                 mediaitem.getId().toString(),
                 mediaitem.getMediaType(),
@@ -54,7 +57,7 @@ public class PlaybackIngestService {
                 submission.clientTs(),
                 Instant.now().toString()
             );
-            this.outbox.append("playback", userId, "playback.events.v1", playbackevent);
+            this.outbox.append("playback", userId, "playback.events.v1", playbackevent, eventId);
             if (!flag2 && flag) {
                 this.history.record(userId, mediaitem.getId(), i, flag1, submission.sessionId(), submission.device());
             }
@@ -63,6 +66,6 @@ public class PlaybackIngestService {
         }
     }
 
-    public record Submission(String eventId, UUID mediaItemId, UUID sessionId, String eventType, int msPlayed, String device, String clientTs) {
+    public record Submission(UUID eventId, UUID mediaItemId, UUID sessionId, String eventType, int msPlayed, String device, String clientTs) {
     }
 }
