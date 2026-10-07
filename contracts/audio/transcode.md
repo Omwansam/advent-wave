@@ -1,6 +1,6 @@
 # Audio contract — `audio.transcode.v1` and the serving side
 
-**Status:** serving side IMPLEMENTED; the seam on both ends IMPLEMENTED (1.2.0: `POST /v1/admin/media/{id}/transcode` emits `requested`; `TranscodeCompletedHandler` consumes `completed`); the worker, upload, storage and CDN NOT IMPLEMENTED.
+**Status:** serving side IMPLEMENTED; the seam on both ends IMPLEMENTED (1.2.0: `POST /v1/admin/media/{id}/transcode` emits `requested`; `TranscodeCompletedHandler` consumes `completed`). The worker's steps are IMPLEMENTED as a local CLI, `backend/tools/transcode.py` (`ingest` plays the upload service, `run` the worker; `--deliver` writes `completed` to the outbox), not yet as a service consuming `requested`. Storage is a local directory and the gateway is the media origin in the `local` profile (A1); real upload, buckets and CDN NOT IMPLEMENTED.
 Owner: workstream D. Source: plan §11, and the columns of `media_items` / `media_assets`, which
 were designed from it. Message schemas: `../kafka/audio.transcode.v1/schema.json`.
 
@@ -34,16 +34,25 @@ Open decision, unchanged since the plan: HE-AACv2 needs `libfdk_aac` (non-redist
 ffmpeg build). Internal container image is fine; the fallback is `aac_64` as the low tier. D
 decides; the enum in the schema is updated by RFC if the 24k tier is dropped.
 
+**Interim, as implemented (RFC-1):** no build has `libfdk_aac`, so the worker emits `aac_64` in
+place of `aac_24_hev2`: songs get `aac_64 · aac_96 · aac_160 · aac_320`, speech `aac_64 · aac_128`.
+Both are in the schema's enum already. `BitrateLadder` still names `aac_24_hev2`;
+`data_saver` listeners fall back to the lowest available profile, which is `aac_64`.
+
 ## Worker steps (order matters)
 
-1. **probe** — duration, channels, sample rate from the master. Never hardcode either; mono
-   masters stay mono (double bitrate spent on identical channels otherwise), sample rate capped
-   at 48 kHz.
+1. **probe** — duration, channels, sample rate from the master. Never hardcode channels; mono
+   masters stay mono (double bitrate spent on identical channels otherwise). Every derivative is
+   resampled to **44.1 kHz** (`aresample`, soxr when the build has it), so each asset has one
+   known rate; a 44.1 kHz master passes through untouched. A video container's audio stream is
+   copied out bit-exact at ingest; the picture is not kept.
 2. **encode + measure** — one ffmpeg pass fans out to every profile *and* `ebur128` loudness.
-   Decode the master once, not once per profile.
+   Decode the master once, not once per profile. The meter taps the master before the
+   resampler, so `loudness_lufs` describes the master itself. `silencedetect` runs in the same
+   pass (−50 dBFS for 3 s or more at either end → a review flag).
 3. **verify** — every output probed before upload: codec matches profile; duration within
-   ±100 ms of the master; channels and sample rate match the probe; `byte_size` read from the
-   file, never computed. A truncated encode that is still a valid file is the failure most
+   ±100 ms of the master; channels match the probe; sample rate is 44100; `byte_size` read from
+   the file, never computed. A truncated encode that is still a valid file is the failure most
    likely to reach a listener.
 4. **waveform** (optional) — `waveform.json` for the scrubber.
 5. **upload** to deterministic keys.
@@ -90,6 +99,6 @@ only (`true_peak_dbfs` exists because lossy decoders can overshoot 0 dBFS).
 
 | # | Finding | Smallest correction |
 |---|---|---|
-| A1 | The 302 target for a real asset is `{api-base-url}/media-storage/{storage_key}` (`StreamService.storageUrl`). **Nothing serves that path.** Today every item has no `media_assets` row and falls back to `seed_source_url` with a warning. | Make the derived-bucket/CDN origin a config property (`adventwave.catalog.media-origin-url`) that D's provisioning sets; the placeholder path is a dev-only default. |
+| A1 | **Corrected.** The 302 target for a real asset is `{media-origin-url}/{storage_key}`. `adventwave.catalog.media-origin-url` (env `ADVENTWAVE_MEDIA_ORIGIN_URL`) is the CDN origin D's provisioning sets; unset, it is `{api-base-url}/media-storage`, which only the `local` profile answers: with `adventwave.catalog.local-media-root` set (default `~/media`, env `ADVENTWAVE_MEDIA_ROOT`) the gateway serves `{root}/derived/` at `/media-storage/derived/**`, unauthenticated like a CDN origin, with range requests. Masters are never mapped. | Provisioning sets `media-origin-url`; the local origin is never enabled outside `local`. |
 | A2 | `waveform_url` is always `null`; `media_assets` has no row type for `waveform.json`. | Either a `waveform_storage_key` column on `media_items` or a pseudo-profile row. RFC when D builds step 4. |
 | A3 | `profile` values are a comment on `media_assets.profile`, not a CHECK constraint; the enum lives in `BitrateLadder` and now in the schema. | Add the CHECK when the ladder decision (libfdk) is final. |

@@ -12,6 +12,25 @@ public class CatalogProperties {
     private Duration signedUrlTtl = Duration.ofMinutes(5L);
     private double targetLufs = -14.0;
     private String signingSecret = "dev-only-playback-signing-secret-change-me";
+    /**
+     * Where a stored asset's bytes are fetched from: the derived bucket's CDN origin, set by
+     * provisioning. Unset, it is {@code apiBaseUrl + "/media-storage"}, which answers only when
+     * {@link #localMediaRoot} is set (drift A1 in contracts/audio/transcode.md).
+     */
+    private String mediaOriginUrl;
+    /**
+     * Local development only: a directory holding {@code derived/{id}/{profile}.m4a}, which the
+     * gateway then serves itself at {@code /media-storage/derived/**}. Unset everywhere else.
+     */
+    private String localMediaRoot;
+
+    /** The base a storage key is appended to, with no trailing slash. */
+    public String mediaOrigin() {
+        String origin = this.mediaOriginUrl == null || this.mediaOriginUrl.isBlank()
+            ? this.apiBaseUrl + "/media-storage"
+            : this.mediaOriginUrl;
+        return origin.endsWith("/") ? origin.substring(0, origin.length() - 1) : origin;
+    }
 
     @Generated
     public String getApiBaseUrl() {
@@ -34,6 +53,16 @@ public class CatalogProperties {
     }
 
     @Generated
+    public String getMediaOriginUrl() {
+        return this.mediaOriginUrl;
+    }
+
+    @Generated
+    public String getLocalMediaRoot() {
+        return this.localMediaRoot;
+    }
+
+    @Generated
     public void setApiBaseUrl(final String apiBaseUrl) {
         this.apiBaseUrl = apiBaseUrl;
     }
@@ -51,5 +80,15 @@ public class CatalogProperties {
     @Generated
     public void setSigningSecret(final String signingSecret) {
         this.signingSecret = signingSecret;
+    }
+
+    @Generated
+    public void setMediaOriginUrl(final String mediaOriginUrl) {
+        this.mediaOriginUrl = mediaOriginUrl;
+    }
+
+    @Generated
+    public void setLocalMediaRoot(final String localMediaRoot) {
+        this.localMediaRoot = localMediaRoot;
     }
 }

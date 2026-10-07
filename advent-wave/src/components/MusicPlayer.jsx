@@ -21,6 +21,20 @@ import { FullPlayerModal } from './FullPlayerModal'
 import { LikeButton } from './LikeButton'
 import { usePlaybackSource } from '../hooks/usePlaybackSource'
 import { usePlaybackReporter } from '../hooks/usePlaybackReporter'
+import { useToastStore } from '../store/useToastStore'
+
+/**
+ * play(), with its rejection handled. AbortError means a newer load() or pause() superseded
+ * this call, the normal result of switching tracks quickly. Anything else (autoplay refused,
+ * source unplayable) means nothing is playing, so the UI is told and one press of Play retries.
+ */
+function startPlayback(audio) {
+  const p = audio.play()
+  p?.catch?.((err) => {
+    if (err?.name === 'AbortError') return
+    usePlayerStore.getState().setPlaying(false)
+  })
+}
 
 export function MusicPlayer() {
   const audioRef = useRef(null)
@@ -61,22 +75,45 @@ export function MusicPlayer() {
     recordTrackPlay(currentSong.id)
   }, [currentSong?.id, recordTrackPlay])
 
+  // The element follows two inputs, applied together: the current track's source and whether
+  // the listener wants sound. A track change sets isPlaying at once, but the source arrives
+  // later, from the manifest fetch, and assigning src resets the element: it pauses and drops
+  // any pending play(). Starting playback only when isPlaying flipped left a freshly picked
+  // track silent behind a Pause button until Play was pressed twice.
+  const loadedUrlRef = useRef(null)
   useEffect(() => {
     const a = audioRef.current
-    if (!a || !streamUrl) return
-    a.src = streamUrl
-    a.load()
-  }, [streamUrl])
+    if (!a) return
+    if (!streamUrl) {
+      // The next track's manifest is on its way (or failed). The previous source must not
+      // keep playing under the new title.
+      a.pause()
+      return
+    }
+    if (loadedUrlRef.current !== streamUrl) {
+      loadedUrlRef.current = streamUrl
+      a.src = streamUrl
+      a.load()
+    }
+    if (isPlaying) startPlayback(a)
+    else a.pause()
+  }, [streamUrl, isPlaying])
+
+  // A track whose manifest cannot be fetched is not playing, whatever was asked for.
+  useEffect(() => {
+    if (streamError) usePlayerStore.getState().setPlaying(false)
+  }, [streamError])
 
   useEffect(() => {
     const a = audioRef.current
     if (!a) return
     const onMeta = () => {
       setDuration(Number.isFinite(a.duration) ? a.duration : 0)
-      // A resumed session: seek to where the account stopped, once, then forget it.
-      const { pendingSeekSec, clearPendingSeek } = usePlayerStore.getState()
+      // A resumed session: seek to where the account stopped, once, then forget it. Only on
+      // the restored track; one picked before that track finished loading starts from the top.
+      const { pendingSeekSec, pendingSeekId, currentSong: song, clearPendingSeek } = usePlayerStore.getState()
       if (pendingSeekSec != null) {
-        if (pendingSeekSec > 0 && pendingSeekSec < a.duration) {
+        if (pendingSeekId === song?.id && pendingSeekSec > 0 && pendingSeekSec < a.duration) {
           a.currentTime = pendingSeekSec
           setCurrentTime(pendingSeekSec)
         }
@@ -87,16 +124,34 @@ export function MusicPlayer() {
       const st = usePlayerStore.getState()
       if (st.repeat === 'one') {
         a.currentTime = 0
-        void a.play()
+        startPlayback(a)
         return
       }
-      usePlayerStore.getState().nextSong()
+      const endedId = st.currentSong?.id
+      st.nextSong()
+      // Wrapping onto the same track (repeat-all over a one-song queue) changes nothing the
+      // source effect watches, so restart it here.
+      const next = usePlayerStore.getState()
+      if (next.isPlaying && next.currentSong?.id === endedId) {
+        a.currentTime = 0
+        startPlayback(a)
+      }
+    }
+    const onError = () => {
+      // A source that fails to load or decode. Say so, and show it as paused rather than
+      // leaving a Pause button over silence.
+      if (!a.getAttribute('src') || a.error?.code === MediaError.MEDIA_ERR_ABORTED) return
+      usePlayerStore.getState().setPlaying(false)
+      const title = usePlayerStore.getState().currentSong?.title
+      useToastStore.getState().showToast(title ? `Couldn't play "${title}"` : "Couldn't play this track")
     }
     a.addEventListener('loadedmetadata', onMeta)
     a.addEventListener('ended', onEnd)
+    a.addEventListener('error', onError)
     return () => {
       a.removeEventListener('loadedmetadata', onMeta)
       a.removeEventListener('ended', onEnd)
+      a.removeEventListener('error', onError)
     }
   }, [currentSong?.id, setDuration, setCurrentTime])
 
@@ -107,17 +162,6 @@ export function MusicPlayer() {
     a.addEventListener('timeupdate', onTimeUpdate)
     return () => a.removeEventListener('timeupdate', onTimeUpdate)
   }, [setCurrentTime])
-
-  useEffect(() => {
-    const a = audioRef.current
-    if (!a || !currentSong) return
-    if (isPlaying) {
-      const p = a.play()
-      if (p?.catch) p.catch(() => {})
-    } else {
-      a.pause()
-    }
-  }, [isPlaying, currentSong?.id, currentSong])
 
   useEffect(() => {
     const a = audioRef.current

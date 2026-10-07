@@ -26,6 +26,13 @@ logging:
     org.adventwave.gateway.assemble.HomeSectionCache: ERROR
     org.adventwave.gateway.events.RateLimiter: ERROR
 
+adventwave:
+  catalog:
+    # Nothing serves derived assets until the CDN origin exists (drift A1 in
+    # contracts/audio/transcode.md), so locally the gateway serves {root}/derived/ itself.
+    # tools/transcode.py writes to the same directory; both read ADVENTWAVE_MEDIA_ROOT.
+    local-media-root: ${ADVENTWAVE_MEDIA_ROOT:${user.home}/media}
+
 management:
   health:
     redis:

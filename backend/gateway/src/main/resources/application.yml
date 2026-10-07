@@ -67,6 +67,9 @@ adventwave:
     signed-url-ttl: 5m
     target-lufs: -14.0
     signing-secret: ${ADVENTWAVE_SIGNING_SECRET:dev-only-playback-signing-secret-change-me}
+    # The derived bucket's CDN origin; a storage key is appended to it. Empty means
+    # {api-base-url}/media-storage, which only the local profile's media origin answers.
+    media-origin-url: ${ADVENTWAVE_MEDIA_ORIGIN_URL:}
 
   player:
     flush-interval-ms: 30000     # the documented bound on player-position loss

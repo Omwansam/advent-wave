@@ -41,6 +41,8 @@ export const usePlayerStore = create(
        * currentTime so a seek is applied exactly once, not on every re-render.
        */
       pendingSeekSec: null,
+      /** The track pendingSeekSec belongs to. Any other track starts from the top. */
+      pendingSeekId: null,
       /** True once the server's copy has been applied (or found empty) for this session. */
       hydrated: false,
       /** When shuffle is on: non-shuffled copy for turning shuffle off. */
@@ -63,6 +65,12 @@ export const usePlayerStore = create(
        *           shuffle: boolean, repeat: string, orderedQueue: string[] | null } | null} state
        */
       hydrateFromServer: (state) => {
+        // The listener picked a track before the account's copy arrived. That choice is newer
+        // than anything the server holds, so it stands and the restore is skipped.
+        if (get().currentSong) {
+          set({ hydrated: true })
+          return
+        }
         if (!state || !state.tracks?.length) {
           set({ hydrated: true })
           return
@@ -82,6 +90,7 @@ export const usePlayerStore = create(
           isPlaying: false,
           currentTime: (state.positionMs ?? 0) / 1000,
           pendingSeekSec: (state.positionMs ?? 0) / 1000,
+          pendingSeekId: queue[idx].id,
           volume: typeof state.volume === 'number' ? state.volume : get().volume,
           shuffle: Boolean(state.shuffle),
           repeat: ['off', 'all', 'one'].includes(state.repeat) ? state.repeat : 'off',
@@ -89,7 +98,7 @@ export const usePlayerStore = create(
         })
       },
 
-      clearPendingSeek: () => set({ pendingSeekSec: null }),
+      clearPendingSeek: () => set({ pendingSeekSec: null, pendingSeekId: null }),
 
       /** On logout: the next account must not resume this one's queue. */
       resetForLogout: () =>
@@ -102,6 +111,7 @@ export const usePlayerStore = create(
           currentTime: 0,
           duration: 0,
           pendingSeekSec: null,
+          pendingSeekId: null,
           hydrated: false,
         }),
 

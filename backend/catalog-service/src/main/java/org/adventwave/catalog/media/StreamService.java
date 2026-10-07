@@ -77,7 +77,7 @@ public class StreamService {
     }
 
     private String storageUrl(MediaAsset asset) {
-        return this.properties.getApiBaseUrl() + "/media-storage/" + asset.getStorageKey();
+        return this.properties.mediaOrigin() + "/" + asset.getStorageKey();
     }
 
     private String fallbackUrl(MediaItem item) {

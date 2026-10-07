@@ -1,7 +1,9 @@
 package org.adventwave.gateway.api;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
+import org.apache.catalina.connector.ClientAbortException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.adventwave.gateway.admin.AdminConflictException;
@@ -96,9 +98,13 @@ public class ApiExceptionHandler {
      * Without this it reaches the catch-all below, which logs a full stack trace at ERROR
      * and then tries to write a 500 body to the same closed socket. Returning void tells
      * Spring the request is handled and no response is to be written.
+     *
+     * <p>Static resources write straight to the socket, so there the hang-up arrives as
+     * Tomcat's own ClientAbortException, unwrapped. That is routine for the local media
+     * origin: an audio element abandons range requests whenever the listener seeks or skips.
      */
-    @ExceptionHandler({AsyncRequestNotUsableException.class})
-    public void handleClientDisconnect(AsyncRequestNotUsableException e) {
+    @ExceptionHandler({AsyncRequestNotUsableException.class, ClientAbortException.class})
+    public void handleClientDisconnect(IOException e) {
         log.debug("client disconnected before the response was written: {}", e.getMessage());
     }
 
