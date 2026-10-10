@@ -53,6 +53,28 @@ class CatalogAdminTest extends IntegrationTest {
             "song", "Test Song", UUID.fromString(this.artistId), null, 200000, null, "choir", "sw", "kenya", 50, UUID.fromString(this.licenseId)));
     }
 
+    /** Requests a transcode from the item's own master key, the only kind the service accepts. */
+    private AdminMediaItemDto transcode(String mediaItemId) {
+        return this.admin.requestTranscode(UUID.fromString(mediaItemId),
+            new AdminMediaItemDto.TranscodeRequest("masters/" + mediaItemId + "/original.wav"));
+    }
+
+    @Test
+    @DisplayName("a transcode reads only the item's own master: another item's key, or any other shape, is refused")
+    void transcodeOnlyFromOwnMaster() {
+        String a = this.draft().id(), b = this.draft().id();
+        for (String key : new String[] {
+            "masters/" + b + "/original.wav",             // another item's master
+            "masters/" + a + "/../" + b + "/original.wav", // walking out of this item's folder
+            "masters/" + a + "/original.exe",              // not a container the tool reads
+            "derived/" + a + "/aac_320.m4a",               // a derivative, not a master
+        }) {
+            Assertions.assertThatThrownBy(() -> this.admin.requestTranscode(UUID.fromString(a), new AdminMediaItemDto.TranscodeRequest(key)))
+                .as(key).isInstanceOf(IllegalArgumentException.class);
+        }
+        Assertions.assertThat(this.admin.media(UUID.fromString(a)).status()).isEqualTo("draft");
+    }
+
     private void completeTranscode(String mediaItemId) {
         UUID eventId = UUID.randomUUID();
         String payload = """
@@ -94,7 +116,7 @@ class CatalogAdminTest extends IntegrationTest {
     @Test
     @DisplayName("requesting a transcode moves to processing and emits audio.transcode.v1 requested on the right ladder")
     void transcodeRequested() {
-        AdminMediaItemDto item = this.admin.requestTranscode(UUID.fromString(this.draft().id()), new AdminMediaItemDto.TranscodeRequest("masters/x/original.wav"));
+        AdminMediaItemDto item = this.transcode(this.draft().id());
         Assertions.assertThat(item.status()).isEqualTo("processing");
         List<OutboxEvent> events = this.eventsFor(item.id(), Topics.AUDIO_TRANSCODE);
         Assertions.assertThat(events).hasSize(1);
@@ -115,7 +137,7 @@ class CatalogAdminTest extends IntegrationTest {
     @Test
     @DisplayName("a completed transcode under a pending licence stores its outputs but stays processing — the trigger's decision")
     void completedUnderPendingLicenceWaits() {
-        String id = this.admin.requestTranscode(UUID.fromString(this.draft().id()), new AdminMediaItemDto.TranscodeRequest("masters/x/original.wav")).id();
+        String id = this.transcode(this.draft().id()).id();
         this.completeTranscode(id);
         AdminMediaItemDto item = this.admin.media(UUID.fromString(id));
         Assertions.assertThat(item.status()).isEqualTo("processing");
@@ -131,7 +153,7 @@ class CatalogAdminTest extends IntegrationTest {
     @DisplayName("a completed transcode under a granted licence publishes without an operator")
     void completedUnderGrantedLicencePublishes() {
         this.admin.setLicenseStatus(UUID.fromString(this.licenseId), new LicenseDto.StatusRequest("granted"));
-        String id = this.admin.requestTranscode(UUID.fromString(this.draft().id()), new AdminMediaItemDto.TranscodeRequest("masters/x/original.wav")).id();
+        String id = this.transcode(this.draft().id()).id();
         this.completeTranscode(id);
         AdminMediaItemDto item = this.admin.media(UUID.fromString(id));
         Assertions.assertThat(item.status()).isEqualTo("published");
@@ -144,7 +166,7 @@ class CatalogAdminTest extends IntegrationTest {
     @DisplayName("grant, publish, withdraw, re-publish: assets survive and visibility follows status")
     void withdrawAndRepublish() {
         this.admin.setLicenseStatus(UUID.fromString(this.licenseId), new LicenseDto.StatusRequest("granted"));
-        String id = this.admin.requestTranscode(UUID.fromString(this.draft().id()), new AdminMediaItemDto.TranscodeRequest("masters/x/original.wav")).id();
+        String id = this.transcode(this.draft().id()).id();
         this.completeTranscode(id);
         Assertions.assertThat(this.admin.withdraw(UUID.fromString(id)).status()).isEqualTo("withdrawn");
         AdminMediaItemDto back = this.admin.publish(UUID.fromString(id));
@@ -155,7 +177,7 @@ class CatalogAdminTest extends IntegrationTest {
     @Test
     @DisplayName("a failed transcode marks the item failed, and a retry is allowed from there")
     void failedTranscodeCanBeRetried() {
-        String id = this.admin.requestTranscode(UUID.fromString(this.draft().id()), new AdminMediaItemDto.TranscodeRequest("masters/x/original.wav")).id();
+        String id = this.transcode(this.draft().id()).id();
         UUID eventId = UUID.randomUUID();
         this.jdbc.update("INSERT INTO outbox (event_id, aggregate_type, aggregate_id, event_type, payload) VALUES (?, 'media_item', ?, ?, ?::jsonb)",
             eventId, id, Topics.AUDIO_TRANSCODE,
@@ -165,7 +187,7 @@ class CatalogAdminTest extends IntegrationTest {
             """.formatted(eventId, id));
         this.dispatcher.dispatchPending();
         Assertions.assertThat(this.admin.media(UUID.fromString(id)).status()).isEqualTo("failed");
-        Assertions.assertThat(this.admin.requestTranscode(UUID.fromString(id), new AdminMediaItemDto.TranscodeRequest("masters/x/original.wav")).status()).isEqualTo("processing");
+        Assertions.assertThat(this.transcode(id).status()).isEqualTo("processing");
     }
 
     // ----------------------------------------------------------------- RFC 0001
@@ -174,7 +196,7 @@ class CatalogAdminTest extends IntegrationTest {
     @DisplayName("review flags from a completed transcode are stored; a failure's reason is stored; a new request clears both")
     void reviewFlagsAndFailureReason() {
         this.admin.setLicenseStatus(UUID.fromString(this.licenseId), new LicenseDto.StatusRequest("granted"));
-        String id = this.admin.requestTranscode(UUID.fromString(this.draft().id()), new AdminMediaItemDto.TranscodeRequest("masters/x/original.wav")).id();
+        String id = this.transcode(this.draft().id()).id();
         UUID eventId = UUID.randomUUID();
         this.jdbc.update("INSERT INTO outbox (event_id, aggregate_type, aggregate_id, event_type, payload) VALUES (?, 'media_item', ?, ?, ?::jsonb)",
             eventId, id, Topics.AUDIO_TRANSCODE,
@@ -191,7 +213,7 @@ class CatalogAdminTest extends IntegrationTest {
         Assertions.assertThat(done.reviewFlags()).containsExactly("lossy_master", "long_trailing_silence");
         Assertions.assertThat(done.failureReason()).isNull();
 
-        String failing = this.admin.requestTranscode(UUID.fromString(this.draft().id()), new AdminMediaItemDto.TranscodeRequest("masters/y/original.wav")).id();
+        String failing = this.transcode(this.draft().id()).id();
         UUID failedEvent = UUID.randomUUID();
         this.jdbc.update("INSERT INTO outbox (event_id, aggregate_type, aggregate_id, event_type, payload) VALUES (?, 'media_item', ?, ?, ?::jsonb)",
             failedEvent, failing, Topics.AUDIO_TRANSCODE,
@@ -204,7 +226,7 @@ class CatalogAdminTest extends IntegrationTest {
         Assertions.assertThat(failed.status()).isEqualTo("failed");
         Assertions.assertThat(failed.failureReason()).isEqualTo("x.wav has no audio stream (stage probe)");
 
-        AdminMediaItemDto retried = this.admin.requestTranscode(UUID.fromString(failing), new AdminMediaItemDto.TranscodeRequest("masters/y/original.wav"));
+        AdminMediaItemDto retried = this.transcode(failing);
         Assertions.assertThat(retried.failureReason()).isNull();
         Assertions.assertThat(retried.reviewFlags()).isEmpty();
     }

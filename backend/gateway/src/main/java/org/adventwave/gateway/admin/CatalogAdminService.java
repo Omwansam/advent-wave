@@ -32,6 +32,7 @@ import org.adventwave.contracts.api.admin.ChurchDto;
 import org.adventwave.contracts.api.admin.LicenseDto;
 import org.adventwave.contracts.events.Topics;
 import org.adventwave.platform.outbox.OutboxWriter;
+import org.adventwave.gateway.upload.MasterKeys;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Limit;
 import org.springframework.http.HttpStatus;
@@ -360,10 +361,16 @@ public class CatalogAdminService {
      */
     public AdminMediaItemDto requestTranscode(UUID id, AdminMediaItemDto.TranscodeRequest r) {
         MediaItem m = this.requireMedia(id);
+        String key = r.masterStorageKey().trim();
+        // Only the item's own master. A key naming another item's master would publish that
+        // audio under this item's licence, which the publication gate cannot see.
+        if (!MasterKeys.isKeyFor(id, key)) {
+            throw new IllegalArgumentException("masterStorageKey must be this item's own master: masters/" + id + "/original.{ext}");
+        }
         if (!List.of("draft", "failed").contains(m.getStatus())) {
             throw new AdminConflictException("a transcode can be requested from draft or failed, not from " + m.getStatus());
         }
-        m.setMasterStorageKey(r.masterStorageKey().trim());
+        m.setMasterStorageKey(key);
         m.setStatus("processing");
         // A new run's verdict replaces the last one's; until it lands there is none.
         m.setReviewFlags(List.of());
