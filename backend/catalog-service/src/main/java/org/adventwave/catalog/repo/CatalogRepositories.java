@@ -1,5 +1,6 @@
 package org.adventwave.catalog.repo;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -70,9 +71,14 @@ public final class CatalogRepositories {
         List<License> findAllByOrderByCreatedAtDesc();
 
         List<License> findByConsentStatusOrderByCreatedAtDesc(String consentStatus);
+
+        /** Granted licences whose expiry has passed: they no longer permit anything. */
+        List<License> findByConsentStatusAndExpiresAtLessThanEqual(String consentStatus, Instant at);
     }
 
     public interface MediaItemRepository extends JpaRepository<MediaItem, UUID> {
+        List<MediaItem> findByLicenseIdAndStatus(UUID licenseId, String status);
+
         @Query("select m from MediaItem m\n  join fetch m.artist\n  left join fetch m.album\nwhere m.id = :id and m.status = 'published'\n")
         Optional<MediaItem> findPublished(@Param("id") UUID id);
 

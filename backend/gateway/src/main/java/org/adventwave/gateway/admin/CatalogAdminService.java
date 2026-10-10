@@ -165,7 +165,40 @@ public class CatalogAdminService {
         if ("granted".equals(r.consentStatus()) && l.getGrantedAt() == null) {
             l.setGrantedAt(Instant.now());
         }
-        return AdminMapper.license(this.licenses.save(l));
+        l = this.licenses.save(l);
+        if (!"granted".equals(l.getConsentStatus())) this.withdrawAllUnder(l.getId());
+        return AdminMapper.license(l);
+    }
+
+    /**
+     * Marks every granted licence whose expiry has passed as expired, and withdraws what it
+     * covered. Run on a schedule by {@link LicenceExpirySweep}; returns the items withdrawn.
+     */
+    public int expireLapsedLicences() {
+        int withdrawn = 0;
+        for (License l : this.licenses.findByConsentStatusAndExpiresAtLessThanEqual("granted", Instant.now())) {
+            l.setConsentStatus("expired");
+            this.licenses.save(l);
+            withdrawn += this.withdrawAllUnder(l.getId());
+        }
+        return withdrawn;
+    }
+
+    /**
+     * Takes every published item off a licence that no longer permits it. The publication gate
+     * checks the licence only at the moment an item is published, so without this a revoked or
+     * expired licence would leave its items streaming. Granting the licence again does not
+     * republish anything: an operator does that, item by item.
+     */
+    private int withdrawAllUnder(UUID licenseId) {
+        List<MediaItem> live = this.mediaItems.findByLicenseIdAndStatus(licenseId, "published");
+        for (MediaItem m : live) {
+            m.setStatus("withdrawn");
+            m.setUpdatedAt(Instant.now());
+            this.mediaItems.saveAndFlush(m);
+            this.outbox.append("media_item", m.getId(), Topics.CATALOG_MEDIA, AdminMapper.mediaEvent(m));
+        }
+        return live.size();
     }
 
     // ----------------------------------------------------------------- artists

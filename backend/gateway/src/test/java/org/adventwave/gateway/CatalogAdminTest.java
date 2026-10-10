@@ -53,6 +53,38 @@ class CatalogAdminTest extends IntegrationTest {
             "song", "Test Song", UUID.fromString(this.artistId), null, 200000, null, "choir", "sw", "kenya", 50, UUID.fromString(this.licenseId)));
     }
 
+    /** A published item under this test's licence, granted for the occasion. */
+    private String publishedItem() {
+        this.admin.setLicenseStatus(UUID.fromString(this.licenseId), new LicenseDto.StatusRequest("granted"));
+        String id = this.transcode(this.draft().id()).id();
+        this.completeTranscode(id);
+        Assertions.assertThat(this.admin.media(UUID.fromString(id)).status()).isEqualTo("published");
+        return id;
+    }
+
+    @Test
+    @DisplayName("revoking a licence withdraws what it covers, with an event; granting it again republishes nothing")
+    void revokedLicenceWithdraws() {
+        String id = this.publishedItem();
+        this.admin.setLicenseStatus(UUID.fromString(this.licenseId), new LicenseDto.StatusRequest("revoked"));
+        Assertions.assertThat(this.admin.media(UUID.fromString(id)).status()).isEqualTo("withdrawn");
+        Assertions.assertThat(this.eventsFor(id, Topics.CATALOG_MEDIA)).last()
+            .satisfies(e -> Assertions.assertThat(e.getPayload()).contains("withdrawn"));
+
+        this.admin.setLicenseStatus(UUID.fromString(this.licenseId), new LicenseDto.StatusRequest("granted"));
+        Assertions.assertThat(this.admin.media(UUID.fromString(id)).status()).isEqualTo("withdrawn");
+    }
+
+    @Test
+    @DisplayName("a granted licence past its expiry is marked expired and its items withdrawn")
+    void lapsedLicenceWithdraws() {
+        String id = this.publishedItem();
+        this.jdbc.update("UPDATE licenses SET expires_at = now() - interval '1 minute' WHERE id = ?::uuid", this.licenseId);
+        Assertions.assertThat(this.admin.expireLapsedLicences()).isGreaterThanOrEqualTo(1);
+        Assertions.assertThat(this.admin.media(UUID.fromString(id)).status()).isEqualTo("withdrawn");
+        Assertions.assertThat(this.admin.license(UUID.fromString(this.licenseId)).consentStatus()).isEqualTo("expired");
+    }
+
     /** Requests a transcode from the item's own master key, the only kind the service accepts. */
     private AdminMediaItemDto transcode(String mediaItemId) {
         return this.admin.requestTranscode(UUID.fromString(mediaItemId),
