@@ -20,6 +20,9 @@ These are the ones a consumer can rely on without reading Java.
   refuses `status = 'published'` unless `license_id` points at a `licenses` row with
   `consent_status = 'granted'` and an unexpired `expires_at`. Fires on INSERT and on UPDATE of
   `status` or `license_id`. Tested by `PublicationGateTest` (5 cases).
+  The trigger checks only at the moment of publication; a licence revoked or expired later
+  withdraws its items through the gateway (RFC 0002: on the status change, and by
+  `LicenceExpirySweep` for `expires_at`).
 - **A curated playlist has no owner.** `playlists_curated_has_no_owner`.
 - **One transcode output per profile per item.** `media_assets (media_item_id, profile)` UNIQUE.
   This is what makes transcode retries idempotent (audio contract §runtime).

@@ -41,6 +41,10 @@ Both are in the schema's enum already. `BitrateLadder` still names `aac_24_hev2`
 
 ## Worker steps (order matters)
 
+A transcode request must name the item's own master, `masters/{media_item_id}/original.{ext}`;
+any other key is refused with 400 (RFC 0002). One run per item at a time: the tool holds a lock
+on `work/{media_item_id}/`.
+
 1. **probe** — duration, channels, sample rate from the master. Never hardcode channels; mono
    masters stay mono (double bitrate spent on identical channels otherwise). Every derivative is
    resampled to **44.1 kHz** (`aresample`, soxr when the build has it), so each asset has one
