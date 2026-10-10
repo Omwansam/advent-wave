@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.adventwave.gateway.security.AuthenticatedUser;
+import org.adventwave.gateway.security.admin.AdminAccessRules;
+import org.adventwave.gateway.security.admin.AdminPermissions;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,10 +67,18 @@ public class OpenApiConfig {
                         """
                         The public REST surface for the AdventWave web and mobile clients.
 
-                        Every endpoint except `POST /v1/auth/session` and the signed playback
-                        redirect requires a bearer JWT. Until the managed IdP is chosen, tokens \
-                        come from `POST /v1/auth/session`, which verifies no credential and is \
-                        disabled by setting `spring.security.oauth2.resourceserver.jwt.issuer-uri`.
+                        Every endpoint except `POST /v1/auth/session`, `POST /v1/auth/admin/login` \
+                        and the signed playback redirect requires a bearer JWT. Until the \
+                        managed IdP is chosen, listener tokens come from `POST /v1/auth/session`, \
+                        which verifies no credential and is disabled by setting \
+                        `spring.security.oauth2.resourceserver.jwt.issuer-uri`.
+
+                        The admin surface (`/v1/admin/**`) takes a token from \
+                        `POST /v1/auth/admin/login` (email and password). Each operation needs one \
+                        permission of the account's role — `catalog:read`, `media:write`, \
+                        `media:publish`, `rights:write` or `admins:manage` — checked against the \
+                        account as stored on every request; `catalog:write`, the scope before \
+                        roles existed, is still accepted on catalogue operations.
                         """
                     )
                     .license(new License().name("Proprietary"))
@@ -126,6 +136,7 @@ public class OpenApiConfig {
     // Mirrors SecurityConfig's permitAll matchers for API operations. Keep the two in step.
     private static final Set<String> PUBLIC_OPERATIONS = Set.of(
         "POST /v1/auth/session",
+        "POST /v1/auth/admin/login",
         "GET /v1/media/{id}/stream/{profile}"
     );
 
@@ -141,7 +152,10 @@ public class OpenApiConfig {
         Map.entry("recommendation-controller", "recommendations"),
         Map.entry("events-controller", "events"),
         Map.entry("church-admin-controller", "admin: contributors"),
-        Map.entry("catalog-admin-controller", "admin: catalogue")
+        Map.entry("catalog-admin-controller", "admin: catalogue"),
+        Map.entry("admin-auth-controller", "auth"),
+        Map.entry("admin-self-controller", "admin: my account"),
+        Map.entry("admin-accounts-controller", "admin: accounts")
     );
 
     private static void tagByResource(Operation op) {
@@ -188,15 +202,34 @@ public class OpenApiConfig {
         if (path.equals("/v1/events/playback")) {
             error(op, "429", "More than adventwave.events.playback-per-minute events this minute");
         }
+        if (path.equals("/v1/admin/media/{id}/upload")) {
+            error(op, "501", "No master storage is configured on this instance (locally: adventwave.catalog.local-media-root)");
+        }
+        if (path.equals("/v1/admin/media/{id}/preview")) {
+            error(op, "501", "This instance cannot sign media URLs yet; previews are served only in local development");
+        }
+        if (path.equals("/v1/auth/admin/login")) {
+            error(op, "401", "Email or password incorrect. Which one is not said");
+            error(op, "403", "The password is right but the account is disabled");
+            error(op, "429", "Too many failed sign-ins; the account is locked for adventwave.auth.admin.lockout");
+        }
         if (path.startsWith("/v1/admin/")) {
-            // SecurityConfig: hasAuthority(SCOPE_catalog:write). A valid token without the scope is 403.
-            error(op, "403", "The token lacks the catalog:write scope");
+            // SecurityConfig enforces AdminAccessRules; the same table names the permission here.
+            String permission = AdminAccessRules.match(org.springframework.http.HttpMethod.valueOf(method.name()), path)
+                .map(AdminAccessRules.Rule::permission).orElse(AdminPermissions.ADMIN_SESSION);
+            boolean sessionOnly = AdminPermissions.ADMIN_SESSION.equals(permission);
+            error(op, "403", sessionOnly
+                ? "Not an admin-portal session (POST /v1/auth/admin/login)"
+                : "The account's role lacks the " + permission + " permission, or its password must be changed first; the message says which");
             if (method != HttpMethod.GET) {
-                // CatalogAdminService throws AdminConflictException for state refusals:
-                // duplicate name/slug/title, wrong status for the transition, licence not granted.
+                // AdminConflictException for state refusals: duplicate name/slug/title/email, wrong
+                // status for the transition, licence not granted, master exists, last super admin.
                 error(op, "409", "The target's current state refuses this operation; the message says why");
             }
-            op.setSecurity(List.of(new SecurityRequirement().addList(BEARER_SCHEME, List.of("catalog:write"))));
+            List<String> scopes = sessionOnly ? List.of()
+                : AdminPermissions.ADMINS_MANAGE.equals(permission) ? List.of(permission)
+                : List.of(permission, AdminPermissions.LEGACY_CATALOG_WRITE);
+            op.setSecurity(List.of(new SecurityRequirement().addList(BEARER_SCHEME, scopes)));
         }
         error(op, "500", "Unhandled failure; the body carries no detail");
     }

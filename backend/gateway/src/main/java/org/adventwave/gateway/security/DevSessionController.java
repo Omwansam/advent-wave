@@ -41,8 +41,9 @@ public class DevSessionController {
     public DevSessionController(
         UserService users,
         @Value("${adventwave.auth.dev-secret}") String secret,
-        // Who gets the catalog:write scope from the dev issuer. A real IdP assigns scopes
-        // itself; this list disappears with the endpoint.
+        // Who gets the pre-RBAC catalog:write scope from the dev issuer — nobody by default since
+        // RFC 0001; admins sign in with a password at /v1/auth/admin/login. A real IdP assigns
+        // scopes itself; this list disappears with the endpoint.
         @Value("${adventwave.auth.admin-emails:}") List<String> adminEmails
     ) {
         this.users = users;

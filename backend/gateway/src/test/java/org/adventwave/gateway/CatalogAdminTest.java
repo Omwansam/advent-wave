@@ -167,4 +167,80 @@ class CatalogAdminTest extends IntegrationTest {
         Assertions.assertThat(this.admin.media(UUID.fromString(id)).status()).isEqualTo("failed");
         Assertions.assertThat(this.admin.requestTranscode(UUID.fromString(id), new AdminMediaItemDto.TranscodeRequest("masters/x/original.wav")).status()).isEqualTo("processing");
     }
+
+    // ----------------------------------------------------------------- RFC 0001
+
+    @Test
+    @DisplayName("review flags from a completed transcode are stored; a failure's reason is stored; a new request clears both")
+    void reviewFlagsAndFailureReason() {
+        this.admin.setLicenseStatus(UUID.fromString(this.licenseId), new LicenseDto.StatusRequest("granted"));
+        String id = this.admin.requestTranscode(UUID.fromString(this.draft().id()), new AdminMediaItemDto.TranscodeRequest("masters/x/original.wav")).id();
+        UUID eventId = UUID.randomUUID();
+        this.jdbc.update("INSERT INTO outbox (event_id, aggregate_type, aggregate_id, event_type, payload) VALUES (?, 'media_item', ?, ?, ?::jsonb)",
+            eventId, id, Topics.AUDIO_TRANSCODE,
+            """
+            {"kind":"completed","event_id":"%s","media_item_id":"%s","status":"completed","duration_ms":200400,
+             "loudness_lufs":-13.9,"true_peak_dbfs":-0.7,
+             "assets":[{"profile":"aac_96","codec":"aac-lc","bitrate_kbps":96,"container":"m4a","sample_rate_hz":44100,
+                        "channels":2,"storage_key":"derived/%s/aac_96.m4a","byte_size":2404800,"checksum_sha256":"%s"}],
+             "flags":["lossy_master","long_trailing_silence"],"error":null,"completed_at":"2026-10-08T12:00:00Z"}
+            """.formatted(eventId, id, id, "a".repeat(64)));
+        this.dispatcher.dispatchPending();
+        AdminMediaItemDto done = this.admin.media(UUID.fromString(id));
+        Assertions.assertThat(done.status()).isEqualTo("published");
+        Assertions.assertThat(done.reviewFlags()).containsExactly("lossy_master", "long_trailing_silence");
+        Assertions.assertThat(done.failureReason()).isNull();
+
+        String failing = this.admin.requestTranscode(UUID.fromString(this.draft().id()), new AdminMediaItemDto.TranscodeRequest("masters/y/original.wav")).id();
+        UUID failedEvent = UUID.randomUUID();
+        this.jdbc.update("INSERT INTO outbox (event_id, aggregate_type, aggregate_id, event_type, payload) VALUES (?, 'media_item', ?, ?, ?::jsonb)",
+            failedEvent, failing, Topics.AUDIO_TRANSCODE,
+            """
+            {"kind":"completed","event_id":"%s","media_item_id":"%s","status":"failed","assets":[],"flags":[],
+             "error":{"code":"probe_failed","message":"x.wav has no audio stream","stage":"probe"},"completed_at":"2026-10-08T12:00:00Z"}
+            """.formatted(failedEvent, failing));
+        this.dispatcher.dispatchPending();
+        AdminMediaItemDto failed = this.admin.media(UUID.fromString(failing));
+        Assertions.assertThat(failed.status()).isEqualTo("failed");
+        Assertions.assertThat(failed.failureReason()).isEqualTo("x.wav has no audio stream (stage probe)");
+
+        AdminMediaItemDto retried = this.admin.requestTranscode(UUID.fromString(failing), new AdminMediaItemDto.TranscodeRequest("masters/y/original.wav"));
+        Assertions.assertThat(retried.failureReason()).isNull();
+        Assertions.assertThat(retried.reviewFlags()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("the media list filters by type and by a case-insensitive title substring; % and _ are literal")
+    void mediaFilters() {
+        String unique = "Zephaniah " + UUID.randomUUID().toString().substring(0, 8);
+        this.admin.createMedia(new AdminMediaItemDto.Request(
+            "sermon", unique, UUID.fromString(this.artistId), null, 1000, null, null, null, null, null, null));
+        Assertions.assertThat(this.admin.listMedia(null, "sermon", unique.toUpperCase(), 100))
+            .extracting(AdminMediaItemDto::title).containsExactly(unique);
+        Assertions.assertThat(this.admin.listMedia(null, "song", unique, 100)).isEmpty();
+        Assertions.assertThat(this.admin.listMedia("draft", null, unique, 100)).hasSize(1);
+        Assertions.assertThat(this.admin.listMedia(null, null, "%", 500)).isEmpty();
+        Assertions.assertThat(this.admin.listMedia("no-such-status", null, null, 10)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("albums list by artist; licences list across churches and by status")
+    void lists() {
+        this.admin.createAlbum(new org.adventwave.contracts.api.admin.AdminAlbumDto.Request("Album Two", UUID.fromString(this.artistId), null, "2024-01-01"));
+        this.admin.createAlbum(new org.adventwave.contracts.api.admin.AdminAlbumDto.Request("Album One", UUID.fromString(this.artistId), null, "2020-01-01"));
+        Assertions.assertThat(this.admin.listAlbums(UUID.fromString(this.artistId)))
+            .extracting(org.adventwave.contracts.api.admin.AdminAlbumDto::title).containsExactly("Album Two", "Album One");
+        Assertions.assertThat(this.admin.listLicenses("pending")).extracting(LicenseDto::id).contains(this.licenseId);
+        Assertions.assertThat(this.admin.listLicenses("granted")).extracting(LicenseDto::id).doesNotContain(this.licenseId);
+        Assertions.assertThatThrownBy(() -> this.admin.listLicenses("maybe")).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("without a local media origin, preview refuses rather than hand out unsigned CDN URLs")
+    void previewNeedsSignedUrls() {
+        String id = this.draft().id();
+        Assertions.assertThatThrownBy(() -> this.admin.preview(UUID.fromString(id)))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+            .hasMessageContaining("signed media URLs");
+    }
 }

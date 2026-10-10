@@ -1,0 +1,18 @@
+{
+  "_source": "live response from the gateway, local profile (contracts 1.3.0): previews are the local media origin; elsewhere 501",
+  "request": {
+    "method": "GET",
+    "path": "/v1/admin/media/a67c57cf-3b76-4331-8bf7-724e3d6ba872/preview",
+    "authenticated": true,
+    "permission": "catalog:read"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "aac_64": "http://localhost:8080/media-storage/derived/a67c57cf-3b76-4331-8bf7-724e3d6ba872/aac_64.m4a",
+      "aac_96": "http://localhost:8080/media-storage/derived/a67c57cf-3b76-4331-8bf7-724e3d6ba872/aac_96.m4a",
+      "aac_160": "http://localhost:8080/media-storage/derived/a67c57cf-3b76-4331-8bf7-724e3d6ba872/aac_160.m4a",
+      "aac_320": "http://localhost:8080/media-storage/derived/a67c57cf-3b76-4331-8bf7-724e3d6ba872/aac_320.m4a"
+    }
+  }
+}

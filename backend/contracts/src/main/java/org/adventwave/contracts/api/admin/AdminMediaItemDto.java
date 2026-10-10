@@ -35,7 +35,11 @@ public record AdminMediaItemDto(
     String publishedAt,
     String createdAt,
     String updatedAt,
-    List<Asset> assets
+    List<Asset> assets,
+    /** Review flags from the last completed transcode: lossy_master, long_leading_silence, long_trailing_silence. Never block publication. */
+    List<String> reviewFlags,
+    /** Why the last transcode failed — the worker's message and stage. Present only when status is failed. */
+    String failureReason
 ) {
     /** One row of media_assets — one transcode output. */
     public record Asset(String profile, String codec, int bitrateKbps, String container, int sampleRateHz, int channels, String storageKey, long byteSize, String checksumSha256) {

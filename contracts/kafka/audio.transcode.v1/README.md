@@ -1,11 +1,11 @@
 # `audio.transcode.v1`
 
-**Status: PARTIAL.** Key: `media_item_id`. Not compacted.
+**Status: IMPLEMENTED locally (1.3.0, RFC 0001); the production worker service is workstream D's.** Key: `media_item_id`. Not compacted.
 
-Transcode job lifecycle for workstream D's worker. PARTIAL: `requested` is produced and `completed` is consumed; nothing produces `completed` until workstream D's worker exists. `requested` is produced by the upload service; `completed` by the worker and consumed by workstream A, which writes media_assets rows, the loudness fields, and moves status processing → published — which the database refuses without a granted licence. Keyed by media_item_id so a job and its result share a partition.
+Transcode job lifecycle for workstream D's worker. Both kinds are produced and consumed: locally, the gateway's LocalTranscodeWorker consumes `requested` and produces `completed`; in production that is workstream D's worker service. `requested` is produced by the upload service; `completed` by the worker and consumed by workstream A, which writes media_assets rows, the loudness fields, and moves status processing → published — which the database refuses without a granted licence. Keyed by media_item_id so a job and its result share a partition.
 
-- **Producer:** requested: gateway CatalogAdminService (POST /v1/admin/media/{id}/transcode). completed: none yet — workstream D's worker
-- **Consumers:** gateway TranscodeCompletedHandler (completed → media_assets, loudness, publish)
+- **Producer:** requested: gateway CatalogAdminService (POST /v1/admin/media/{id}/transcode). completed: gateway LocalTranscodeWorker running backend/tools/transcode.py (local profile, RFC 0001); in production, workstream D's worker service
+- **Consumers:** gateway TranscodeCompletedHandler (completed → media_assets, loudness, review flags or failure reason, publish); gateway TranscodeRequestedHandler (requested → LocalTranscodeWorker; local profile only)
 - **Source of truth for the payload:** `advent-wave/BACKEND_BUILD_PLAN.md §11.6 + media_assets columns`
 - **Dead letter:** `audio.transcode.v1.dlq (planned)`
 
@@ -44,4 +44,4 @@ Conditional: when `status` = `completed`, ['duration_ms', 'loudness_lufs', 'true
 
 ## Examples
 
-See `../../examples/kafka/audio.transcode.v1.*.json`. `requested` examples are real outbox rows from `POST /v1/admin/media/{id}/transcode`; `completed`/`failed` are constructed — no worker exists yet.
+See `../../examples/kafka/audio.transcode.v1.*.json`. `requested` examples are real outbox rows from `POST /v1/admin/media/{id}/transcode`; `completed`/`failed` are real outbox rows written by LocalTranscodeWorker.

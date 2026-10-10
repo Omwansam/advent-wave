@@ -1,0 +1,200 @@
+@import "tailwindcss";
+
+/* `dark:` utilities follow the app theme toggle (the .dark class), not the OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * The --aw-* tokens are copied from advent-wave/src/index.css so the two apps look like one
+ * product. Copied, not imported: the apps build and deploy separately. The --aw-ok, --aw-warn
+ * and --aw-danger tokens are the admin's own, for status and refusals.
+ */
+:root {
+  --aw-primary: #6d5df6;
+  --aw-primary-hover: #5a4ae8;
+  --aw-gold: #c9a227;
+  --aw-gold-soft: #f5f0d8;
+  --aw-bg: #f7f7f9;
+  --aw-surface: #ffffff;
+  --aw-surface-elevated: #f0f0f4;
+  --aw-sidebar-bg: #ffffff;
+  --aw-nav-bg: rgba(255, 255, 255, 0.92);
+  --aw-player-bg: #ffffff;
+  --aw-text: #2d2a35;
+  --aw-muted: #6b6578;
+  --aw-border: #e8e7ed;
+  --aw-tile: rgba(0, 0, 0, 0.05);
+  --aw-tile-hover: rgba(0, 0, 0, 0.1);
+  --aw-card-hover: rgba(0, 0, 0, 0.05);
+  --aw-sidebar-w: 15rem;
+  --aw-shadow-card:
+    0 4px 6px -1px rgba(109, 93, 246, 0.06),
+    0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --aw-shadow-hover:
+    0 12px 24px -8px rgba(109, 93, 246, 0.12),
+    0 4px 8px -4px rgba(0, 0, 0, 0.06);
+  --aw-ok: #15803d;
+  --aw-ok-soft: #dcfce7;
+  --aw-warn: #a16207;
+  --aw-warn-soft: #fef3c7;
+  --aw-danger: #b91c1c;
+  --aw-danger-soft: #fee2e2;
+  --aw-info: #1d4ed8;
+  --aw-info-soft: #dbeafe;
+  color-scheme: light;
+}
+
+.dark {
+  --aw-bg: #121118;
+  --aw-surface: #1a1824;
+  --aw-surface-elevated: #232030;
+  --aw-sidebar-bg: #16151f;
+  --aw-nav-bg: rgba(22, 21, 31, 0.92);
+  --aw-player-bg: #16151f;
+  --aw-text: #eceaf2;
+  --aw-muted: #9b95ad;
+  --aw-border: #2e2c3a;
+  --aw-tile: rgba(255, 255, 255, 0.1);
+  --aw-tile-hover: rgba(255, 255, 255, 0.2);
+  --aw-card-hover: rgba(255, 255, 255, 0.1);
+  --aw-gold-soft: #3d3520;
+  --aw-shadow-card:
+    0 4px 6px -1px rgba(0, 0, 0, 0.35),
+    0 2px 4px -2px rgba(0, 0, 0, 0.25);
+  --aw-shadow-hover:
+    0 12px 24px -8px rgba(0, 0, 0, 0.45),
+    0 4px 8px -4px rgba(0, 0, 0, 0.3);
+  --aw-ok: #4ade80;
+  --aw-ok-soft: rgba(74, 222, 128, 0.12);
+  --aw-warn: #fbbf24;
+  --aw-warn-soft: rgba(251, 191, 36, 0.12);
+  --aw-danger: #f87171;
+  --aw-danger-soft: rgba(248, 113, 113, 0.12);
+  --aw-info: #93c5fd;
+  --aw-info-soft: rgba(147, 197, 253, 0.12);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  font-family:
+    'DM Sans',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 14px;
+  background: var(--aw-bg);
+  color: var(--aw-text);
+}
+
+#root {
+  min-height: 100svh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--aw-primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(109, 93, 246, 0.25);
+}
+
+/* Ids, storage keys and checksums: long, unbroken, and copied by hand. */
+.aw-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+/* Dense data tables: the admin's main surface. */
+.aw-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.aw-table th {
+  position: sticky;
+  top: 0;
+  background: var(--aw-surface);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--aw-muted);
+  border-bottom: 1px solid var(--aw-border);
+  white-space: nowrap;
+}
+
+.aw-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--aw-border);
+  vertical-align: middle;
+}
+
+.aw-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.aw-table tbody tr.aw-row-link {
+  cursor: pointer;
+}
+
+.aw-table tbody tr.aw-row-link:hover td {
+  background: var(--aw-card-hover);
+}
+
+@keyframes aw-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.aw-page-enter {
+  animation: aw-page-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes aw-pulse-dot {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.aw-pulse {
+  animation: aw-pulse-dot 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aw-page-enter,
+  .aw-pulse {
+    animation: none;
+  }
+}

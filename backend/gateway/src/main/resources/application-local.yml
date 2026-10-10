@@ -33,6 +33,12 @@ adventwave:
     # tools/transcode.py writes to the same directory; both read ADVENTWAVE_MEDIA_ROOT.
     local-media-root: ${ADVENTWAVE_MEDIA_ROOT:${user.home}/media}
 
+  audio:
+    # Transcode `requested` jobs in this process with tools/transcode.py (LocalTranscodeWorker),
+    # writing to the local media root above. Startup fails if the script, python3, ffmpeg or
+    # ffprobe is missing. Set ADVENTWAVE_LOCAL_WORKER=false to leave items in processing instead.
+    local-worker-enabled: ${ADVENTWAVE_LOCAL_WORKER:true}
+
 management:
   health:
     redis:

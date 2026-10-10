@@ -26,6 +26,13 @@ public final class CatalogRepositories {
 
         @Query("select al from Album al join fetch al.artist a\nwhere lower(al.title) like lower(concat('%', :q, '%'))\n   or lower(a.name)   like lower(concat('%', :q, '%'))\n")
         List<Album> searchCandidates(@Param("q") String query, Limit limit);
+
+        /** The admin portal's album list for one artist: newest release first, undated last. */
+        @Query("select al from Album al join fetch al.artist where al.artist.id = :artistId order by al.releaseDate desc nulls last, al.title asc")
+        List<Album> findByArtistForAdmin(@Param("artistId") UUID artistId);
+
+        @Query("select al from Album al join fetch al.artist a order by a.name asc, al.title asc")
+        List<Album> findAllForAdmin(Limit limit);
     }
 
     public interface ArtistRepository extends JpaRepository<Artist, UUID> {
@@ -59,6 +66,10 @@ public final class CatalogRepositories {
 
     public interface LicenseRepository extends JpaRepository<License, UUID> {
         List<License> findByChurchIdOrderByCreatedAtDesc(UUID churchId);
+
+        List<License> findAllByOrderByCreatedAtDesc();
+
+        List<License> findByConsentStatusOrderByCreatedAtDesc(String consentStatus);
     }
 
     public interface MediaItemRepository extends JpaRepository<MediaItem, UUID> {

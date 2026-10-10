@@ -25,7 +25,9 @@ import org.springframework.stereotype.Component;
  * {@code processed_events} claim — committed if we return, released if we throw.
  *
  * <p>{@code requested} messages on the same topic are the worker's input and are ignored here.
- * Nothing produces {@code completed} yet — the worker is workstream D.
+ * Locally, {@code LocalTranscodeWorker} produces {@code completed} (RFC 0001); in production,
+ * workstream D's worker service. The review flags and the failure reason are stored for the
+ * admin portal, which is where a human acts on them.
  */
 @Component
 public class TranscodeCompletedHandler implements EventHandler {

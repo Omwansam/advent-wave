@@ -1,15 +1,26 @@
 package org.adventwave.gateway.admin;
 
-import java.math.BigDecimal;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import org.adventwave.catalog.domain.Album;
 import org.adventwave.catalog.domain.Artist;
 import org.adventwave.catalog.domain.Church;
+import org.adventwave.catalog.CatalogProperties;
 import org.adventwave.catalog.domain.License;
+import org.adventwave.catalog.domain.MediaAsset;
 import org.adventwave.catalog.domain.MediaItem;
 import org.adventwave.catalog.media.BitrateLadder;
 import org.adventwave.catalog.repo.CatalogRepositories;
@@ -45,6 +56,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional
 public class CatalogAdminService {
     private static final int LIST_LIMIT_MAX = 500;
+    private static final List<String> LICENSE_STATUSES = List.of("pending", "granted", "revoked", "expired");
 
     private final CatalogRepositories.ChurchRepository churches;
     private final CatalogRepositories.LicenseRepository licenses;
@@ -54,6 +66,9 @@ public class CatalogAdminService {
     private final CatalogRepositories.MediaAssetRepository assets;
     private final MediaPublicationService publication;
     private final OutboxWriter outbox;
+    private final CatalogProperties catalog;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public CatalogAdminService(
         CatalogRepositories.ChurchRepository churches,
@@ -63,7 +78,8 @@ public class CatalogAdminService {
         CatalogRepositories.MediaItemRepository mediaItems,
         CatalogRepositories.MediaAssetRepository assets,
         MediaPublicationService publication,
-        OutboxWriter outbox
+        OutboxWriter outbox,
+        CatalogProperties catalog
     ) {
         this.churches = churches;
         this.licenses = licenses;
@@ -73,6 +89,7 @@ public class CatalogAdminService {
         this.assets = assets;
         this.publication = publication;
         this.outbox = outbox;
+        this.catalog = catalog;
     }
 
     // ----------------------------------------------------------------- churches
@@ -122,6 +139,18 @@ public class CatalogAdminService {
     @Transactional(readOnly = true)
     public List<LicenseDto> licensesForChurch(UUID churchId) {
         return this.licenses.findByChurchIdOrderByCreatedAtDesc(churchId).stream().map(AdminMapper::license).toList();
+    }
+
+    /** Every licence across churches, newest first; {@code status} narrows to one consent status. */
+    @Transactional(readOnly = true)
+    public List<LicenseDto> listLicenses(String status) {
+        if (status == null || status.isBlank()) {
+            return this.licenses.findAllByOrderByCreatedAtDesc().stream().map(AdminMapper::license).toList();
+        }
+        if (!LICENSE_STATUSES.contains(status)) {
+            throw new IllegalArgumentException("status must be one of " + String.join(", ", LICENSE_STATUSES));
+        }
+        return this.licenses.findByConsentStatusOrderByCreatedAtDesc(status).stream().map(AdminMapper::license).toList();
     }
 
     /**
@@ -207,6 +236,15 @@ public class CatalogAdminService {
         return AdminMapper.album(this.albums.save(al));
     }
 
+    /** One artist's albums, newest release first; without an artist, every album (capped). */
+    @Transactional(readOnly = true)
+    public List<AdminAlbumDto> listAlbums(UUID artistId) {
+        List<Album> list = artistId == null
+            ? this.albums.findAllForAdmin(Limit.of(LIST_LIMIT_MAX))
+            : this.albums.findByArtistForAdmin(artistId);
+        return list.stream().map(AdminMapper::album).toList();
+    }
+
     @Transactional(readOnly = true)
     public AdminAlbumDto album(UUID id) {
         return AdminMapper.album(this.albums.findWithArtist(id).orElseThrow(() -> notFound("album", id)));
@@ -260,11 +298,59 @@ public class CatalogAdminService {
         return AdminMapper.media(this.requireMedia(id), this.assets.findByMediaItemIdOrderByBitrateKbpsAsc(id));
     }
 
+    /**
+     * Items at any status, newest-updated first. Every filter is optional: {@code status},
+     * {@code mediaType}, and {@code q}, a case-insensitive substring of the title. Assets are
+     * not loaded here; {@link #media} has them.
+     */
     @Transactional(readOnly = true)
-    public List<AdminMediaItemDto> listMedia(String status, int limit) {
-        Limit l = Limit.of(Math.min(Math.max(1, limit), LIST_LIMIT_MAX));
-        List<MediaItem> list = status == null || status.isBlank() ? this.mediaItems.findAllForAdmin(l) : this.mediaItems.findByStatus(status, l);
-        return list.stream().map(m -> AdminMapper.media(m, List.of())).toList();
+    public List<AdminMediaItemDto> listMedia(String status, String mediaType, String q, int limit) {
+        CriteriaBuilder cb = this.entityManager.getCriteriaBuilder();
+        CriteriaQuery<MediaItem> query = cb.createQuery(MediaItem.class);
+        Root<MediaItem> m = query.from(MediaItem.class);
+        m.fetch("artist");
+        m.fetch("album", JoinType.LEFT);
+        List<Predicate> where = new ArrayList<>();
+        if (status != null && !status.isBlank()) {
+            // Unvalidated, as before RFC 0001: an unknown status matches nothing (200, empty).
+            where.add(cb.equal(m.get("status"), status));
+        }
+        if (mediaType != null && !mediaType.isBlank()) {
+            where.add(cb.equal(m.get("mediaType"), MediaType.fromWire(mediaType)));
+        }
+        if (q != null && !q.isBlank()) {
+            String pattern = "%" + q.trim().toLowerCase(Locale.ROOT).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+            where.add(cb.like(cb.lower(m.get("title")), pattern, '\\'));
+        }
+        query.select(m).where(where.toArray(Predicate[]::new)).orderBy(cb.desc(m.get("updatedAt")));
+        return this.entityManager.createQuery(query)
+            .setMaxResults(Math.min(Math.max(1, limit), LIST_LIMIT_MAX))
+            .getResultList()
+            .stream()
+            .map(item -> AdminMapper.media(item, List.of()))
+            .toList();
+    }
+
+    /**
+     * {@code {profile: url}} for every stored asset, whatever the item's status, so an operator can
+     * listen before publishing. Built the way StreamService builds a playback target.
+     *
+     * <p>Only where that target is the local media origin. Anywhere else it would be the CDN origin,
+     * unsigned, and the contract forbids returning an unsigned media URL; production needs signed
+     * CDN URLs here first (RFC 0001), so until then this is 501 outside local development.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, String> preview(UUID id) {
+        if (this.catalog.getLocalMediaRoot() == null || this.catalog.getLocalMediaRoot().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED,
+                "previews need signed media URLs, which this instance cannot issue yet; only local development serves them");
+        }
+        this.requireMedia(id);
+        Map<String, String> urls = new LinkedHashMap<>();
+        for (MediaAsset a : this.assets.findByMediaItemIdOrderByBitrateKbpsAsc(id)) {
+            urls.put(a.getProfile(), this.catalog.mediaOrigin() + "/" + a.getStorageKey());
+        }
+        return urls;
     }
 
     /**
@@ -279,6 +365,9 @@ public class CatalogAdminService {
         }
         m.setMasterStorageKey(r.masterStorageKey().trim());
         m.setStatus("processing");
+        // A new run's verdict replaces the last one's; until it lands there is none.
+        m.setReviewFlags(List.of());
+        m.setFailureReason(null);
         m.setUpdatedAt(Instant.now());
         m = this.mediaItems.saveAndFlush(m);
 

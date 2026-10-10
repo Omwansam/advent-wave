@@ -60,7 +60,9 @@ public final class AdminMapper {
             m.getCreatedAt().toString(), m.getUpdatedAt().toString(),
             assets.stream().map(a -> new AdminMediaItemDto.Asset(
                 a.getProfile(), a.getCodec(), a.getBitrateKbps(), a.getContainer(), a.getSampleRateHz(), a.getChannels(),
-                a.getStorageKey(), a.getByteSize(), a.getChecksumSha256())).toList()
+                a.getStorageKey(), a.getByteSize(), a.getChecksumSha256())).toList(),
+            List.copyOf(m.getReviewFlags()),
+            m.getFailureReason()
         );
     }
 

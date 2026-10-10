@@ -2,25 +2,32 @@ package org.adventwave.gateway.api.admin;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.adventwave.contracts.api.admin.AdminAlbumDto;
 import org.adventwave.contracts.api.admin.AdminArtistDto;
 import org.adventwave.contracts.api.admin.AdminMediaItemDto;
+import org.adventwave.contracts.api.admin.MasterUploadDto;
 import org.adventwave.gateway.admin.CatalogAdminService;
+import org.adventwave.gateway.admin.MasterUploadService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * The catalogue's ingest surface: artists, albums, and media items through their lifecycle
- * (draft → processing → published → withdrawn). Requires the {@code catalog:write} scope.
+ * (draft → processing → published → withdrawn). Each operation needs its permission: reading
+ * {@code catalog:read}; editing, uploads and transcodes {@code media:write}; publish and withdraw
+ * {@code media:publish} (AdminAccessRules).
  */
 @RestController
 @RequestMapping("/v1/admin")
 public class CatalogAdminController {
     private final CatalogAdminService admin;
+    private final MasterUploadService uploads;
 
-    public CatalogAdminController(CatalogAdminService admin) {
+    public CatalogAdminController(CatalogAdminService admin, MasterUploadService uploads) {
         this.admin = admin;
+        this.uploads = uploads;
     }
 
     // ----------------------------------------------------------------- artists
@@ -48,6 +55,12 @@ public class CatalogAdminController {
 
     // ----------------------------------------------------------------- albums
 
+    /** One artist's albums, newest release first; every album when {@code artistId} is absent. */
+    @GetMapping("/albums")
+    public List<AdminAlbumDto> listAlbums(@RequestParam(required = false) UUID artistId) {
+        return this.admin.listAlbums(artistId);
+    }
+
     @PostMapping("/albums")
     @ResponseStatus(HttpStatus.CREATED)
     public AdminAlbumDto createAlbum(@Valid @RequestBody AdminAlbumDto.Request request) {
@@ -66,13 +79,19 @@ public class CatalogAdminController {
 
     // ----------------------------------------------------------------- media items
 
-    /** Any status. {@code status} filters; {@code limit} caps at 500. Newest-updated first. */
+    /**
+     * Any status, newest-updated first. Optional filters: {@code status}, {@code mediaType}
+     * (song | sermon | podcast) and {@code q}, a case-insensitive substring of the title.
+     * {@code limit} caps at 500. Assets are omitted; GET /media/{id} has them.
+     */
     @GetMapping("/media")
     public List<AdminMediaItemDto> listMedia(
         @RequestParam(required = false) String status,
+        @RequestParam(required = false) String mediaType,
+        @RequestParam(required = false) String q,
         @RequestParam(defaultValue = "100") int limit
     ) {
-        return this.admin.listMedia(status, limit);
+        return this.admin.listMedia(status, mediaType, q, limit);
     }
 
     @PostMapping("/media")
@@ -89,6 +108,25 @@ public class CatalogAdminController {
     @PatchMapping("/media/{id}")
     public AdminMediaItemDto updateMedia(@PathVariable UUID id, @Valid @RequestBody AdminMediaItemDto.Update request) {
         return this.admin.updateMedia(id, request);
+    }
+
+    /**
+     * Where to PUT this item's master: a URL that carries its own authorisation, valid for minutes.
+     * Draft or failed items only; 409 when a master is already stored (masters are never replaced).
+     * Then request the transcode with the returned {@code masterStorageKey}.
+     */
+    @PostMapping("/media/{id}/upload")
+    public MasterUploadDto requestUpload(@PathVariable UUID id, @Valid @RequestBody MasterUploadDto.UploadRequest request) {
+        return this.uploads.issue(id, request);
+    }
+
+    /**
+     * {@code {profile: url}} for every stored output, at any status, so an item can be heard
+     * before it is published.
+     */
+    @GetMapping("/media/{id}/preview")
+    public Map<String, String> preview(@PathVariable UUID id) {
+        return this.admin.preview(id);
     }
 
     /** draft | failed → processing; emits {@code audio.transcode.v1} requested. */

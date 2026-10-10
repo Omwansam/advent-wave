@@ -10,13 +10,14 @@ an RFC says otherwise — and the disagreement is recorded, never silently patch
 | Path | Contract | Status at 1.0.0 | Generated from |
 |---|---|---|---|
 | [`postgres/`](postgres/) | Schema, constraints, trigger, outbox | **implemented** | `backend/tools/dump-schema.sh` (pg_dump of a migrated DB) |
-| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 31 listener + 23 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
-| [`kafka/`](kafka/) | Six topics, JSON Schema per message value | 5 implemented, 1 partial (`audio.transcode.v1` awaits the worker) | `playback.events.v1`, `library.events.v1`, `catalog.playlist.v1` from the event classes and `LibraryService`; the rest from the plan and table columns |
+| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 32 listener and auth + 34 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
+| [`kafka/`](kafka/) | Six topics, JSON Schema per message value | **implemented**; `audio.transcode.v1` `completed` is produced by the local worker (RFC 0001) until workstream D's service exists | `playback.events.v1`, `library.events.v1`, `catalog.playlist.v1` from the event classes and `LibraryService`; the rest from the plan and table columns |
 | [`redis/`](redis/) | Key registry, TTLs, owners | **implemented** | `RedisKeys.java` + call sites |
 | [`cassandra/`](cassandra/) | History and play-count tables | **planned** (Postgres interim) | plan §1 day 4 |
 | [`proto/`](proto/) | gRPC service contracts | **deferred** — no service boundary exists | one README per service, mapping planned RPCs to the Java that backs them |
-| [`audio/transcode.md`](audio/transcode.md) | Transcode worker input/output, serving | serving + both sides of the seam implemented; the worker itself is planned | plan §11 + `media_assets` |
+| [`audio/transcode.md`](audio/transcode.md) | Transcode worker input/output, upload, serving | implemented locally: upload, worker, both sides of the seam (RFC 0001); object storage, CDN and the worker service are planned | plan §11 + `media_assets` |
 | [`examples/`](examples/) | Kafka messages and API responses | — | real outbox rows and live API responses; constructed where nothing exists yet |
+| [`rfcs/`](rfcs/) | Accepted changes, one file each | — | written by hand, before the change |
 
 The Java module `backend/contracts` is the **executable consumer** of this directory — DTOs,
 event records, Flyway migrations, `RedisKeys`. It implements these contracts; it does not
@@ -83,6 +84,26 @@ Verbatim, because they are contract terms and not code-review preferences:
 
 ## Changes
 
+### 1.3.0 — [RFC 0001](rfcs/0001-admin-portal.md), admin portal
+- **Added** `openapi`: 12 operations. `POST /v1/admin/media/{id}/upload` (a URL to PUT the master to,
+  never through the API); `GET /v1/admin/media/{id}/preview`; `GET /v1/admin/albums?artistId=`;
+  `GET /v1/admin/licenses?status=`; `POST /v1/auth/admin/login`; `GET /v1/admin/me`,
+  `POST /v1/admin/me/password`, `POST /v1/admin/me/sign-out`; `GET`/`POST /v1/admin/accounts`,
+  `PATCH /v1/admin/accounts/{id}`, `POST /v1/admin/accounts/{id}/password`.
+- **Added** `openapi`: optional `mediaType` and `q` on `GET /v1/admin/media`; optional
+  `reviewFlags` and `failureReason` on `AdminMediaItemDto`.
+- **Added** `openapi`: role-based access. Each admin operation needs one permission —
+  `catalog:read`, `media:write`, `media:publish`, `rights:write` or `admins:manage` — checked
+  against the stored account on every request; `catalog:write` is still accepted on every
+  catalogue operation. The admin 403 now carries the Error body naming the missing permission.
+- **Added** `postgres`: `media_items.review_flags` (TEXT[], default empty),
+  `media_items.failure_reason`; table `admin_accounts`.
+- **Added** `kafka`: a `completed` producer for `audio.transcode.v1` (gateway
+  `LocalTranscodeWorker`, local profile) and a `requested` consumer (`TranscodeRequestedHandler`).
+- **Changed (dev only)**: the dev issuer no longer grants `catalog:write` to any email by default.
+- **Recorded drift** O8 (nested request schemas share names).
+- No breaking change.
+
 ### 1.2.0
 - **Added** `openapi`: the ingest surface, 23 operations under `/v1/admin/**` — churches,
   licences, artists, albums, media items through `draft → processing → published → withdrawn`.
@@ -119,6 +140,7 @@ Every place the implementation and the plan disagree is recorded in the relevant
 | K3 | kafka | `device` is unvalidated free text |
 | A1–A3 | audio | 302 target path unserved; no waveform row type; profile enum not a CHECK |
 | C1 | cassandra | interim history is one-row-per-item; target is one-row-per-play |
+| O8 | openapi | nested request records share schema names (`Request` for five DTOs, `Update` for two); see RFC 0001 |
 
 Resolved in 1.1.0: K1, K5, O1–O3, O7, R1 (struck through in the per-contract tables).
 

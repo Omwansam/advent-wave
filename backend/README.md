@@ -176,6 +176,10 @@ For local work, put overrides in `application-local.yml` and run with
 | `ADVENTWAVE_DEV_SECRET` | dev placeholder | |
 | `ADVENTWAVE_SIGNING_SECRET` | dev placeholder | HMAC key for playback URLs |
 | `ADVENTWAVE_API_BASE_URL` | `http://localhost:8080` | Appears in generated URLs |
+| `ADVENTWAVE_ADMIN_TOKEN_SECRET` | dev placeholder | HMAC key for admin-portal tokens (≥ 32 bytes). **Set in production** |
+| `ADVENTWAVE_UPLOAD_SIGNING_SECRET` | dev placeholder | HMAC key for local upload URLs |
+| `ADVENTWAVE_ADMIN_BOOTSTRAP_EMAIL` / `_PASSWORD` | unset | The first super admin, created only while no admin account exists |
+| `ADVENTWAVE_LOCAL_WORKER` | `true` in `local` | Runs the transcode worker in the gateway (local profile only) |
 
 Setting `spring.security.oauth2.resourceserver.jwt.issuer-uri` switches to real IdP validation and
 retires both the dev decoder and the session endpoint.
@@ -183,18 +187,31 @@ retires both the dev decoder and the session endpoint.
 ## The ingest surface
 
 `/v1/admin/**` — churches, licences, artists, albums, media items and their lifecycle
-(`draft → processing → published → withdrawn`). It requires the `catalog:write` scope in the JWT;
-the dev issuer grants it to `ADVENTWAVE_ADMIN_EMAILS` (default `admin@adventwave.app`), a real
-IdP assigns it itself. Nothing is visible to listeners before `published`, and publication is the
-database trigger's decision, not the API's.
+(`draft → processing → published → withdrawn`), and the staff accounts that run them (RFC 0001,
+`contracts/rfcs/0001-admin-portal.md`). The admin portal is `admin/advent-admin/`.
+
+**Sign-in and roles.** Staff sign in with an email and a password at `POST /v1/auth/admin/login`
+(table `admin_accounts`, bcrypt). Each operation needs one permission of the account's role —
+`catalog:read`, `media:write`, `media:publish`, `rights:write`, `admins:manage` — and the gateway
+reads the account on every request, so a role change, a password change, a deactivation or a
+sign-out takes effect at once. Five wrong passwords lock an account for 15 minutes. The first
+super admin is created at startup from `adventwave.auth.admin.bootstrap-email` /
+`bootstrap-password` while no account exists; locally they are in the gitignored
+`gateway/config/application-local.yml`. The dev issuer no longer grants admin rights (set
+`ADVENTWAVE_ADMIN_EMAILS` only for old tooling). Nothing is visible to listeners before
+`published`, and publication is the database trigger's decision, not the API's.
 
 ```bash
-ADMIN=$(curl -s localhost:8080/v1/auth/session -H 'Content-Type: application/json' \
-  -d '{"email":"admin@adventwave.app"}' | jq -r .token)
+# the password is the bootstrap one from gateway/config/application-local.yml
+ADMIN=$(curl -s localhost:8080/v1/auth/admin/login -H 'Content-Type: application/json' \
+  -d "{\"email\":\"admin@adventwave.app\",\"password\":\"$ADVENTWAVE_ADMIN_PASSWORD\"}" | jq -r .token)
 curl -s localhost:8080/v1/admin/media?status=processing -H "Authorization: Bearer $ADMIN" | jq
 ```
 
-The transcode worker does not exist yet. `POST /v1/admin/media/{id}/transcode` emits the
-`audio.transcode.v1` `requested` message it will consume; its `completed` message is consumed
-by `TranscodeCompletedHandler`. `CatalogAdminTest` drives that consumer by inserting the message
-the worker will produce.
+**Adding a recording**, as the portal does it: `POST /v1/admin/media` (a draft) →
+`POST /v1/admin/media/{id}/upload` (a signed URL) → `PUT` the file's bytes to that URL, no token
+→ `POST /v1/admin/media/{id}/transcode` with the returned `masterStorageKey`. In the `local`
+profile `LocalTranscodeWorker` consumes the `requested` message, runs `tools/transcode.py`, and
+appends the `completed` message `TranscodeCompletedHandler` consumes; the item publishes itself
+if its licence is granted. Startup fails if python3, ffmpeg or ffprobe is missing
+(`ADVENTWAVE_LOCAL_WORKER=false` to run without the worker).

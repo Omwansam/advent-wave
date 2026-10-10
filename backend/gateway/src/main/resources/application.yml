@@ -49,8 +49,11 @@ server:
 
 adventwave:
   cors:
-    # The Vite dev server. Production origins are supplied by configuration, never hardcoded.
-    allowed-origins: ${ADVENTWAVE_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+    # The Vite dev servers: the listener app (5173) and the admin app (5174). The admin app's API
+    # calls go through its proxy, but the browser PUTs a master straight to the upload URL,
+    # cross-origin, exactly as it would to S3. Production origins are supplied by configuration,
+    # never hardcoded.
+    allowed-origins: ${ADVENTWAVE_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174}
 
   auth:
     # Local token issuance, for use only until the managed IdP is chosen. Setting
@@ -58,9 +61,23 @@ adventwave:
     # dev decoder.
     dev-issuer: ${ADVENTWAVE_DEV_ISSUER:true}
     dev-secret: ${ADVENTWAVE_DEV_SECRET:dev-only-secret-at-least-32-bytes-long-change-me}
-    # Emails the dev issuer grants the catalog:write scope (the /v1/admin surface). A real IdP
-    # assigns scopes itself and this list goes away with the dev issuer.
-    admin-emails: ${ADVENTWAVE_ADMIN_EMAILS:admin@adventwave.app}
+    # Emails the dev issuer grants the pre-RBAC catalog:write scope. Empty by default since
+    # RFC 0001: the admin portal signs in with a password at POST /v1/auth/admin/login, and an
+    # email-only issuer handing out admin rights would bypass it. Set it only for old tooling, on
+    # a machine nobody else can reach. Goes away with the dev issuer.
+    admin-emails: ${ADVENTWAVE_ADMIN_EMAILS:}
+    # Admin-portal accounts (RFC 0001): email + password sign-in, roles, session revocation.
+    admin:
+      # HMAC key for admin tokens, distinct from dev-secret. Set it everywhere but a laptop.
+      token-secret: ${ADVENTWAVE_ADMIN_TOKEN_SECRET:dev-only-admin-token-secret-at-least-32-bytes-change-me}
+      token-ttl: 8h
+      max-failed-logins: 5
+      lockout: 15m
+      min-password-length: 12
+      # The first super admin, created at startup only while no admin account exists.
+      bootstrap-email: ${ADVENTWAVE_ADMIN_BOOTSTRAP_EMAIL:}
+      bootstrap-password: ${ADVENTWAVE_ADMIN_BOOTSTRAP_PASSWORD:}
+      bootstrap-name: ${ADVENTWAVE_ADMIN_BOOTSTRAP_NAME:Administrator}
 
   catalog:
     api-base-url: ${ADVENTWAVE_API_BASE_URL:http://localhost:8080}
@@ -70,6 +87,20 @@ adventwave:
     # The derived bucket's CDN origin; a storage key is appended to it. Empty means
     # {api-base-url}/media-storage, which only the local profile's media origin answers.
     media-origin-url: ${ADVENTWAVE_MEDIA_ORIGIN_URL:}
+
+  audio:
+    # Master uploads and the local transcode worker (RFC 0001, contracts/audio/transcode.md).
+    # The worker runs in this process only where application-local.yml turns it on; elsewhere it
+    # is workstream D's service and this gateway only produces `requested`.
+    local-worker-enabled: false
+    # Relative to the working directory, which is backend/gateway under spring-boot:run.
+    transcode-script: ${ADVENTWAVE_TRANSCODE_SCRIPT:../tools/transcode.py}
+    transcode-timeout: 60m
+    # attempt 2 after 30 s, attempt 3 after 2 min, then a `failed` message
+    retry-backoff: 30s,2m
+    max-upload-bytes: 4GB
+    upload-url-ttl: 10m
+    upload-signing-secret: ${ADVENTWAVE_UPLOAD_SIGNING_SECRET:dev-only-upload-signing-secret-change-me}
 
   player:
     flush-interval-ms: 30000     # the documented bound on player-position loss
@@ -87,7 +118,7 @@ adventwave:
   contracts:
     # The contract version this build implements — <repo>/contracts/VERSION. CI asserts the
     # generated OpenAPI carries the same value.
-    version: 1.2.0
+    version: 1.3.0
 
 springdoc:
   # The document is generated from the controllers and dumped to contracts/openapi/ by

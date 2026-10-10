@@ -9,9 +9,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.Generated;
 import org.adventwave.contracts.api.MediaType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(
@@ -111,6 +114,19 @@ public class MediaItem {
         name = "seed_source_url"
     )
     private String seedSourceUrl;
+    /** The worker's review flags from the last completed transcode (V5). Never blocks publication. */
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(
+        name = "review_flags",
+        nullable = false,
+        columnDefinition = "text[]"
+    )
+    private String[] reviewFlags = new String[0];
+    /** Why the last transcode failed (V5); null unless the item is failed. */
+    @Column(
+        name = "failure_reason"
+    )
+    private String failureReason;
 
     @Generated
     public UUID getId() {
@@ -320,5 +336,21 @@ public class MediaItem {
     @Generated
     public void setSeedSourceUrl(final String seedSourceUrl) {
         this.seedSourceUrl = seedSourceUrl;
+    }
+
+    public List<String> getReviewFlags() {
+        return this.reviewFlags == null ? List.of() : List.of(this.reviewFlags);
+    }
+
+    public void setReviewFlags(final List<String> reviewFlags) {
+        this.reviewFlags = reviewFlags == null ? new String[0] : reviewFlags.toArray(String[]::new);
+    }
+
+    public String getFailureReason() {
+        return this.failureReason;
+    }
+
+    public void setFailureReason(final String failureReason) {
+        this.failureReason = failureReason;
     }
 }

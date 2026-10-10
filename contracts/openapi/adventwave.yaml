@@ -3,19 +3,305 @@ info:
   description: |
     The public REST surface for the AdventWave web and mobile clients.
 
-    Every endpoint except `POST /v1/auth/session` and the signed playback
-    redirect requires a bearer JWT. Until the managed IdP is chosen, tokens come from `POST /v1/auth/session`, which verifies no credential and is disabled by setting `spring.security.oauth2.resourceserver.jwt.issuer-uri`.
+    Every endpoint except `POST /v1/auth/session`, `POST /v1/auth/admin/login` and the signed playback redirect requires a bearer JWT. Until the managed IdP is chosen, listener tokens come from `POST /v1/auth/session`, which verifies no credential and is disabled by setting `spring.security.oauth2.resourceserver.jwt.issuer-uri`.
+
+    The admin surface (`/v1/admin/**`) takes a token from `POST /v1/auth/admin/login` (email and password). Each operation needs one permission of the account's role — `catalog:read`, `media:write`, `media:publish`, `rights:write` or `admins:manage` — checked against the account as stored on every request; `catalog:write`, the scope before roles existed, is still accepted on catalogue operations.
   license:
     name: Proprietary
   title: AdventWave API
-  version: 1.2.0
+  version: 1.3.0
 servers:
 - description: This instance
   url: http://localhost:8080
 security:
 - bearerAuth: []
 paths:
+  /v1/admin/accounts:
+    get:
+      operationId: list_1
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminAccountDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the admins:manage permission, or\
+            \ its password must be changed first; the message says which"
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - admins:manage
+      tags:
+      - "admin: accounts"
+    post:
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountCreateRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccountDto"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the admins:manage permission, or\
+            \ its password must be changed first; the message says which"
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - admins:manage
+      tags:
+      - "admin: accounts"
+  /v1/admin/accounts/{id}:
+    patch:
+      operationId: update_1
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountUpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccountDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the admins:manage permission, or\
+            \ its password must be changed first; the message says which"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - admins:manage
+      tags:
+      - "admin: accounts"
+  /v1/admin/accounts/{id}/password:
+    post:
+      operationId: resetPassword
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccountDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the admins:manage permission, or\
+            \ its password must be changed first; the message says which"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - admins:manage
+      tags:
+      - "admin: accounts"
   /v1/admin/albums:
+    get:
+      operationId: listAlbums
+      parameters:
+      - in: query
+        name: artistId
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminAlbumDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:read
+        - catalog:write
+      tags:
+      - "admin: catalogue"
     post:
       operationId: createAlbum
       requestBody:
@@ -51,7 +337,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the media:write permission, or its\
+            \ password must be changed first; the message says which"
         "409":
           content:
             application/json:
@@ -67,6 +354,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - media:write
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -107,7 +395,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -123,6 +412,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - catalog:read
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -168,7 +458,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the media:write permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -191,6 +482,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - media:write
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -219,7 +511,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
         "500":
           content:
             application/json:
@@ -228,6 +521,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - catalog:read
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -266,7 +560,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the media:write permission, or its\
+            \ password must be changed first; the message says which"
         "409":
           content:
             application/json:
@@ -282,6 +577,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - media:write
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -322,7 +618,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -338,6 +635,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - catalog:read
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -383,7 +681,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the media:write permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -406,6 +705,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - media:write
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -434,7 +734,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
         "500":
           content:
             application/json:
@@ -443,6 +744,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - catalog:read
         - catalog:write
       tags:
       - "admin: contributors"
@@ -481,7 +783,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the rights:write permission, or its\
+            \ password must be changed first; the message says which"
         "409":
           content:
             application/json:
@@ -497,6 +800,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - rights:write
         - catalog:write
       tags:
       - "admin: contributors"
@@ -537,7 +841,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -553,6 +858,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - catalog:read
         - catalog:write
       tags:
       - "admin: contributors"
@@ -598,7 +904,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the rights:write permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -621,6 +928,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - rights:write
         - catalog:write
       tags:
       - "admin: contributors"
@@ -667,7 +975,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the rights:write permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -690,6 +999,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - rights:write
         - catalog:write
       tags:
       - "admin: contributors"
@@ -732,7 +1042,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -748,10 +1059,62 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - catalog:read
         - catalog:write
       tags:
       - "admin: contributors"
   /v1/admin/licenses:
+    get:
+      operationId: listLicenses
+      parameters:
+      - in: query
+        name: status
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LicenseDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:read
+        - catalog:write
+      tags:
+      - "admin: contributors"
     post:
       operationId: createLicense
       requestBody:
@@ -787,7 +1150,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the rights:write permission, or its\
+            \ password must be changed first; the message says which"
         "409":
           content:
             application/json:
@@ -803,6 +1167,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - rights:write
         - catalog:write
       tags:
       - "admin: contributors"
@@ -843,7 +1208,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -859,6 +1225,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - catalog:read
         - catalog:write
       tags:
       - "admin: contributors"
@@ -905,7 +1272,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the rights:write permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -928,15 +1296,151 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - rights:write
         - catalog:write
       tags:
       - "admin: contributors"
+  /v1/admin/me:
+    get:
+      operationId: me_1
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccountDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not an admin-portal session (POST /v1/auth/admin/login)
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth: []
+      tags:
+      - "admin: my account"
+  /v1/admin/me/password:
+    post:
+      operationId: changePassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordChangeRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSession"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not an admin-portal session (POST /v1/auth/admin/login)
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth: []
+      tags:
+      - "admin: my account"
+  /v1/admin/me/sign-out:
+    post:
+      operationId: signOut
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not an admin-portal session (POST /v1/auth/admin/login)
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth: []
+      tags:
+      - "admin: my account"
   /v1/admin/media:
     get:
       operationId: listMedia
       parameters:
       - in: query
         name: status
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: mediaType
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: q
         required: false
         schema:
           type: string
@@ -976,7 +1480,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
         "500":
           content:
             application/json:
@@ -985,6 +1490,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - catalog:read
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -1023,7 +1529,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the media:write permission, or its\
+            \ password must be changed first; the message says which"
         "409":
           content:
             application/json:
@@ -1039,6 +1546,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - media:write
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -1079,7 +1587,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -1095,6 +1604,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - catalog:read
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -1140,7 +1650,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the media:write permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -1163,6 +1674,74 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - media:write
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/admin/media/{id}/preview:
+    get:
+      operationId: preview
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: This instance cannot sign media URLs yet; previews are served
+            only in local development
+      security:
+      - bearerAuth:
+        - catalog:read
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -1203,7 +1782,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the media:publish permission, or\
+            \ its password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -1226,6 +1806,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - media:publish
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -1272,7 +1853,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the media:write permission, or its\
+            \ password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -1295,6 +1877,85 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - media:write
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/admin/media/{id}/upload:
+    post:
+      operationId: requestUpload
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterUploadDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the media:write permission, or its\
+            \ password must be changed first; the message says which"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "No master storage is configured on this instance (locally:\
+            \ adventwave.catalog.local-media-root)"
+      security:
+      - bearerAuth:
+        - media:write
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -1335,7 +1996,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The token lacks the catalog:write scope
+          description: "The account's role lacks the media:publish permission, or\
+            \ its password must be changed first; the message says which"
         "404":
           content:
             application/json:
@@ -1358,6 +2020,7 @@ paths:
           description: Unhandled failure; the body carries no detail
       security:
       - bearerAuth:
+        - media:publish
         - catalog:write
       tags:
       - "admin: catalogue"
@@ -1455,6 +2118,56 @@ paths:
           description: Unhandled failure; the body carries no detail
       tags:
       - media
+  /v1/auth/admin/login:
+    post:
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSession"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Email or password incorrect. Which one is not said
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The password is right but the account is disabled
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Too many failed sign-ins; the account is locked for adventwave.auth.admin.lockout
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security: []
+      tags:
+      - auth
   /v1/auth/session:
     post:
       operationId: createSession
@@ -2591,6 +3304,65 @@ paths:
       - account
 components:
   schemas:
+    AccountCreateRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 120
+          minLength: 0
+        email:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          minLength: 1
+          pattern: super_admin|content_manager|rights_manager|viewer
+        temporaryPassword:
+          type: string
+          minLength: 1
+      required:
+      - displayName
+      - email
+      - role
+      - temporaryPassword
+    AccountUpdateRequest:
+      type: object
+      properties:
+        active:
+          type: boolean
+        displayName:
+          type: string
+          maxLength: 120
+          minLength: 1
+        role:
+          type: string
+          pattern: super_admin|content_manager|rights_manager|viewer
+    AdminAccountDto:
+      type: object
+      properties:
+        active:
+          type: boolean
+        createdAt:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+        id:
+          type: string
+        lastLoginAt:
+          type: string
+        lockedUntil:
+          type: string
+        mustChangePassword:
+          type: boolean
+        permissions:
+          type: array
+          items:
+            type: string
+        role:
+          type: string
     AdminAlbumDto:
       type: object
       properties:
@@ -2625,6 +3397,19 @@ components:
           type: string
         verified:
           type: boolean
+    AdminLoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          maxLength: 200
+          minLength: 0
+      required:
+      - email
+      - password
     AdminMediaItemDto:
       type: object
       properties:
@@ -2643,6 +3428,8 @@ components:
         durationMs:
           type: integer
           format: int32
+        failureReason:
+          type: string
         genre:
           type: string
         id:
@@ -2665,6 +3452,10 @@ components:
           type: string
         region:
           type: string
+        reviewFlags:
+          type: array
+          items:
+            type: string
         status:
           type: string
         title:
@@ -2673,6 +3464,18 @@ components:
           type: number
           format: double
         updatedAt:
+          type: string
+    AdminSession:
+      type: object
+      properties:
+        account:
+          $ref: "#/components/schemas/AdminAccountDto"
+        expiresIn:
+          type: integer
+          format: int64
+        token:
+          type: string
+        tokenType:
           type: string
     AlbumDto:
       type: object
@@ -2970,6 +3773,37 @@ components:
       properties:
         liked:
           type: boolean
+    MasterUploadDto:
+      type: object
+      properties:
+        expiresAt:
+          type: string
+        masterStorageKey:
+          type: string
+        method:
+          type: string
+        uploadUrl:
+          type: string
+    PasswordChangeRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+          minLength: 1
+        newPassword:
+          type: string
+          minLength: 1
+      required:
+      - currentPassword
+      - newPassword
+    PasswordResetRequest:
+      type: object
+      properties:
+        temporaryPassword:
+          type: string
+          minLength: 1
+      required:
+      - temporaryPassword
     PlaybackEvent:
       type: object
       properties:
@@ -3340,6 +4174,20 @@ components:
           type: string
         title:
           type: string
+    UploadRequest:
+      type: object
+      properties:
+        contentType:
+          type: string
+        filename:
+          type: string
+          minLength: 1
+        sizeBytes:
+          type: integer
+          format: int64
+          minimum: 1
+      required:
+      - filename
     UserDto:
       type: object
       properties:

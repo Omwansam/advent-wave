@@ -1,26 +1,24 @@
 {
-  "_source": "constructed \u2014 this topic has no producer yet; ids are real seed ids so the example is coherent with the catalogue",
+  "_source": "real outbox row written by LocalTranscodeWorker (RFC 0001) for a master of random bytes named x.wav: the tool's own failed verdict at probe",
   "envelope": {
-    "key": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+    "key": "97b6b28a-4123-456e-807d-6b7d1b80c456",
     "headers": {
-      "event_id": "00000000-0000-4000-8000-00000000d003",
+      "event_id": "44681f8e-07b1-41b6-ba68-b86aa1dddc35",
       "event_type": "audio.transcode.v1"
     }
   },
   "value": {
     "kind": "completed",
-    "event_id": "00000000-0000-4000-8000-00000000d003",
-    "media_item_id": "3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
-    "status": "failed",
-    "assets": [],
-    "flags": [
-      "lossy_master"
-    ],
     "error": {
-      "code": "verification_failed",
-      "message": "aac_160.m4a duration 301.4s differs from master 302.0s by more than 100 ms",
-      "stage": "verify"
+      "code": "probe_failed",
+      "stage": "probe",
+      "message": "ffprobe original.wav: original.wav: Invalid data found when processing input"
     },
-    "completed_at": "2026-09-17T09:01:12Z"
+    "flags": [],
+    "assets": [],
+    "status": "failed",
+    "event_id": "44681f8e-07b1-41b6-ba68-b86aa1dddc35",
+    "completed_at": "2026-10-08T04:45:50Z",
+    "media_item_id": "97b6b28a-4123-456e-807d-6b7d1b80c456"
   }
 }

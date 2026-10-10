@@ -93,9 +93,11 @@ jobs:
           cache: maven
       - working-directory: backend
         run: ./mvnw -q -N toolchains:generate-jdk-toolchains-xml -Dtoolchain.file=$HOME/.m2/toolchains.xml
-      - name: privacy, outbox atomicity, publication gate, outbox dispatch, catalogue ingest
+      # TranscodeWorkerTest starts the local worker, which refuses to start without ffmpeg/ffprobe.
+      - run: sudo apt-get install -y -q ffmpeg
+      - name: privacy, outbox atomicity, publication gate, outbox dispatch, catalogue ingest, admin portal (RFC 0001)
         working-directory: backend
         run: >
           ./mvnw -q test -pl gateway -am
-          -Dtest='PrivateSessionConformanceTest,OutboxAtomicityTest,PublicationGateTest,OutboxDispatchTest,CatalogAdminTest'
+          -Dtest='PrivateSessionConformanceTest,OutboxAtomicityTest,PublicationGateTest,OutboxDispatchTest,CatalogAdminTest,AdminAuthTest,AdminRbacTest,AdminUploadTest,TranscodeWorkerTest'
           -Dsurefire.failIfNoSpecifiedTests=false

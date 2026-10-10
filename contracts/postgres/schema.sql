@@ -43,6 +43,27 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+CREATE TABLE public.admin_accounts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    email text NOT NULL,
+    display_name text NOT NULL,
+    password_hash text NOT NULL,
+    role text NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    must_change_password boolean DEFAULT true NOT NULL,
+    token_version integer DEFAULT 0 NOT NULL,
+    failed_logins integer DEFAULT 0 NOT NULL,
+    locked_until timestamp with time zone,
+    last_login_at timestamp with time zone,
+    password_changed_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT admin_accounts_display_name_check CHECK ((btrim(display_name) <> ''::text)),
+    CONSTRAINT admin_accounts_email_check CHECK (((email = lower(btrim(email))) AND (email ~~ '%_@_%'::text))),
+    CONSTRAINT admin_accounts_failed_logins_check CHECK ((failed_logins >= 0)),
+    CONSTRAINT admin_accounts_role_check CHECK ((role = ANY (ARRAY['super_admin'::text, 'content_manager'::text, 'rights_manager'::text, 'viewer'::text]))),
+    CONSTRAINT admin_accounts_token_version_check CHECK ((token_version >= 0))
+);
 CREATE TABLE public.albums (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text NOT NULL,
@@ -152,6 +173,8 @@ CREATE TABLE public.media_items (
     master_storage_key text,
     legacy_id text,
     seed_source_url text,
+    review_flags text[] DEFAULT '{}'::text[] NOT NULL,
+    failure_reason text,
     CONSTRAINT media_items_duration_ms_check CHECK ((duration_ms > 0)),
     CONSTRAINT media_items_media_type_check CHECK ((media_type = ANY (ARRAY['song'::text, 'sermon'::text, 'podcast'::text]))),
     CONSTRAINT media_items_popularity_check CHECK (((popularity >= 0) AND (popularity <= 100))),
@@ -269,6 +292,10 @@ CREATE TABLE public.users (
 );
 ALTER TABLE ONLY public.listening_history ALTER COLUMN id SET DEFAULT nextval('public.listening_history_id_seq'::regclass);
 ALTER TABLE ONLY public.outbox ALTER COLUMN id SET DEFAULT nextval('public.outbox_id_seq'::regclass);
+ALTER TABLE ONLY public.admin_accounts
+    ADD CONSTRAINT admin_accounts_email_key UNIQUE (email);
+ALTER TABLE ONLY public.admin_accounts
+    ADD CONSTRAINT admin_accounts_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.albums
     ADD CONSTRAINT albums_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.albums

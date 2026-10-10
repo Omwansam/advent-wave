@@ -1,6 +1,6 @@
 # Audio contract — `audio.transcode.v1` and the serving side
 
-**Status:** serving side IMPLEMENTED; the seam on both ends IMPLEMENTED (1.2.0: `POST /v1/admin/media/{id}/transcode` emits `requested`; `TranscodeCompletedHandler` consumes `completed`). The worker's steps are IMPLEMENTED as a local CLI, `backend/tools/transcode.py` (`ingest` plays the upload service, `run` the worker; `--deliver` writes `completed` to the outbox), not yet as a service consuming `requested`. Storage is a local directory and the gateway is the media origin in the `local` profile (A1); real upload, buckets and CDN NOT IMPLEMENTED.
+**Status:** implemented locally end to end (1.3.0, RFC 0001). The admin portal uploads a master through `POST /v1/admin/media/{id}/upload` (a signed URL the browser PUTs to; locally the gateway's own streaming endpoint), `POST /v1/admin/media/{id}/transcode` emits `requested`, the gateway's `LocalTranscodeWorker` consumes it and runs `backend/tools/transcode.py`, and `TranscodeCompletedHandler` consumes the `completed` it produces. Storage is a local directory and the gateway is the media origin in the `local` profile (A1). Object storage (presigned PUTs to the masters bucket), the CDN and the worker as its own service are NOT IMPLEMENTED.
 Owner: workstream D. Source: plan §11, and the columns of `media_items` / `media_assets`, which
 were designed from it. Message schemas: `../kafka/audio.transcode.v1/schema.json`.
 
@@ -74,6 +74,41 @@ refused by the database — trigger `media_items_publication_gate` — unless th
 `granted`. That check is not application logic and cannot be routed around. On `failed`,
 `status = 'failed'`, surfaced in the admin portal. Retries: 3 with exponential backoff, then
 `audio.transcode.v1.dlq`.
+
+### Review flags and failure reasons (1.3.0)
+
+What a human acts on is stored with the item and shown in the admin portal's review queue:
+
+- `media_items.review_flags` (`TEXT[]`, default empty) holds the last `completed` message's
+  `flags` — `lossy_master`, `long_leading_silence`, `long_trailing_silence`. Written when the
+  outputs are stored, replaced by every completed run. Flags never block publication and are
+  never corrected automatically.
+- `media_items.failure_reason` holds a `failed` message's `error.message` and `error.stage`
+  (`"<message> (stage <stage>)"`). Cleared when outputs are stored.
+- Requesting a new transcode clears both: until the new run lands there is no verdict.
+- Both are on `AdminMediaItemDto` as `reviewFlags` and `failureReason`.
+
+### The local worker (1.3.0)
+
+`LocalTranscodeWorker`, enabled only by `adventwave.audio.local-worker-enabled` (the `local`
+profile), plays workstream D on one machine. `TranscodeRequestedHandler` claims each `requested`
+event and hands the job over after the claim commits; the worker runs one job at a time,
+`transcode.py run` without `--deliver`, and appends the message the tool prints to the outbox
+with its own `event_id`. A `failed` message from the tool is final. A crash, a timeout
+(`transcode-timeout`, 60 min) or unreadable output is retried after 30 s and 2 min; after the
+third attempt the worker appends `failed` (`encode_failed`, stage `encode`) saying what happened —
+there is no DLQ locally. At startup it re-enqueues every `processing` item whose latest
+`requested` has no later `completed`; deterministic outputs make the re-run safe.
+
+### Upload (1.3.0)
+
+`POST /v1/admin/media/{id}/upload` `{filename, contentType, sizeBytes}` returns
+`{uploadUrl, method: PUT, masterStorageKey, expiresAt}` for `masters/{id}/original.{ext}` (wav,
+flac, aif, aiff, mp3, m4a, aac, ogg, opus, mp4, mov, webm). Draft or failed items only; 409 if a
+master exists — masters are never replaced. Locally the URL is the gateway's
+`PUT /v1/uploads/{id}?key&exp&sig` (HMAC over `id|key|exp`, 10 minutes), which streams the body
+to a partial file and renames it into place once every declared byte has arrived. Production
+returns a presigned PUT to the masters bucket from the same call (`MasterUploads`).
 
 ## Serving — what exists today
 

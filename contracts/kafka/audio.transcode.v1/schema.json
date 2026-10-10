@@ -1,13 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://contracts.adventwave.app/kafka/audio.transcode.v1/schema.json",
-  "title": "audio.transcode.v1 (partial)",
-  "description": "Transcode job lifecycle for workstream D's worker. PARTIAL: `requested` is produced and `completed` is consumed; nothing produces `completed` until workstream D's worker exists. `requested` is produced by the upload service; `completed` by the worker and consumed by workstream A, which writes media_assets rows, the loudness fields, and moves status processing \u2192 published \u2014 which the database refuses without a granted licence. Keyed by media_item_id so a job and its result share a partition.",
+  "title": "audio.transcode.v1",
+  "description": "Transcode job lifecycle for workstream D's worker. Both kinds are produced and consumed: locally, the gateway's LocalTranscodeWorker consumes `requested` and produces `completed` (RFC 0001); in production that is workstream D's worker service. `requested` is produced by the upload service; `completed` by the worker and consumed by workstream A, which writes media_assets rows, the loudness fields, and moves status processing \u2192 published \u2014 which the database refuses without a granted licence. Keyed by media_item_id so a job and its result share a partition.",
   "x-adventwave": {
-    "status": "partial",
-    "producer": "requested: gateway CatalogAdminService (POST /v1/admin/media/{id}/transcode). completed: none yet \u2014 workstream D's worker",
+    "status": "implemented",
+    "producer": "requested: gateway CatalogAdminService (POST /v1/admin/media/{id}/transcode). completed: gateway LocalTranscodeWorker running backend/tools/transcode.py (local profile, RFC 0001); in production, workstream D's worker service",
     "consumers": [
-      "gateway TranscodeCompletedHandler (completed \u2192 media_assets, loudness, publish)"
+      "gateway TranscodeCompletedHandler (completed \u2192 media_assets, loudness, review flags or failure reason, publish)",
+      "gateway TranscodeRequestedHandler (requested \u2192 LocalTranscodeWorker; local profile only)"
     ],
     "key": "media_item_id",
     "compaction": false,

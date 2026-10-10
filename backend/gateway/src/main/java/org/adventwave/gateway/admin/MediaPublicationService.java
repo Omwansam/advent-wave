@@ -3,6 +3,8 @@ package org.adventwave.gateway.admin;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.adventwave.catalog.domain.MediaAsset;
 import org.adventwave.catalog.domain.MediaItem;
@@ -50,8 +52,9 @@ public class MediaPublicationService {
 
     /**
      * Records a worker's outputs from an {@code audio.transcode.v1} completed message: the
-     * media_assets rows, measured duration and loudness. Replaces the item's asset set —
-     * deterministic keys make a re-run overwrite identically (plan §11.5). Does not publish.
+     * media_assets rows, measured duration and loudness, and the review flags. Replaces the item's
+     * asset set — deterministic keys make a re-run overwrite identically (plan §11.5) — and clears
+     * any earlier failure reason. Does not publish.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void storeTranscodeOutputs(UUID mediaItemId, JsonNode completed) {
@@ -75,16 +78,24 @@ public class MediaPublicationService {
         item.setDurationMs(completed.path("duration_ms").asInt(item.getDurationMs()));
         if (completed.hasNonNull("loudness_lufs")) item.setLoudnessLufs(BigDecimal.valueOf(completed.path("loudness_lufs").asDouble()));
         if (completed.hasNonNull("true_peak_dbfs")) item.setTruePeakDbfs(BigDecimal.valueOf(completed.path("true_peak_dbfs").asDouble()));
+        List<String> flags = new ArrayList<>();
+        completed.path("flags").forEach(f -> flags.add(f.asText()));
+        item.setReviewFlags(flags);
+        item.setFailureReason(null);
         item.setUpdatedAt(Instant.now());
         this.mediaItems.saveAndFlush(item);
     }
 
-    /** Marks a transcode as failed. Does not touch assets from any earlier success. */
+    /**
+     * Marks a transcode as failed and records why, for the admin portal. Does not touch assets
+     * from any earlier success.
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markFailed(UUID mediaItemId, String reason) {
         MediaItem item = this.mediaItems.findAnyStatus(mediaItemId)
             .orElseThrow(() -> new IllegalArgumentException("unknown media item " + mediaItemId));
         item.setStatus("failed");
+        item.setFailureReason(reason);
         item.setUpdatedAt(Instant.now());
         this.mediaItems.saveAndFlush(item);
         log.warn("transcode failed for {}: {}", mediaItemId, reason);

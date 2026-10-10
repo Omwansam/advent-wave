@@ -1,5 +1,5 @@
 {
-  "_source": "live response from the gateway; admin@adventwave.app holds the catalog:write scope from the dev issuer; lists truncated to two items",
+  "_source": "live response from the gateway; admin@adventwave.app holds the catalog:write scope from the dev issuer; lists truncated to two items (captured at contracts 1.2.0; from 1.3.0 the dev issuer grants no admin scope and the same request needs an admin-portal token with catalog:read or the operation's permission \u2014 RFC 0001)",
   "request": {
     "method": "GET",
     "path": "/v1/admin/media?status=processing&limit=5",
