@@ -26,6 +26,7 @@ Usage:
   tools/transcode.py run --media-item-id ID --media-type song --master-key KEY [--deliver]
 """
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -330,6 +331,16 @@ def run(args):
     root, mid = Path(args.media_root), args.media_item_id
     work = root / "work" / mid
     work.mkdir(parents=True, exist_ok=True)
+    # One run per item at a time. A worker killed without killing its child (SIGKILL, the OOM
+    # killer) leaves that child running, and the restarted worker's re-run must not share its
+    # staging directory. It waits here until the orphan finishes or dies. The lock belongs to
+    # the open file, so the kernel releases it however the holder exits.
+    lock = open(work / ".lock", "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        log("another run of this item is in progress; waiting for it to finish")
+        fcntl.flock(lock, fcntl.LOCK_EX)
     event_id = str(uuid.uuid4())
     try:
         message = transcode(root, mid, args.media_type, args.master_key, work, event_id)
