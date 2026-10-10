@@ -159,6 +159,18 @@ class AdminUploadTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("a master labelled as a form is stored as bytes, never parsed as one")
+    void formLabelledBodyIsNotParsed() throws Exception {
+        // curl's default for --data-binary. With Spring's FormContentFilter on, the whole body was
+        // read into memory before authentication and decoded as a form, and binary audio failed to
+        // decode ("%zz"), so the upload ended as an error instead of a stored master.
+        byte[] binary = "RIFF\u0000%zz&key=x&sig=yÿ not a form".getBytes(StandardCharsets.ISO_8859_1);
+        this.mvc.perform(put(URI.create(this.uploadUrl())).contentType(MediaType.APPLICATION_FORM_URLENCODED).content(binary))
+            .andExpect(status().isCreated());
+        Assertions.assertThat(Files.readAllBytes(ROOT.resolve("masters/" + this.itemId + "/original.wav"))).isEqualTo(binary);
+    }
+
+    @Test
     @DisplayName("masters are not served, signed URL or not")
     void mastersAreNotServed() throws Exception {
         this.mvc.perform(put(URI.create(this.uploadUrl())).content(MASTER)).andExpect(status().isCreated());

@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -110,6 +111,13 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler({Exception.class})
     public ResponseEntity<Map<String, Object>> handleUnexpected(Exception e) {
+        // Spring's own request errors carry their status: no route (404), wrong method (405),
+        // unsupported content type (415). Answering those 500 with a stack trace at ERROR made
+        // every mistyped URL look like a server fault.
+        if (e instanceof ErrorResponse framework && framework.getStatusCode().is4xxClientError()) {
+            log.debug("request error {}: {}", framework.getStatusCode().value(), e.getMessage());
+            return this.body(HttpStatus.valueOf(framework.getStatusCode().value()), framework.getBody().getDetail());
+        }
         log.error("unhandled error", e);
         return this.body(HttpStatus.INTERNAL_SERVER_ERROR, "internal error");
     }

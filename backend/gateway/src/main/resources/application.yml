@@ -42,6 +42,15 @@ spring:
   jackson:
     default-property-inclusion: non_null
 
+  mvc:
+    formcontent:
+      filter:
+        # Off: no endpoint takes a form body, and the filter reads the whole body of any
+        # PUT/PATCH/DELETE sent as application/x-www-form-urlencoded into memory, with no size
+        # limit and before authentication. With master uploads that is a multi-gigabyte PUT
+        # anyone can send; a binary body also fails to decode and surfaced as a 401.
+        enabled: false
+
 server:
   port: ${PORT:8080}
   error:
