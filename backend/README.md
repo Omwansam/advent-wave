@@ -91,7 +91,9 @@ platform-core/     WS A — users, settings, library, playlists, player state, o
 catalog-service/   WS B — media items, artists, albums, search, stream manifests
 reco-service/      WS F — content-based recommender (v1)
 gateway/           the only bootable artifact: REST surface, security, response assembly
-tools/             dump-openapi.sh / dump-schema.sh regenerate the generated contracts; validate-contracts.py checks them
+tools/             dump-openapi.sh / dump-schema.sh regenerate the generated contracts; validate-contracts.py checks them;
+                   transcode.py is the worker's steps; licensing-review.sh checks published items' consent records
+runbooks/          what to do when something goes wrong: transcode-pipeline.md
 ```
 
 ## What is real and what is scaffolding
@@ -215,3 +217,7 @@ profile `LocalTranscodeWorker` consumes the `requested` message, runs `tools/tra
 appends the `completed` message `TranscodeCompletedHandler` consumes; the item publishes itself
 if its licence is granted. Startup fails if python3, ffmpeg or ffprobe is missing
 (`ADVENTWAVE_LOCAL_WORKER=false` to run without the worker).
+
+When an item is stuck, failed or gone from listeners: `runbooks/transcode-pipeline.md`. Before
+anything goes public: `tools/licensing-review.sh`, which exits 1 while any published item lacks
+a real consent record.
