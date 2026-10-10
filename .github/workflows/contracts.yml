@@ -62,6 +62,8 @@ jobs:
         env:
           ADVENTWAVE_DB_URL: jdbc:postgresql://localhost:5434/adventwave
           ADVENTWAVE_DB_PASSWORD: adventwave
+          # A throwaway gateway that only serves the OpenAPI document (DevDefaultsGuard).
+          ADVENTWAVE_ALLOW_DEV_DEFAULTS: "true"
         run: |
           nohup ./mvnw -q spring-boot:run -pl gateway > gateway.log 2>&1 &
           for i in $(seq 1 90); do

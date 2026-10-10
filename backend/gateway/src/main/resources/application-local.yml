@@ -27,6 +27,11 @@ logging:
     org.adventwave.gateway.events.RateLimiter: ERROR
 
 adventwave:
+  security:
+    # The dev token issuer and the "dev-only" secrets in application.yml are what make this
+    # profile work with no setup; DevDefaultsGuard refuses them everywhere else.
+    allow-dev-defaults: true
+
   catalog:
     # Nothing serves derived assets until the CDN origin exists (drift A1 in
     # contracts/audio/transcode.md), so locally the gateway serves {root}/derived/ itself.

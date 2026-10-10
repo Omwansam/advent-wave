@@ -28,5 +28,7 @@ public abstract class IntegrationTest {
         registry.add("spring.data.redis.host", REDIS::getHost);
         registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
         registry.add("adventwave.player.flush-interval-ms", () -> 3600000);
+        // The tests run on the published dev secrets and dev token issuer (DevDefaultsGuard).
+        registry.add("adventwave.security.allow-dev-defaults", () -> true);
     }
 }

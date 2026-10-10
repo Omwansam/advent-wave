@@ -55,6 +55,12 @@ adventwave:
     # never hardcoded.
     allowed-origins: ${ADVENTWAVE_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174}
 
+  security:
+    # Off everywhere but local development: the gateway refuses to start while the dev token
+    # issuer is on or any secret below is still its published "dev-only" default
+    # (DevDefaultsGuard). Set true only for a throwaway environment.
+    allow-dev-defaults: ${ADVENTWAVE_ALLOW_DEV_DEFAULTS:false}
+
   auth:
     # Local token issuance, for use only until the managed IdP is chosen. Setting
     # spring.security.oauth2.resourceserver.jwt.issuer-uri disables both this endpoint and the
