@@ -1,0 +1,14 @@
+# /etc/systemd/system/adventwave-backup.service — one database dump; started by the timer.
+#   sudo systemctl start adventwave-backup   (a backup now, before a release with a migration)
+[Unit]
+Description=AdventWave database backup
+After=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+ExecStart=/opt/adventwave/current/deploy/backup/adventwave-backup.sh
+Nice=10
+IOSchedulingClass=idle

@@ -1,0 +1,54 @@
+# /etc/caddy/Caddyfile — HTTPS for both sites, certificates from Let's Encrypt automatically.
+#
+# Replace the two host names, point their DNS A/AAAA records at this server, then:
+#   sudo systemctl reload caddy
+#
+# Each site serves its built web app and proxies /v1 to the gateway on 127.0.0.1:8080, so the
+# browser talks to one origin. Nothing else on the gateway (/actuator, /swagger-ui, /v3) is
+# reachable from outside.
+
+(adventwave_common) {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	handle /v1/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	handle {
+		# Hashed file names: safe to keep for a year. index.html must never be cached, or a
+		# browser keeps asking for assets the last release deleted.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@html not path /assets/*
+		header @html Cache-Control "no-cache"
+
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output file /var/log/caddy/adventwave.log {
+			roll_size 50MiB
+			roll_keep 10
+		}
+	}
+}
+
+listen.example.org {
+	root * /opt/adventwave/current/web
+	import adventwave_common
+}
+
+admin.example.org {
+	root * /opt/adventwave/current/admin
+	import adventwave_common
+}
