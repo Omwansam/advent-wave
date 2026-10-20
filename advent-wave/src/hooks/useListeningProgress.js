@@ -9,10 +9,11 @@ const SAVE_EVERY_SEC = 5
  * Records how far into a sermon or podcast episode the listener is, for resume and for the
  * In progress / Unplayed filters. Songs are not tracked: nobody resumes a hymn at verse three.
  *
- * @param {{ current: HTMLAudioElement | null }} audioRef
+ * @param {{ current: HTMLAudioElement | null }} audioRef the playing element
  * @param {{ id: string, mediaType?: string } | null} track
+ * @param {0 | 1} [slot] which of the player's two elements audioRef holds
  */
-export function useListeningProgress(audioRef, track) {
+export function useListeningProgress(audioRef, track, slot = 0) {
   const id = isLongForm(track) ? track.id : null
 
   useEffect(() => {
@@ -58,5 +59,5 @@ export function useListeningProgress(audioRef, track) {
       a.removeEventListener('seeked', flush)
       a.removeEventListener('ended', onEnded)
     }
-  }, [audioRef, id])
+  }, [audioRef, id, slot])
 }

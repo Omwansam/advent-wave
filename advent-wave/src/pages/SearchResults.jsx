@@ -18,6 +18,7 @@ const NO_RESULTS = {
   albums: [],
   playlists: [],
   topResult: null,
+  lyricsMatches: null,
 }
 
 const TABS = [
@@ -207,12 +208,16 @@ export function SearchResults() {
   )
 
   const results = data ?? NO_RESULTS
+  // Songs found by a line of their words (RFC 0004), never ones already listed under Songs.
+  const lyricsMatches = results.lyricsMatches ?? []
+  const lyricsQueue = lyricsMatches.map((m) => m.track)
 
   const show = (id) => tab === 'all' || tab === id
   const searching = query.length > 0 && loading
 
   const hasAny =
     results.songs.length > 0 ||
+    lyricsMatches.length > 0 ||
     results.artists.length > 0 ||
     results.albums.length > 0 ||
     results.playlists.length > 0 ||
@@ -379,6 +384,27 @@ export function SearchResults() {
                     queue={results.songs}
                     highlightQuery={query}
                   />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {lyricsMatches.length > 0 && (show('all') || tab === 'songs') ? (
+            <section className="mt-12" aria-labelledby="lyrics-match-heading">
+              <div className="mb-4">
+                <h2 id="lyrics-match-heading" className="text-xl font-semibold text-[var(--aw-text)] md:text-2xl">
+                  Lyrics match
+                </h2>
+                <p className="mt-1 text-sm text-[var(--aw-muted)]">Songs whose words contain “{query}”.</p>
+              </div>
+              <div className="space-y-1 rounded-2xl bg-[var(--aw-surface)] p-3 shadow-[var(--aw-shadow-card)] ring-1 ring-black/[0.04] dark:ring-white/10">
+                {lyricsMatches.map((m, i) => (
+                  <div key={m.track.id}>
+                    <SongRow song={m.track} index={i} queue={lyricsQueue} />
+                    <p className="-mt-1 pb-2 pl-[4.25rem] pr-3 text-sm italic text-[var(--aw-muted)] md:pl-[5.25rem]">
+                      “<SearchHighlight text={m.line} query={query} />”
+                    </p>
+                  </div>
                 ))}
               </div>
             </section>

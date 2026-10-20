@@ -23,6 +23,7 @@ const SERVER_FIELDS = [
   'sidebarCollapsed',
   'friendActivityCollapsed',
   'audioQuality',
+  'autoplay',
 ]
 
 const PUSH_DELAY_MS = 400
@@ -105,7 +106,7 @@ export const useUiStore = create(
         normalizeAudio: false,
         setNormalizeAudio: (v) => setSynced({ normalizeAudio: Boolean(v) }),
 
-        /** Client-side only in effect — it needs the next track pre-buffered, no server work. */
+        /** Client-side: MusicPlayer's two elements and useCrossfade. Songs only, never sermons. */
         crossfadeEnabled: false,
         setCrossfadeEnabled: (v) => setSynced({ crossfadeEnabled: Boolean(v) }),
         crossfadeSec: 6,
@@ -115,6 +116,10 @@ export const useUiStore = create(
         /** Picks the bitrate profile the stream manifest selects. */
         audioQuality: 'normal',
         setAudioQuality: (v) => setSynced({ audioQuality: v }),
+
+        /** When the queue ends, keep playing something similar (RFC 0004). On by default. */
+        autoplay: true,
+        setAutoplay: (v) => setSynced({ autoplay: Boolean(v) }),
 
         // ---------------------------------------------------------- local only
         fullPlayerOpen: false,

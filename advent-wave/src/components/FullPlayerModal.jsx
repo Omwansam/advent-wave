@@ -17,6 +17,8 @@ import { useUiStore } from '../store/useUiStore'
 import { formatDuration } from '../utils/format'
 import { isLongForm } from '../utils/longForm'
 import { LikeButton } from './LikeButton'
+import { ChaptersPanel } from './ChaptersPanel'
+import { LyricsPanel } from './LyricsPanel'
 import { PlaybackSpeedButton } from './PlaybackSpeedButton'
 import { SleepTimerButton } from './SleepTimerButton'
 
@@ -67,6 +69,13 @@ export function FullPlayerModal({ audioRef }) {
     const rect = el.getBoundingClientRect()
     const x = Math.min(Math.max(0, e.clientX - rect.left), rect.width)
     const t = (x / rect.width) * duration
+    a.currentTime = t
+    seek(t)
+  }
+
+  const seekTo = (t) => {
+    const a = audioRef.current
+    if (!a) return
     a.currentTime = t
     seek(t)
   }
@@ -237,16 +246,10 @@ export function FullPlayerModal({ audioRef }) {
               </button>
             </div>
 
-            {isLongForm(currentSong) ? null : (
-              <div className="mt-10 rounded-2xl bg-[var(--aw-surface-elevated)] p-6 ring-1 ring-black/[0.04] dark:ring-white/10">
-                <h3 className="text-sm font-semibold text-[var(--aw-text)]">
-                  Lyrics
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-[var(--aw-muted)]">
-                  Lyrics will appear here when this track is connected to a lyrics
-                  provider. For now, enjoy the music and reflect on the message.
-                </p>
-              </div>
+            {isLongForm(currentSong) ? (
+              <ChaptersPanel track={currentSong} currentTime={currentTime} onSeek={seekTo} />
+            ) : (
+              <LyricsPanel track={currentSong} currentTime={currentTime} onSeek={seekTo} />
             )}
           </div>
         </div>

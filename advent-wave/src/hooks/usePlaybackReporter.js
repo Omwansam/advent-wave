@@ -14,10 +14,15 @@ const DEVICE = 'web'
  * reaches listening history. None of those rules are duplicated here on purpose — they are
  * a licensing obligation to contributing churches, so there is exactly one implementation.
  *
- * @param {{ current: HTMLAudioElement | null }} audioRef
+ * @param {{ current: HTMLAudioElement | null }} audioRef the playing element
  * @param {{ id: string, durationMs?: number, duration?: number } | null} currentSong
+ * @param {0 | 1} [slot] which of the player's two elements audioRef holds; changes on a crossfade
+ * @param {{ current: { id: string, tailMs: number } | null }} [handoffRef] a song just handed off
+ *   by crossfade, and how much of it was left to play under the next one. That tail is heard, so
+ *   it counts as played — and then the usual rule decides completed or skipped, exactly as if the
+ *   song had played out alone. A song seeked to its last seconds is still skipped.
  */
-export function usePlaybackReporter(audioRef, currentSong) {
+export function usePlaybackReporter(audioRef, currentSong, slot = 0, handoffRef = null) {
   const playedMsRef = useRef(0)
   const lastPositionRef = useRef(0)
   const reportedForRef = useRef(null)
@@ -42,7 +47,7 @@ export function usePlaybackReporter(audioRef, currentSong) {
 
     audio.addEventListener('timeupdate', onTimeUpdate)
     return () => audio.removeEventListener('timeupdate', onTimeUpdate)
-  }, [audioRef])
+  }, [audioRef, slot])
 
   useEffect(() => {
     if (!songId) return undefined
@@ -56,12 +61,14 @@ export function usePlaybackReporter(audioRef, currentSong) {
     // Runs when the track changes or the player unmounts — either way this item is over, and
     // this is the event that carries enough ms_played for the server to count it.
     return () => {
-      const msPlayed = Math.round(playedMsRef.current)
+      const handoff = handoffRef?.current?.id === songId ? handoffRef.current : null
+      if (handoff) handoffRef.current = null
+      const msPlayed = Math.round(playedMsRef.current + (handoff?.tailMs ?? 0))
       if (msPlayed <= 0) return
       const completed = durationMs > 0 && msPlayed >= durationMs * 0.95
       void report(songId, completed ? 'play_completed' : 'skipped', msPlayed)
     }
-  }, [songId, durationMs])
+  }, [songId, durationMs, handoffRef])
 }
 
 function report(mediaItemId, eventType, msPlayed) {

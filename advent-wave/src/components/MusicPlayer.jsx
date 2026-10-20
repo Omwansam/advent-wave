@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ListMusic,
   Maximize2,
+  MicVocal,
   Pause,
   Play,
   Repeat,
@@ -26,21 +27,12 @@ import { useToastStore } from '../store/useToastStore'
 import { useProgressStore } from '../store/useProgressStore'
 import { useSleepTimerStore } from '../store/useSleepTimerStore'
 import { formatRate, isLongForm } from '../utils/longForm'
+import { startPlayback } from '../utils/playback'
+import { useCrossfade } from '../hooks/useCrossfade'
+import { useAutoplay } from '../hooks/useAutoplay'
+import { indexAt, useChapters, useLyrics } from '../hooks/useMediaText'
 import { PlaybackSpeedButton } from './PlaybackSpeedButton'
 import { SleepTimerButton } from './SleepTimerButton'
-
-/**
- * play(), with its rejection handled. AbortError means a newer load() or pause() superseded
- * this call, the normal result of switching tracks quickly. Anything else (autoplay refused,
- * source unplayable) means nothing is playing, so the UI is told and one press of Play retries.
- */
-function startPlayback(audio) {
-  const p = audio.play()
-  p?.catch?.((err) => {
-    if (err?.name === 'AbortError') return
-    usePlayerStore.getState().setPlaying(false)
-  })
-}
 
 function isTyping(el) {
   const tag = el?.tagName
@@ -54,7 +46,25 @@ function sleepTimerFired() {
 }
 
 export function MusicPlayer() {
+  // Two elements, so a crossfade can play the end of one song under the start of the next
+  // (RFC 0004). `active` is the one that is the player — what every hook below and the full
+  // player act on through audioRef; the other is idle except during a fade.
+  const slotsRef = useRef([null, null])
+  const setSlotA = useCallback((el) => {
+    slotsRef.current[0] = el
+  }, [])
+  const setSlotB = useCallback((el) => {
+    slotsRef.current[1] = el
+  }, [])
+  const [active, setActive] = useState(0)
+  const activeRef = useRef(0)
   const audioRef = useRef(null)
+  useLayoutEffect(() => {
+    audioRef.current = slotsRef.current[active]
+  }, [active])
+  const loadedUrlsRef = useRef([null, null])
+  const targetVolumeRef = useRef(0.85)
+  const handoffRef = useRef(null)
   const progressRef = useRef(null)
   const volumeBeforeMuteRef = useRef(0.85)
 
@@ -87,9 +97,14 @@ export function MusicPlayer() {
   const normalizeAudio = useUiStore((s) => s.normalizeAudio)
   const { url: streamUrl, gainFactor, error: streamError } = usePlaybackSource(currentSong?.id)
 
-  usePlaybackReporter(audioRef, currentSong)
-  useListeningProgress(audioRef, currentSong)
+  usePlaybackReporter(audioRef, currentSong, active, handoffRef)
+  useListeningProgress(audioRef, currentSong, active)
+  const { fadeRef, cancel: cancelFade } = useCrossfade({ slotsRef, active, activeRef, setActive, loadedUrlsRef, targetVolumeRef, handoffRef })
+  useAutoplay()
   const longForm = isLongForm(currentSong)
+  const lyrics = useLyrics(currentSong)
+  const chapters = useChapters(currentSong)?.data?.chapters ?? []
+  const chapterIndex = indexAt(chapters, currentTime * 1000)
 
   useEffect(() => {
     if (!currentSong?.id) return
@@ -101,9 +116,8 @@ export function MusicPlayer() {
   // later, from the manifest fetch, and assigning src resets the element: it pauses and drops
   // any pending play(). Starting playback only when isPlaying flipped left a freshly picked
   // track silent behind a Pause button until Play was pressed twice.
-  const loadedUrlRef = useRef(null)
   useEffect(() => {
-    const a = audioRef.current
+    const a = slotsRef.current[active]
     if (!a) return
     if (!streamUrl) {
       // The next track's manifest is on its way (or failed). The previous source must not
@@ -111,14 +125,19 @@ export function MusicPlayer() {
       a.pause()
       return
     }
-    if (loadedUrlRef.current !== streamUrl) {
-      loadedUrlRef.current = streamUrl
+    // A crossfade has already loaded this URL into this element; reloading would restart it.
+    if (loadedUrlsRef.current[active] !== streamUrl) {
+      loadedUrlsRef.current[active] = streamUrl
       a.src = streamUrl
       a.load()
     }
     if (isPlaying) startPlayback(a)
-    else a.pause()
-  }, [streamUrl, isPlaying])
+    else {
+      a.pause()
+      // Pausing mid-fade stops the outgoing song too, rather than leaving it to play out alone.
+      cancelFade()
+    }
+  }, [active, streamUrl, isPlaying, cancelFade])
 
   // A track whose manifest cannot be fetched is not playing, whatever was asked for.
   useEffect(() => {
@@ -126,8 +145,10 @@ export function MusicPlayer() {
   }, [streamError])
 
   useEffect(() => {
-    const a = audioRef.current
+    const a = slotsRef.current[active]
     if (!a) return
+    // After a crossfade this element loaded its metadata before it became the player.
+    if (a.readyState >= 1 && Number.isFinite(a.duration)) setDuration(a.duration)
     const onMeta = () => {
       setDuration(Number.isFinite(a.duration) ? a.duration : 0)
       // A resumed session: seek to where the account stopped, once, then forget it. Only on
@@ -191,23 +212,26 @@ export function MusicPlayer() {
       a.removeEventListener('ended', onEnd)
       a.removeEventListener('error', onError)
     }
-  }, [currentSong?.id, setDuration, setCurrentTime])
+  }, [active, currentSong?.id, setDuration, setCurrentTime])
 
   useEffect(() => {
-    const a = audioRef.current
+    const a = slotsRef.current[active]
     if (!a) return
     const onTimeUpdate = () => setCurrentTime(a.currentTime)
     a.addEventListener('timeupdate', onTimeUpdate)
     return () => a.removeEventListener('timeupdate', onTimeUpdate)
-  }, [setCurrentTime])
+  }, [active, setCurrentTime])
 
+  // normalizeAudio applies the server's per-item gain so a studio hymn and a phone recording of
+  // a camp meeting play at the same loudness (plan §11.3). During a crossfade the fade owns the
+  // element's volume and reads this target on every step instead.
+  const volumeTarget = normalizeAudio ? volume * gainFactor : volume
   useEffect(() => {
-    const a = audioRef.current
-    if (!a) return
-    // normalizeAudio applies the server's per-item gain so a studio hymn and a phone
-    // recording of a camp meeting play at the same loudness (plan §11.3).
-    a.volume = normalizeAudio ? volume * gainFactor : volume
-  }, [volume, normalizeAudio, gainFactor])
+    targetVolumeRef.current = volumeTarget
+    const a = slotsRef.current[active]
+    if (!a || fadeRef.current) return
+    a.volume = volumeTarget
+  }, [active, volumeTarget, fadeRef])
 
   useEffect(() => {
     if (volume > 0.001) volumeBeforeMuteRef.current = volume
@@ -216,12 +240,12 @@ export function MusicPlayer() {
   // Speed applies to sermons and podcasts; songs always play as recorded. load() resets
   // playbackRate to defaultPlaybackRate, so both are set and the next source keeps the speed.
   useEffect(() => {
-    const a = audioRef.current
+    const a = slotsRef.current[active]
     if (!a) return
     const r = longForm ? playbackRate : 1
     a.defaultPlaybackRate = r
     a.playbackRate = r
-  }, [longForm, playbackRate])
+  }, [active, longForm, playbackRate])
 
   // A timed sleep. Wall-clock, not listening time: "stop in 30 minutes" means 30 minutes.
   useEffect(() => {
@@ -293,7 +317,8 @@ export function MusicPlayer() {
 
   return (
     <>
-      <audio ref={audioRef} className="hidden" preload="metadata" />
+      <audio ref={setSlotA} className="hidden" preload="metadata" />
+      <audio ref={setSlotB} className="hidden" preload="metadata" />
       <FullPlayerModal audioRef={audioRef} />
 
       <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--aw-border)] bg-[var(--aw-player-bg)]/95 shadow-[0_-8px_32px_rgba(109,93,246,0.08)] backdrop-blur-md md:left-[var(--aw-sidebar-w)]">
@@ -327,6 +352,19 @@ export function MusicPlayer() {
                 className="h-full rounded-full bg-gradient-to-r from-[var(--aw-primary)] to-[var(--aw-gold)] transition-[width] duration-200 ease-out will-change-[width]"
                 style={{ width: `${pct}%` }}
               />
+              {/* Where each chapter starts. The first is at 0 and needs no mark. */}
+              {duration > 0
+                ? chapters.map((c) =>
+                    c.startMs > 0 && c.startMs / 1000 < duration ? (
+                      <span
+                        key={c.startMs}
+                        aria-hidden
+                        className="pointer-events-none absolute top-0 h-full w-0.5 bg-[var(--aw-player-bg)]"
+                        style={{ left: `${(c.startMs / 1000 / duration) * 100}%` }}
+                      />
+                    ) : null,
+                  )
+                : null}
               <div className="absolute right-0 top-1/2 size-3 -translate-y-1/2 translate-x-1/2 rounded-full bg-white opacity-0 shadow-md ring-2 ring-[var(--aw-primary)] transition group-hover:opacity-100" />
             </div>
 
@@ -356,6 +394,12 @@ export function MusicPlayer() {
                   {streamError ? (
                     <p className="truncate text-sm text-red-600 dark:text-red-400">
                       Unavailable — {streamError.message}
+                    </p>
+                  ) : chapterIndex >= 0 ? (
+                    <p className="truncate text-sm text-[var(--aw-muted)]" title={chapters[chapterIndex].title}>
+                      <span className="tabular-nums">{chapterIndex + 1}/{chapters.length}</span>
+                      {' · '}
+                      {chapters[chapterIndex].title}
                     </p>
                   ) : (
                     <Link
@@ -448,6 +492,17 @@ export function MusicPlayer() {
               </div>
 
               <div className="flex min-w-0 items-center justify-end gap-1 md:gap-2">
+                {lyrics.data ? (
+                  <button
+                    type="button"
+                    onClick={() => setFullPlayerOpen(true)}
+                    className="hidden rounded-full p-2 text-[var(--aw-muted)] hover:bg-black/5 hover:text-[var(--aw-text)] sm:block dark:hover:bg-white/10"
+                    aria-label="Lyrics"
+                    title="Lyrics"
+                  >
+                    <MicVocal className="size-5" />
+                  </button>
+                ) : null}
                 <PlaybackSpeedButton className="hidden sm:block" />
                 <SleepTimerButton className="hidden sm:block" />
                 <button

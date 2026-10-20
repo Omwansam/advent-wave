@@ -3,6 +3,7 @@ import {
   ChevronRight,
   ExternalLink,
   EyeOff,
+  Infinity as InfinityIcon,
   LogOut,
   Moon,
   Sun,
@@ -25,6 +26,8 @@ export function Settings() {
   const setCrossfadeEnabled = useUiStore((s) => s.setCrossfadeEnabled)
   const crossfadeSec = useUiStore((s) => s.crossfadeSec)
   const setCrossfadeSec = useUiStore((s) => s.setCrossfadeSec)
+  const autoplay = useUiStore((s) => s.autoplay)
+  const setAutoplay = useUiStore((s) => s.setAutoplay)
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -82,8 +85,8 @@ export function Settings() {
                 Normalize volume
               </span>
               <span className="mt-1 block text-sm text-[var(--aw-muted)]">
-                Evens out loud and quiet tracks (mock — wire to Web Audio when
-                ready).
+                Plays a studio hymn and a camp-meeting recording at the same
+                loudness, using the level measured from each master.
               </span>
             </span>
           </span>
@@ -103,13 +106,16 @@ export function Settings() {
         <div className="rounded-2xl border border-[var(--aw-border)] bg-[var(--aw-surface)] px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="font-medium text-[var(--aw-text)]">Crossfade</p>
+              <p className="font-medium text-[var(--aw-text)]">Crossfade songs</p>
               <p className="mt-1 text-sm text-[var(--aw-muted)]">
-                Blend between songs like Spotify Desktop (UI only in this demo).
+                Blend the end of one song into the start of the next. Sermons
+                and podcasts always play to their last word.
               </p>
             </div>
             <button
               type="button"
+              role="switch"
+              aria-checked={crossfadeEnabled}
               onClick={() => setCrossfadeEnabled(!crossfadeEnabled)}
               className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition ${
                 crossfadeEnabled
@@ -140,6 +146,39 @@ export function Settings() {
             </label>
           ) : null}
         </div>
+      </section>
+
+      <section className="mt-3 space-y-3">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={autoplay}
+          onClick={() => setAutoplay(!autoplay)}
+          className="flex w-full items-center justify-between rounded-2xl border border-[var(--aw-border)] bg-[var(--aw-surface)] px-4 py-4 text-left transition hover:bg-[var(--aw-surface-elevated)]"
+        >
+          <span className="flex items-center gap-3">
+            <InfinityIcon className="size-5 text-[var(--aw-primary)]" />
+            <span>
+              <span className="font-medium text-[var(--aw-text)]">Autoplay</span>
+              <span className="mt-1 block text-sm text-[var(--aw-muted)]">
+                When your queue ends, keep playing something like what you were
+                listening to.
+              </span>
+            </span>
+          </span>
+          <span
+            className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition ${
+              autoplay ? 'bg-[var(--aw-primary)]' : 'bg-[var(--aw-border)]'
+            }`}
+            aria-hidden
+          >
+            <span
+              className={`absolute top-1 size-5 rounded-full bg-white shadow transition ${
+                autoplay ? 'left-6' : 'left-1'
+              }`}
+            />
+          </span>
+        </button>
       </section>
 
       <section className="mt-8 space-y-3">

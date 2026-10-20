@@ -25,6 +25,8 @@ export function QueueDrawer() {
   if (!open) return null
 
   const upNextCount = Math.max(0, queue.length - currentIndex - 1)
+  // Where autoplay's additions begin after the current item, if they do (RFC 0004).
+  const firstAutoplay = queue.findIndex((t, i) => i > currentIndex && t.autoplay)
 
   return (
     <>
@@ -83,8 +85,9 @@ export function QueueDrawer() {
               {queue.map((song, i) => {
                 const active = i === currentIndex
                 const showNowPlayingLabel = active
+                const showAutoplayLabel = i === firstAutoplay
                 const showUpNextLabel =
-                  i === currentIndex + 1 && upNextCount > 0
+                  i === currentIndex + 1 && upNextCount > 0 && !showAutoplayLabel
 
                 return (
                   <li key={`${song.id}-${i}`}>
@@ -103,6 +106,16 @@ export function QueueDrawer() {
                           </span>
                         ) : null}
                       </p>
+                    ) : null}
+                    {showAutoplayLabel ? (
+                      <div className="mb-1 mt-3 px-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--aw-muted)]">
+                          Next from: Autoplay
+                        </p>
+                        <p className="text-xs text-[var(--aw-muted)]/80">
+                          Like what you have been playing. Turn off in Settings.
+                        </p>
+                      </div>
                     ) : null}
                     <div
                       className={`flex items-center gap-3 rounded-xl px-2 py-2 transition ${

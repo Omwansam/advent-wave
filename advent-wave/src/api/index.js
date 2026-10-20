@@ -168,6 +168,23 @@ export function saveProgress(mediaItemId, { positionMs, completed }, options) {
   return api.put(`/v1/progress/${encodeURIComponent(mediaItemId)}`, { positionMs, completed }, options)
 }
 
+/* -------------------------------------------------------------- lyrics, chapters, autoplay */
+
+/** A song's words (RFC 0004). 404 means it has none — callers treat that as empty, not an error. */
+export function getLyrics(mediaItemId, options) {
+  return api.get(`/v1/media/${encodeURIComponent(mediaItemId)}/lyrics`, options)
+}
+
+/** A sermon's or episode's chapters; an empty list when it has none. */
+export function getChapters(mediaItemId, options) {
+  return api.get(`/v1/media/${encodeURIComponent(mediaItemId)}/chapters`, options)
+}
+
+/** What to play when the queue runs out, most like the seeds first (1–10 seeds). */
+export function getAutoplay(seedIds, { limit = 10, ...options } = {}) {
+  return api.get('/v1/autoplay', { ...options, query: { seed: seedIds.join(','), limit } })
+}
+
 /* -------------------------------------------------------------- recommendations */
 
 export function getRecommendations(options) {

@@ -11,6 +11,39 @@ function gainToVolumeFactor(gainDb) {
 }
 
 /**
+ * Crossfade needs the next song's manifest before the current one ends (RFC 0004), so it asks
+ * ahead with prefetchManifest. A prefetched manifest is used once, by the next mount of this hook
+ * for that id, and only while young: signed URLs live five minutes on the server, and a manifest
+ * kept longer than this would hand the player a URL close to expiry.
+ */
+const PREFETCH_TTL_MS = 60_000
+const prefetched = new Map()
+
+export function prefetchManifest(mediaItemId) {
+  const hit = prefetched.get(mediaItemId)
+  if (hit && Date.now() - hit.at < PREFETCH_TTL_MS) return hit.promise
+  const entry = { at: Date.now(), manifest: null, promise: null }
+  entry.promise = getStreamManifest(mediaItemId).then(
+    (manifest) => {
+      entry.manifest = manifest
+      return manifest
+    },
+    (error) => {
+      prefetched.delete(mediaItemId)
+      throw error
+    },
+  )
+  prefetched.set(mediaItemId, entry)
+  return entry.promise
+}
+
+/** A prefetched manifest that has arrived and is still young, or null. Synchronous. */
+export function peekPrefetched(mediaItemId) {
+  const hit = prefetched.get(mediaItemId)
+  return hit?.manifest && Date.now() - hit.at < PREFETCH_TTL_MS ? hit.manifest : null
+}
+
+/**
  * Resolves a playable URL for a media item.
  *
  * `TrackDto.audioUrl` points at the manifest endpoint, not at audio bytes: the catalogue is
@@ -31,9 +64,14 @@ export function usePlaybackSource(mediaItemId) {
     if (!mediaItemId) return undefined
 
     const controller = new AbortController()
+    const ready = peekPrefetched(mediaItemId)
 
-    getStreamManifest(mediaItemId, { signal: controller.signal })
-      .then((manifest) => setEntry({ id: mediaItemId, manifest, error: null }))
+    ;(ready ? Promise.resolve(ready) : getStreamManifest(mediaItemId, { signal: controller.signal }))
+      .then((manifest) => {
+        setEntry({ id: mediaItemId, manifest, error: null })
+        // Used: a later play of the same item fetches a fresh signature.
+        if (ready) prefetched.delete(mediaItemId)
+      })
       .catch((error) => {
         if (controller.signal.aborted || error.name === 'AbortError') return
         setEntry({ id: mediaItemId, manifest: null, error })
@@ -43,12 +81,15 @@ export function usePlaybackSource(mediaItemId) {
   }, [mediaItemId])
 
   const current = entry && entry.id === mediaItemId ? entry : null
+  // A crossfade has already started this item from its prefetched manifest. Answering with that
+  // manifest on the very first render keeps the URL steady; a null URL would pause the element.
+  const manifest = current?.manifest ?? (current ? null : peekPrefetched(mediaItemId))
 
   return {
-    url: current?.manifest?.audioUrl ?? null,
-    gainFactor: gainToVolumeFactor(current?.manifest?.gainDb),
-    manifest: current?.manifest ?? null,
+    url: manifest?.audioUrl ?? null,
+    gainFactor: gainToVolumeFactor(manifest?.gainDb),
+    manifest: manifest ?? null,
     error: current?.error ?? null,
-    loading: Boolean(mediaItemId) && !current,
+    loading: Boolean(mediaItemId) && !current && !manifest,
   }
 }

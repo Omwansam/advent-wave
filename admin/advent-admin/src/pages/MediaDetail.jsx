@@ -15,6 +15,7 @@ import { Card, CardHeader, DefinitionList, TableWrap } from '../components/Card'
 import { ConsentChip, MediaStatusChip, TypeChip } from '../components/Chip'
 import { SelectInput, TextInput } from '../components/Field'
 import { LicensePicker } from '../components/LicensePicker'
+import { ChaptersCard, LyricsCard } from '../components/MediaTextCards'
 import { InlineError, Notice } from '../components/Notice'
 import { PageHeader } from '../components/PageHeader'
 import { Empty, LoadError, Loading } from '../components/PageState'
@@ -122,6 +123,12 @@ export function MediaDetail() {
             onItem={item.mutate}
           />
         </div>
+
+        {m.mediaType === 'song' ? (
+          <LyricsCard key={`lyrics-${m.id}`} item={m} canEdit={canEdit} />
+        ) : (
+          <ChaptersCard key={`chapters-${m.id}`} item={m} canEdit={canEdit} />
+        )}
 
         <LoudnessCard item={m} />
 

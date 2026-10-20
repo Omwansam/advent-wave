@@ -211,3 +211,30 @@ export function withdrawMediaItem(id, options) {
 export function getMediaPreview(id, options) {
   return api.get(`/v1/admin/media/${id}/preview`, options)
 }
+
+/* -------------------------------------------------------------- lyrics & chapters (RFC 0004) */
+
+/** A song's lyrics at any status. 404 when it has none — callers treat that as empty. */
+export function getMediaLyrics(id, options) {
+  return api.get(`/v1/admin/media/${id}/lyrics`, options)
+}
+
+/** Replaces a song's lyrics: `{ lines: [{ startMs?, text }], rightsBasis, credit, language? }`. */
+export function saveMediaLyrics(id, lyrics, options) {
+  return api.put(`/v1/admin/media/${id}/lyrics`, lyrics, options)
+}
+
+/** 204 whether or not there were any. */
+export function deleteMediaLyrics(id, options) {
+  return api.del(`/v1/admin/media/${id}/lyrics`, options)
+}
+
+/** A sermon's or episode's chapters, earliest first; empty when it has none. */
+export function getMediaChapters(id, options) {
+  return api.get(`/v1/admin/media/${id}/chapters`, options)
+}
+
+/** Replaces the chapters; an empty list clears them. */
+export function saveMediaChapters(id, chapters, options) {
+  return api.put(`/v1/admin/media/${id}/chapters`, { chapters }, options)
+}

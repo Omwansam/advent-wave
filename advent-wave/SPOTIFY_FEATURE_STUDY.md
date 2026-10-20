@@ -12,9 +12,10 @@ repository and read with REA as inert text: nothing was executed and nothing was
 features exist and how they act — and every feature below is our own implementation on our own
 model. The i18n keys and short UI strings in this document are quoted only as evidence.
 
-REA analysed 17 of the 248 inventoried source files, chosen by route name: now-playing bar, settings,
+REA analysed 18 of the 248 inventoried source files, chosen by route name: now-playing bar, settings,
 lyrics, track page, library, recents, recently played, offline, blend, listening stats, song
-collection, episode, show, podcast chapters, episode collection, buddy feed, root dialogs. Coverage
+collection, episode, show, podcast chapters, episode collection, buddy feed, root dialogs, and the
+now-playing side panel. Coverage
 inside those chunks is partial (REA reports its semantic graph truncated), so **a feature missing
 from this table is unexamined, not absent.**
 
@@ -28,10 +29,11 @@ Evidence is chunk + column in the minified bundle, and the i18n key the chunk re
 | **Playback speed** — increase/decrease shortcuts, "Speed {0}×"; videos stay at original speed | `xpui-root-dialogs.js` c.158636, c.158764, `playback-control.*-playback-speed` | none | **Built**, for sermons and podcasts only — hymns always play as recorded. 0.75–2×, `<` / `>` keys |
 | **Episode progress** — In Progress / Unplayed filters, "{0} left" | `xpui-routes-show.js`, `shows.filter.in-progress`, `shows.filter.unplayed`, `time.left` | one resume position (current item only) | **Built.** Per-item resume, filters and "23 min left" on Sermons and Podcasts |
 | **Resume points from the server** — each episode carries `playedState { playPositionMilliseconds, state }`, `Completed` compared | `xpui-routes-show.js` (text search; REA's graph does not index property names) | none | **Built.** `GET`/`PUT /v1/progress`, table `listening_progress` — [RFC 0003](../contracts/rfcs/0003-listening-progress.md), contracts 1.4.0 |
-| **Lyrics** — synced, "provided by", translate, search by lyrics | `dwp-now-playing-bar.js`, `xpui-routes-track-v2.js`, `search.lyrics-match` | placeholder card | Card now shown for songs only. **Not built** — needs a lyrics field or endpoint and the text; most hymn texts are public domain |
-| **Transcripts** (auto or creator-provided) and **chapters** for episodes | `xpui-routes-episode.js`, `web-player.episode.transcript*`, `web-player.podcast-chapter.*` | none | **Not built** — needs data from contributing churches; chapters are timestamps an admin could enter |
-| **Crossfade** | `xpui-routes-desktop-settings.js` c.39410, `desktop.settings.crossfadeTracks` | setting is saved, **playback ignores it** | **Not built.** Needs a second `<audio>` element and the next manifest pre-fetched |
-| **Autoplay** similar audio when the queue ends | settings chunk, `desktop.settings.autoplay` | queue just stops | Not built. `/v1/recommendations` already exists to feed it |
+| **Lyrics** — fetched per track (`{ syncType, lines, provider }`, **404 = none**), synced lines seek, "not synced" note, provider credit, search by lyrics | `xpui-routes-track-v2.js`, `dwp-panel-section.js` c.149790, `search.lyrics-match` | placeholder card | **Built** ([RFC 0004](../contracts/rfcs/0004-lyrics-chapters-autoplay.md)): synced or plain lyrics with a rights basis and credit, line-following card, lyrics button, "Lyrics match" in search, admin editor with LRC-style timing. Translation not built |
+| **Chapters** for episodes, shown only when there are some | `dwp-panel-section.js` c.186829, `web-player.podcast-chapter.*` | none | **Built** (RFC 0004): chapters card in the full player, current chapter in the bar, marks on the progress bar, admin editor |
+| **Transcripts** (auto or creator-provided) | `xpui-routes-episode.js`, `web-player.episode.transcript*` | none | Not built — needs text from contributing churches or a speech-to-text step |
+| **Crossfade songs** | `xpui-routes-desktop-settings.js` c.39410, `desktop.settings.crossfadeTracks` | setting is saved, **playback ignores it** | **Built** (RFC 0004): two `<audio>` elements, next manifest prefetched, equal-power fade, songs only |
+| **Autoplay** similar audio when the queue ends; shown as "Next from:" | settings chunk, `desktop.settings.autoplay`, `dwp-panel-section.js` `queue.next-from` | queue just stops | **Built** (RFC 0004): `GET /v1/autoplay`, seeded by the last items played; setting on by default |
 | **Smart shuffle / fewer repeats** | settings chunk, `desktop.settings.shuffle.mode.*` | plain shuffle | Not built |
 | **Sort newest / oldest** | `xpui-routes-show.js`, `shows.sort.*` | — | Not built — `TrackDto` has no publish date (contract change) |
 | **Recents** grouped by day; played / saved / shared | `xpui-routes-recents.js`, `web-player.recents.*` | Listening history (flat) | Not built |
@@ -49,8 +51,10 @@ Evidence is chunk + column in the minified bundle, and the i18n key the chunk re
 
 ## Next, by value to a sermon-and-hymn listener
 
-1. **Hymn lyrics** — the biggest gap for congregational singing. Contract change (lyrics on the
-   item or `GET /v1/media/{id}/lyrics`), admin entry, and the full-screen card already in place.
-2. **Crossfade** — the toggle exists and does nothing; fix or hide it.
-3. **Sermon chapters** — scripture reading, sermon, appeal: timestamps entered at ingest.
-4. **Autoplay** at queue end from `/v1/recommendations`.
+1. **Enter the words.** Lyrics and chapters are empty until editors add them: Admin → Media library →
+   a song → *Add lyrics* (choose the rights basis; public-domain hymn texts need only a credit), or a
+   sermon → *Add chapters*.
+2. **Transcripts** for sermons, for the hard of hearing and for search.
+3. **Lyric translation** — an English hymn's Swahili words, or the reverse, side by side.
+4. **Sort by date** on Sermons and Podcasts — needs a publish date on `TrackDto`.
+5. **A delete for listening progress** — with a tombstone, see RFC 0003's known limitation.
