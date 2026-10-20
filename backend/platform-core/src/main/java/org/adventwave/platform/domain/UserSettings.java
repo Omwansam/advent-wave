@@ -60,6 +60,12 @@ public class UserSettings {
         nullable = false
     )
     private String audioQuality = "normal";
+    /** RFC 0004: when the queue ends, keep playing something similar. */
+    @Column(
+        name = "autoplay",
+        nullable = false
+    )
+    private boolean autoplay = true;
     @Column(
         name = "updated_at",
         nullable = false
@@ -79,7 +85,8 @@ public class UserSettings {
             this.crossfadeSec,
             this.sidebarCollapsed,
             this.friendActivityCollapsed,
-            this.audioQuality
+            this.audioQuality,
+            this.autoplay
         );
     }
 
@@ -90,6 +97,10 @@ public class UserSettings {
 
         if (dto.audioQuality() != null) {
             this.audioQuality = dto.audioQuality();
+        }
+
+        if (dto.autoplay() != null) {
+            this.autoplay = dto.autoplay();
         }
 
         this.privateSession = dto.privateSession();

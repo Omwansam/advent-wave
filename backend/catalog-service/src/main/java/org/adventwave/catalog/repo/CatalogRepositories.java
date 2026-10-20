@@ -10,10 +10,13 @@ import org.adventwave.catalog.domain.Church;
 import org.adventwave.catalog.domain.License;
 import org.adventwave.catalog.domain.DiscoverCategory;
 import org.adventwave.catalog.domain.MediaAsset;
+import org.adventwave.catalog.domain.MediaChapter;
 import org.adventwave.catalog.domain.MediaItem;
+import org.adventwave.catalog.domain.MediaLyrics;
 import org.adventwave.contracts.api.MediaType;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -53,6 +56,29 @@ public final class CatalogRepositories {
 
     public interface DiscoverCategoryRepository extends JpaRepository<DiscoverCategory, String> {
         List<DiscoverCategory> findAllByOrderBySortOrderAsc();
+    }
+
+    public interface MediaChapterRepository extends JpaRepository<MediaChapter, MediaChapter.Key> {
+        List<MediaChapter> findByIdMediaItemIdOrderByIdPositionAsc(UUID mediaItemId);
+
+        @Modifying(
+            flushAutomatically = true,
+            clearAutomatically = true
+        )
+        @Query("delete from MediaChapter c where c.id.mediaItemId = :mediaItemId")
+        void deleteForItem(@Param("mediaItemId") UUID mediaItemId);
+    }
+
+    public interface MediaLyricsRepository extends JpaRepository<MediaLyrics, UUID> {
+        /**
+         * Published songs whose words contain {@code q}, case-insensitively, most popular first.
+         * The trigram index on plain_text serves the ILIKE (RFC 0004).
+         */
+        @Query(
+            value = "SELECT l.media_item_id FROM media_lyrics l\nJOIN media_items m ON m.id = l.media_item_id\nWHERE m.status = 'published' AND m.media_type = 'song'\n  AND l.plain_text ILIKE ('%' || :q || '%')\nORDER BY m.popularity DESC, m.title ASC\nLIMIT :limit\n",
+            nativeQuery = true
+        )
+        List<UUID> searchPublishedSongs(@Param("q") String q, @Param("limit") int limit);
     }
 
     public interface MediaAssetRepository extends JpaRepository<MediaAsset, UUID> {

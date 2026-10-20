@@ -159,6 +159,15 @@ CREATE TABLE public.media_assets (
     CONSTRAINT media_assets_byte_size_check CHECK ((byte_size > 0)),
     CONSTRAINT media_assets_channels_check CHECK (((channels >= 1) AND (channels <= 8)))
 );
+CREATE TABLE public.media_chapters (
+    media_item_id uuid NOT NULL,
+    "position" smallint NOT NULL,
+    start_ms integer NOT NULL,
+    title text NOT NULL,
+    CONSTRAINT media_chapters_position_check CHECK (("position" >= 0)),
+    CONSTRAINT media_chapters_start_ms_check CHECK ((start_ms >= 0)),
+    CONSTRAINT media_chapters_title_check CHECK (((btrim(title) <> ''::text) AND (char_length(title) <= 120)))
+);
 CREATE TABLE public.media_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     media_type text NOT NULL,
@@ -187,6 +196,24 @@ CREATE TABLE public.media_items (
     CONSTRAINT media_items_media_type_check CHECK ((media_type = ANY (ARRAY['song'::text, 'sermon'::text, 'podcast'::text]))),
     CONSTRAINT media_items_popularity_check CHECK (((popularity >= 0) AND (popularity <= 100))),
     CONSTRAINT media_items_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'processing'::text, 'published'::text, 'withdrawn'::text, 'failed'::text])))
+);
+CREATE TABLE public.media_lyric_lines (
+    media_item_id uuid NOT NULL,
+    "position" integer NOT NULL,
+    start_ms integer,
+    text text NOT NULL,
+    CONSTRAINT media_lyric_lines_position_check CHECK (("position" >= 0)),
+    CONSTRAINT media_lyric_lines_start_ms_check CHECK ((start_ms >= 0))
+);
+CREATE TABLE public.media_lyrics (
+    media_item_id uuid NOT NULL,
+    language text,
+    rights_basis text NOT NULL,
+    credit text NOT NULL,
+    plain_text text NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT media_lyrics_credit_check CHECK ((btrim(credit) <> ''::text)),
+    CONSTRAINT media_lyrics_rights_basis_check CHECK ((rights_basis = ANY (ARRAY['public_domain'::text, 'contributor'::text, 'licensed'::text])))
 );
 CREATE TABLE public.outbox (
     id bigint NOT NULL,
@@ -286,6 +313,7 @@ CREATE TABLE public.user_settings (
     friend_activity_collapsed boolean DEFAULT false NOT NULL,
     audio_quality text DEFAULT 'normal'::text NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    autoplay boolean DEFAULT true NOT NULL,
     CONSTRAINT user_settings_audio_quality_check CHECK ((audio_quality = ANY (ARRAY['data_saver'::text, 'normal'::text, 'high'::text, 'very_high'::text]))),
     CONSTRAINT user_settings_crossfade_sec_check CHECK (((crossfade_sec >= 0) AND (crossfade_sec <= 12))),
     CONSTRAINT user_settings_theme_check CHECK ((theme = ANY (ARRAY['light'::text, 'dark'::text])))
@@ -332,10 +360,18 @@ ALTER TABLE ONLY public.media_assets
     ADD CONSTRAINT media_assets_item_profile_unique UNIQUE (media_item_id, profile);
 ALTER TABLE ONLY public.media_assets
     ADD CONSTRAINT media_assets_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.media_chapters
+    ADD CONSTRAINT media_chapters_media_item_id_start_ms_key UNIQUE (media_item_id, start_ms);
+ALTER TABLE ONLY public.media_chapters
+    ADD CONSTRAINT media_chapters_pkey PRIMARY KEY (media_item_id, "position");
 ALTER TABLE ONLY public.media_items
     ADD CONSTRAINT media_items_legacy_id_key UNIQUE (legacy_id);
 ALTER TABLE ONLY public.media_items
     ADD CONSTRAINT media_items_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.media_lyric_lines
+    ADD CONSTRAINT media_lyric_lines_pkey PRIMARY KEY (media_item_id, "position");
+ALTER TABLE ONLY public.media_lyrics
+    ADD CONSTRAINT media_lyrics_pkey PRIMARY KEY (media_item_id);
 ALTER TABLE ONLY public.outbox
     ADD CONSTRAINT outbox_event_id_key UNIQUE (event_id);
 ALTER TABLE ONLY public.outbox
@@ -379,6 +415,7 @@ CREATE INDEX media_items_popularity_idx ON public.media_items USING btree (popul
 CREATE INDEX media_items_region_idx ON public.media_items USING btree (region);
 CREATE INDEX media_items_title_trgm_idx ON public.media_items USING gin (title public.gin_trgm_ops);
 CREATE INDEX media_items_type_status_idx ON public.media_items USING btree (media_type, status);
+CREATE INDEX media_lyrics_plain_text_trgm_idx ON public.media_lyrics USING gin (plain_text public.gin_trgm_ops);
 CREATE INDEX outbox_aggregate_idx ON public.outbox USING btree (aggregate_type, aggregate_id);
 CREATE INDEX outbox_unpublished_idx ON public.outbox USING btree (id) WHERE (published_at IS NULL);
 CREATE INDEX play_counts_by_artist_day_recent_idx ON public.play_counts_by_artist_day USING btree (day DESC, plays DESC);
@@ -407,12 +444,18 @@ ALTER TABLE ONLY public.listening_progress
     ADD CONSTRAINT listening_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.media_assets
     ADD CONSTRAINT media_assets_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.media_chapters
+    ADD CONSTRAINT media_chapters_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.media_items
     ADD CONSTRAINT media_items_album_id_fkey FOREIGN KEY (album_id) REFERENCES public.albums(id) ON DELETE SET NULL;
 ALTER TABLE ONLY public.media_items
     ADD CONSTRAINT media_items_artist_id_fkey FOREIGN KEY (artist_id) REFERENCES public.artists(id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.media_items
     ADD CONSTRAINT media_items_license_id_fkey FOREIGN KEY (license_id) REFERENCES public.licenses(id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.media_lyric_lines
+    ADD CONSTRAINT media_lyric_lines_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_lyrics(media_item_id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.media_lyrics
+    ADD CONSTRAINT media_lyrics_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.play_counts_by_artist_day
     ADD CONSTRAINT play_counts_by_artist_day_artist_id_fkey FOREIGN KEY (artist_id) REFERENCES public.artists(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.play_counts_by_item_day

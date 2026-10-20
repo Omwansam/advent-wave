@@ -121,6 +121,6 @@ class PrivateSessionConformanceTest extends IntegrationTest {
     }
 
     private UserSettingsDto privateSession(boolean on) {
-        return new UserSettingsDto("light", on, false, false, 6, false, false, "normal");
+        return new UserSettingsDto("light", on, false, false, 6, false, false, "normal", null);
     }
 }

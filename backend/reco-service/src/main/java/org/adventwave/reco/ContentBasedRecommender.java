@@ -273,6 +273,55 @@ public class ContentBasedRecommender {
         return null;
     }
 
+    /**
+     * Autoplay (RFC 0004): what to play when the queue runs out. Scored against the seeds — what
+     * was just playing — with the same weights as {@link #recommend}, then popularity; ties break
+     * on title, so the order is stable. Not personalised: nothing here reads the listener's
+     * history, and unlike recommendations, liked items are fair game. The seeds never come back.
+     */
+    public List<TrackDto> similarTo(List<TrackDto> seeds, List<TrackDto> candidates, int limit) {
+        if (seeds == null || seeds.isEmpty() || candidates == null || candidates.isEmpty() || limit <= 0) {
+            return List.of();
+        }
+        Set<String> seedIds = new HashSet<>();
+        Set<String> artists = new HashSet<>();
+        Set<String> genres = new HashSet<>();
+        Set<String> languages = new HashSet<>();
+        Set<String> regions = new HashSet<>();
+        for (TrackDto seed : seeds) {
+            seedIds.add(seed.id());
+            this.addIfPresent(artists, seed.artist());
+            this.addIfPresent(genres, seed.genre());
+            this.addIfPresent(languages, seed.language());
+            this.addIfPresent(regions, seed.region());
+        }
+        Comparator<Entry<TrackDto, Double>> order = Entry.<TrackDto, Double>comparingByValue().reversed();
+        return candidates.stream()
+            .filter(track -> !seedIds.contains(track.id()))
+            .map(track -> Map.entry(track, this.similarity(track, artists, genres, languages, regions)))
+            .sorted(order.thenComparing(entry -> entry.getKey().title(), Comparator.nullsLast(Comparator.naturalOrder())))
+            .limit(limit)
+            .map(Entry::getKey)
+            .toList();
+    }
+
+    private double similarity(TrackDto track, Set<String> artists, Set<String> genres, Set<String> languages, Set<String> regions) {
+        double d0 = 0.0;
+        if (artists.contains(track.artist())) {
+            d0 += ARTIST_MATCH;
+        }
+        if (track.genre() != null && genres.contains(track.genre())) {
+            d0 += GENRE_MATCH;
+        }
+        if (track.language() != null && languages.contains(track.language())) {
+            d0 += LANGUAGE_MATCH;
+        }
+        if (track.region() != null && regions.contains(track.region())) {
+            d0 += REGION_MATCH;
+        }
+        return d0 + track.popularity() * POPULARITY_WEIGHT;
+    }
+
     private void addIfPresent(Set<String> target, String value) {
         if (value != null && !value.isBlank()) {
             target.add(value);

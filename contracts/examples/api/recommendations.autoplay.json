@@ -1,0 +1,69 @@
+{
+  "_source": "live response from the gateway, seeded listener account; seeded with Tumsifu Bwana",
+  "request": {
+    "method": "GET",
+    "path": "/v1/autoplay?seed=f6f77538-812c-5be1-ad5a-a8fa6b2d380c&limit=3",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "tracks": [
+        {
+          "id": "845076a9-a3b7-541b-be0c-aa598058b16b",
+          "title": "Jina Lake Yesu",
+          "artist": "Kisumu Central SDA Cathedral Praise",
+          "album": "Lake Basin Worship",
+          "duration": 241,
+          "cover": "https://picsum.photos/seed/ke-jina-yesu/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/845076a9-a3b7-541b-be0c-aa598058b16b/stream",
+          "mediaType": "song",
+          "artistId": "232226a5-98c9-5e6d-bba5-bedf2033e4af",
+          "albumId": "805fa184-812d-5bb3-9563-818c5e6d6494",
+          "durationMs": 241000,
+          "genre": "gospel_swahili",
+          "language": "sw",
+          "region": "kenya",
+          "popularity": 89,
+          "legacyId": "s14"
+        },
+        {
+          "id": "5274b600-2815-5275-b99a-3732126938f3",
+          "title": "O How I Love Jesus",
+          "artist": "Lake Victoria Gospel Collective",
+          "album": "Shores of Faith",
+          "duration": 198,
+          "cover": "https://picsum.photos/seed/ke-love-jesus/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/5274b600-2815-5275-b99a-3732126938f3/stream",
+          "mediaType": "song",
+          "artistId": "8fa8494c-c50f-5324-8f4a-6d55d80168a5",
+          "albumId": "d5cecea2-db49-5664-b69c-6cf16dde9f4a",
+          "durationMs": 198000,
+          "genre": "gospel_swahili",
+          "language": "mixed",
+          "region": "kenya",
+          "popularity": 86,
+          "legacyId": "s25"
+        },
+        {
+          "id": "959e1eb6-53cc-573a-bfc0-ff30d6e10383",
+          "title": "Taifa Lako, Bwana (Your Nation, Lord)",
+          "artist": "University of Nairobi Adventist Students",
+          "album": "Pray for Kenya",
+          "duration": 259,
+          "cover": "https://picsum.photos/seed/ke-taifa/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/959e1eb6-53cc-573a-bfc0-ff30d6e10383/stream",
+          "mediaType": "song",
+          "artistId": "980b65ca-6027-5f44-a6d7-f2a4ab41b017",
+          "albumId": "1053648f-d367-57ab-8414-9305f324c328",
+          "durationMs": 259000,
+          "genre": "youth",
+          "language": "sw",
+          "region": "kenya",
+          "popularity": 88,
+          "legacyId": "s28"
+        }
+      ]
+    }
+  }
+}

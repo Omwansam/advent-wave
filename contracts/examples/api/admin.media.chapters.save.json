@@ -1,0 +1,52 @@
+{
+  "_source": "live response from the gateway, local super admin; chapter titles invented for the example",
+  "request": {
+    "method": "PUT",
+    "path": "/v1/admin/media/6ade5605-c3f6-5e34-a73f-a1ab936f1c1e/chapters",
+    "authenticated": true,
+    "body": {
+      "chapters": [
+        {
+          "startMs": 0,
+          "title": "Welcome and opening prayer"
+        },
+        {
+          "startMs": 30000,
+          "title": "Scripture reading"
+        },
+        {
+          "startMs": 90000,
+          "title": "The sermon"
+        },
+        {
+          "startMs": 300000,
+          "title": "Appeal"
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "mediaItemId": "6ade5605-c3f6-5e34-a73f-a1ab936f1c1e",
+      "chapters": [
+        {
+          "startMs": 0,
+          "title": "Welcome and opening prayer"
+        },
+        {
+          "startMs": 30000,
+          "title": "Scripture reading"
+        },
+        {
+          "startMs": 90000,
+          "title": "The sermon"
+        },
+        {
+          "startMs": 300000,
+          "title": "Appeal"
+        }
+      ]
+    }
+  }
+}

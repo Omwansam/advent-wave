@@ -2,18 +2,25 @@ package org.adventwave.catalog.search;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.adventwave.catalog.CatalogMapper;
 import org.adventwave.catalog.CatalogProperties;
+import org.adventwave.catalog.MediaTextService;
 import org.adventwave.catalog.domain.Album;
 import org.adventwave.catalog.domain.Artist;
 import org.adventwave.catalog.domain.MediaItem;
+import org.adventwave.catalog.domain.MediaLyrics;
 import org.adventwave.catalog.repo.CatalogRepositories;
 import org.adventwave.contracts.api.AlbumDto;
 import org.adventwave.contracts.api.ArtistDto;
+import org.adventwave.contracts.api.LyricsMatchDto;
 import org.adventwave.contracts.api.MediaType;
 import org.adventwave.contracts.api.PlaylistDto;
 import org.adventwave.contracts.api.SearchResultsDto;
@@ -35,20 +42,26 @@ public class SearchService {
     private static final int ALBUM_LIMIT = 20;
     private static final int PLAYLIST_LIMIT = 20;
     private static final int CANDIDATE_LIMIT = 500;
+    /** RFC 0004. Shorter queries match the words of nearly every hymn. */
+    private static final int LYRICS_MIN_QUERY = 3;
+    private static final int LYRICS_LIMIT = 10;
     private final CatalogRepositories.MediaItemRepository mediaItems;
     private final CatalogRepositories.ArtistRepository artists;
     private final CatalogRepositories.AlbumRepository albums;
+    private final CatalogRepositories.MediaLyricsRepository lyrics;
     private final CatalogProperties properties;
 
     public SearchService(
         CatalogRepositories.MediaItemRepository mediaItems,
         CatalogRepositories.ArtistRepository artists,
         CatalogRepositories.AlbumRepository albums,
+        CatalogRepositories.MediaLyricsRepository lyrics,
         CatalogProperties properties
     ) {
         this.mediaItems = mediaItems;
         this.artists = artists;
         this.albums = albums;
+        this.lyrics = lyrics;
         this.properties = properties;
     }
 
@@ -126,10 +139,44 @@ public class SearchService {
                 .map(scored -> new SearchService.Scored<>(CatalogMapper.toArtist(scored.value(), List.of(), null).withoutTracks(), scored.score()))
                 .toList();
             TopResult topresult = this.topResult(list1, list2, list3, list6, list4, list5);
+            List<TrackDto> songs = this.take(list1, 48);
             return new SearchResultsDto(
-                this.take(list1, 48), this.take(list2, 24), this.take(list3, 16), this.take(list6, 20), this.take(list4, 20), this.take(list5, 20), topresult
+                songs, this.take(list2, 24), this.take(list3, 16), this.take(list6, 20), this.take(list4, 20), this.take(list5, 20), topresult,
+                this.lyricsMatches(s, songs)
             );
         }
+    }
+
+    /**
+     * Songs found by a line of their words (RFC 0004) — "when peace like a river" finds It Is Well.
+     * Kept apart from the ranked lists, whose scores are ported from searchRank.js and stay so;
+     * a song those lists already hold is not repeated here. Null when there is nothing to add.
+     */
+    private List<LyricsMatchDto> lyricsMatches(String query, List<TrackDto> alreadyFound) {
+        if (query.length() < LYRICS_MIN_QUERY) {
+            return null;
+        }
+        Set<String> found = new HashSet<>(alreadyFound.stream().map(TrackDto::id).toList());
+        List<UUID> ids = this.lyrics.searchPublishedSongs(query, LYRICS_LIMIT + found.size()).stream()
+            .filter(id -> !found.contains(id.toString()))
+            .limit(LYRICS_LIMIT)
+            .toList();
+        if (ids.isEmpty()) {
+            return null;
+        }
+        Map<UUID, MediaItem> items = this.mediaItems.findAllPublished(ids).stream()
+            .collect(Collectors.toMap(MediaItem::getId, Function.identity()));
+        Map<UUID, MediaLyrics> words = this.lyrics.findAllById(ids).stream()
+            .collect(Collectors.toMap(MediaLyrics::getMediaItemId, Function.identity()));
+        List<LyricsMatchDto> matches = new ArrayList<>(ids.size());
+        for (UUID id : ids) {
+            MediaItem item = items.get(id);
+            MediaLyrics text = words.get(id);
+            if (item != null && text != null) {
+                matches.add(new LyricsMatchDto(CatalogMapper.toTrack(item, this.properties.getApiBaseUrl()), MediaTextService.firstMatchingLine(text, query)));
+            }
+        }
+        return matches.isEmpty() ? null : matches;
     }
 
     private int trackScore(MediaItem item, String query, boolean kenyaBoost) {

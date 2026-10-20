@@ -1,0 +1,42 @@
+{
+  "_source": "live response from the gateway, seeded listener account; found by a line of its words",
+  "request": {
+    "method": "GET",
+    "path": "/v1/search?q=wretch%20like%20me",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "songs": [],
+      "sermons": [],
+      "podcasts": [],
+      "artists": [],
+      "albums": [],
+      "playlists": [],
+      "lyricsMatches": [
+        {
+          "track": {
+            "id": "dcdb0177-591f-58fe-ae2e-13fc2e1b0ae4",
+            "title": "Amazing Grace (Acoustic)",
+            "artist": "Sabbath Rest Sessions",
+            "album": "Acoustic Vol. 1",
+            "duration": 224,
+            "cover": "https://picsum.photos/seed/grace-acoustic/400/400",
+            "audioUrl": "http://localhost:8080/v1/media/dcdb0177-591f-58fe-ae2e-13fc2e1b0ae4/stream",
+            "mediaType": "song",
+            "artistId": "358bb4b4-42cd-584a-8061-afb227a570d7",
+            "albumId": "ec2fc123-d3bd-539d-9eb6-3b95ff1356cb",
+            "durationMs": 224000,
+            "genre": "acoustic",
+            "language": "en",
+            "region": "global",
+            "popularity": 83,
+            "legacyId": "s8"
+          },
+          "line": "That saved a wretch like me!"
+        }
+      ]
+    }
+  }
+}

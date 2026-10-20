@@ -154,6 +154,7 @@ public class OpenApiConfig {
         Map.entry("events-controller", "events"),
         Map.entry("church-admin-controller", "admin: contributors"),
         Map.entry("catalog-admin-controller", "admin: catalogue"),
+        Map.entry("media-text-admin-controller", "admin: catalogue"),
         Map.entry("admin-auth-controller", "auth"),
         Map.entry("admin-self-controller", "admin: my account"),
         Map.entry("admin-accounts-controller", "admin: accounts")

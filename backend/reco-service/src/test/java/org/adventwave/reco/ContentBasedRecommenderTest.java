@@ -126,4 +126,30 @@ class ContentBasedRecommenderTest {
 
         Assertions.assertThat(this.recommender.recommend(TasteProfile.empty(), list, List.of()).recommendedSongs()).hasSize(18);
     }
+
+    @Test
+    @DisplayName("autoplay continues in the seed's language and genre before anything merely popular")
+    void autoplayFollowsTheSeeds() {
+        List<TrackDto> next = this.recommender.similarTo(List.of(this.catalogue.get(0)), this.catalogue, 3);
+        // Tumsifu Bwana seeds Swahili gospel from Kenya: Jina Lake Yesu matches all three,
+        // ahead of Hakuna Mungu (94, the most popular, but choir and mixed-language).
+        Assertions.assertThat(next).extracting(TrackDto::id).startsWith("s14");
+        Assertions.assertThat(next).extracting(TrackDto::id).doesNotContain("s13");
+    }
+
+    @Test
+    @DisplayName("autoplay never plays a seed back, and stops at the limit")
+    void autoplayExcludesSeedsAndHonoursTheLimit() {
+        List<TrackDto> seeds = List.of(this.catalogue.get(4), this.catalogue.get(5));
+        List<TrackDto> next = this.recommender.similarTo(seeds, this.catalogue, 2);
+        Assertions.assertThat(next).hasSize(2);
+        Assertions.assertThat(next).extracting(TrackDto::id).doesNotContain("s1", "s5");
+    }
+
+    @Test
+    @DisplayName("autoplay with no seeds or no candidates returns nothing rather than guessing")
+    void autoplayWithoutSeeds() {
+        Assertions.assertThat(this.recommender.similarTo(List.of(), this.catalogue, 5)).isEmpty();
+        Assertions.assertThat(this.recommender.similarTo(List.of(this.catalogue.get(0)), List.of(), 5)).isEmpty();
+    }
 }

@@ -12,10 +12,12 @@ public record SearchResultsDto(
     List<ArtistDto> artists,
     List<AlbumDto> albums,
     List<PlaylistDto> playlists,
-    SearchResultsDto.TopResult topResult
+    SearchResultsDto.TopResult topResult,
+    // Songs found by their words, not already in `songs` (RFC 0004). Absent when there are none.
+    List<LyricsMatchDto> lyricsMatches
 ) {
     public static SearchResultsDto empty() {
-        return new SearchResultsDto(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), null);
+        return new SearchResultsDto(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), null, null);
     }
 
     public record TopResult(String type, Object item, int score) {

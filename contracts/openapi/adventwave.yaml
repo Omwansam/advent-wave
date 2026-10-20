@@ -9,7 +9,7 @@ info:
   license:
     name: Proprietary
   title: AdventWave API
-  version: 1.4.0
+  version: 1.5.0
 servers:
 - description: This instance
   url: http://localhost:8080
@@ -1678,6 +1678,322 @@ paths:
         - catalog:write
       tags:
       - "admin: catalogue"
+  /v1/admin/media/{id}/chapters:
+    get:
+      operationId: mediaChapters
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChaptersDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:read
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+    put:
+      operationId: saveChapters
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChaptersUpdateDto"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChaptersDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the media:write permission, or its\
+            \ password must be changed first; the message says which"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - media:write
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+  /v1/admin/media/{id}/lyrics:
+    delete:
+      operationId: deleteLyrics
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the media:write permission, or its\
+            \ password must be changed first; the message says which"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - media:write
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+    get:
+      operationId: mediaLyrics
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LyricsDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:read
+        - catalog:write
+      tags:
+      - "admin: catalogue"
+    put:
+      operationId: saveLyrics
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LyricsUpdateDto"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LyricsDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the media:write permission, or its\
+            \ password must be changed first; the message says which"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The target's current state refuses this operation; the message
+            says why
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - media:write
+        - catalog:write
+      tags:
+      - "admin: catalogue"
   /v1/admin/media/{id}/preview:
     get:
       operationId: preview
@@ -2200,6 +2516,55 @@ paths:
       security: []
       tags:
       - auth
+  /v1/autoplay:
+    get:
+      operationId: autoplay
+      parameters:
+      - in: query
+        name: seed
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutoplayDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - recommendations
   /v1/browse:
     get:
       operationId: browse
@@ -2650,6 +3015,100 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TrackDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - media
+  /v1/media/{id}/chapters:
+    get:
+      operationId: chapters
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChaptersDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - media
+  /v1/media/{id}/lyrics:
+    get:
+      operationId: lyrics
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LyricsDto"
           description: OK
         "400":
           content:
@@ -3623,6 +4082,13 @@ components:
           format: int32
         storageKey:
           type: string
+    AutoplayDto:
+      type: object
+      properties:
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
     BecauseYouListened:
       type: object
       properties:
@@ -3651,6 +4117,39 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TrackDto"
+    ChapterDto:
+      type: object
+      properties:
+        startMs:
+          type: integer
+          format: int32
+          minimum: 0
+        title:
+          type: string
+          maxLength: 120
+          minLength: 0
+      required:
+      - title
+    ChaptersDto:
+      type: object
+      properties:
+        chapters:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChapterDto"
+        mediaItemId:
+          type: string
+    ChaptersUpdateDto:
+      type: object
+      properties:
+        chapters:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChapterDto"
+          maxItems: 100
+          minItems: 0
+      required:
+      - chapters
     ChurchDto:
       type: object
       properties:
@@ -3872,6 +4371,70 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ListeningProgressDto"
+    LyricLineDto:
+      type: object
+      properties:
+        startMs:
+          type: integer
+          format: int32
+          minimum: 0
+        text:
+          type: string
+          maxLength: 300
+          minLength: 0
+      required:
+      - text
+    LyricsDto:
+      type: object
+      properties:
+        credit:
+          type: string
+        language:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/LyricLineDto"
+        mediaItemId:
+          type: string
+        rightsBasis:
+          type: string
+        synced:
+          type: boolean
+        updatedAt:
+          type: string
+    LyricsMatchDto:
+      type: object
+      properties:
+        line:
+          type: string
+        track:
+          $ref: "#/components/schemas/TrackDto"
+    LyricsUpdateDto:
+      type: object
+      properties:
+        credit:
+          type: string
+          maxLength: 300
+          minLength: 0
+        language:
+          type: string
+          maxLength: 35
+          minLength: 0
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/LyricLineDto"
+          maxItems: 400
+          minItems: 1
+        rightsBasis:
+          type: string
+          minLength: 1
+          pattern: public_domain|contributor|licensed
+      required:
+      - credit
+      - lines
+      - rightsBasis
     MasterUploadDto:
       type: object
       properties:
@@ -4089,6 +4652,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ArtistDto"
+        lyricsMatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/LyricsMatchDto"
         playlists:
           type: array
           items:
@@ -4306,6 +4873,8 @@ components:
         audioQuality:
           type: string
           pattern: data_saver|normal|high|very_high
+        autoplay:
+          type: boolean
         crossfadeEnabled:
           type: boolean
         crossfadeSec:

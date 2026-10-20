@@ -1,0 +1,57 @@
+{
+  "_source": "live response from the gateway, seeded listener account; the lyrics written by the admin example",
+  "request": {
+    "method": "GET",
+    "path": "/v1/media/dcdb0177-591f-58fe-ae2e-13fc2e1b0ae4/lyrics",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "mediaItemId": "dcdb0177-591f-58fe-ae2e-13fc2e1b0ae4",
+      "synced": true,
+      "lines": [
+        {
+          "startMs": 4000,
+          "text": "Amazing grace! How sweet the sound"
+        },
+        {
+          "startMs": 9000,
+          "text": "That saved a wretch like me!"
+        },
+        {
+          "startMs": 14000,
+          "text": "I once was lost, but now am found;"
+        },
+        {
+          "startMs": 19000,
+          "text": "Was blind, but now I see."
+        },
+        {
+          "startMs": 24000,
+          "text": ""
+        },
+        {
+          "startMs": 26000,
+          "text": "’Twas grace that taught my heart to fear,"
+        },
+        {
+          "startMs": 31000,
+          "text": "And grace my fears relieved;"
+        },
+        {
+          "startMs": 36000,
+          "text": "How precious did that grace appear"
+        },
+        {
+          "startMs": 41000,
+          "text": "The hour I first believed."
+        }
+      ],
+      "language": "en",
+      "rightsBasis": "public_domain",
+      "credit": "Words: John Newton, 1779",
+      "updatedAt": "2026-10-20T12:00:47.236233Z"
+    }
+  }
+}

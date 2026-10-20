@@ -1,0 +1,17 @@
+{
+  "_source": "live response from the gateway, seeded listener account: a song with no lyrics, which is a 404 by contract",
+  "request": {
+    "method": "GET",
+    "path": "/v1/media/b088e229-43e9-5927-a452-304e804423b6/lyrics",
+    "authenticated": true
+  },
+  "response": {
+    "status": 404,
+    "body": {
+      "status": 404,
+      "error": "Not Found",
+      "message": "no lyrics for media item b088e229-43e9-5927-a452-304e804423b6",
+      "timestamp": "2026-10-20T12:00:47.934695835Z"
+    }
+  }
+}

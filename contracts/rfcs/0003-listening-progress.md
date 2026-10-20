@@ -78,6 +78,13 @@ It loads `GET /v1/progress` on sign-in, keeps whichever copy of each item is new
 only it has (at most 50 items), and then pushes with `PUT` on pause, seek, item change and end,
 and at most every 30 s per item while playing.
 
+## Known limitation
+
+There is no delete. The client sends up, on sign-in, any entry the server does not have, so a row
+removed on the server comes back from any device that still holds it — observed when test rows were
+cleared by hand on the local stack. Whoever adds "clear progress" or "mark as unplayed" must add a
+tombstone (or a per-account reset time the client honours) along with it.
+
 ## Verification
 
 No Docker on the development machine, so no new Testcontainers test is claimed, and the existing

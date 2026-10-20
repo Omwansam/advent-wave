@@ -2,11 +2,17 @@ package org.adventwave.gateway.api;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.adventwave.catalog.CatalogService;
+import org.adventwave.catalog.MediaTextService;
+import org.adventwave.catalog.domain.MediaItem;
 import org.adventwave.catalog.media.StreamService;
 import org.adventwave.contracts.api.AlbumDto;
 import org.adventwave.contracts.api.ArtistDto;
+import org.adventwave.contracts.api.ChaptersDto;
+import org.adventwave.contracts.api.LyricsDto;
+import org.adventwave.contracts.api.MediaType;
 import org.adventwave.contracts.api.StreamManifestDto;
 import org.adventwave.contracts.api.TrackDto;
 import org.adventwave.gateway.security.AuthenticatedUser;
@@ -33,11 +39,13 @@ public class MediaController {
     private final CatalogService catalog;
     private final StreamService stream;
     private final UserService users;
+    private final MediaTextService text;
 
-    public MediaController(CatalogService catalog, StreamService stream, UserService users) {
+    public MediaController(CatalogService catalog, StreamService stream, UserService users, MediaTextService text) {
         this.catalog = catalog;
         this.stream = stream;
         this.users = users;
+        this.text = text;
     }
 
     /**
@@ -58,6 +66,24 @@ public class MediaController {
     @GetMapping({"/media/{id}"})
     public TrackDto media(@PathVariable UUID id) {
         return (TrackDto)this.catalog.track(id).orElseThrow(() -> this.notFound("media item", id));
+    }
+
+    /**
+     * A song's words (RFC 0004). 404 when the item is not published or has no lyrics — a client
+     * reads both as "none", as the reference client does. Shown with {@code credit}, always.
+     */
+    @GetMapping({"/media/{id}/lyrics"})
+    public LyricsDto lyrics(@PathVariable UUID id) {
+        MediaItem item = this.catalog.entity(id).orElseThrow(() -> this.notFound("media item", id));
+        return (item.getMediaType() == MediaType.SONG ? this.text.lyrics(id) : Optional.<LyricsDto>empty())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no lyrics for media item " + id));
+    }
+
+    /** A sermon's or episode's chapters, earliest first (RFC 0004). Empty when it has none. */
+    @GetMapping({"/media/{id}/chapters"})
+    public ChaptersDto chapters(@PathVariable UUID id) {
+        this.catalog.entity(id).orElseThrow(() -> this.notFound("media item", id));
+        return this.text.chapters(id);
     }
 
     @GetMapping({"/artists/{id}"})

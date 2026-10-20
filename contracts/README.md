@@ -10,7 +10,7 @@ an RFC says otherwise — and the disagreement is recorded, never silently patch
 | Path | Contract | Status at 1.0.0 | Generated from |
 |---|---|---|---|
 | [`postgres/`](postgres/) | Schema, constraints, trigger, outbox | **implemented** | `backend/tools/dump-schema.sh` (pg_dump of a migrated DB) |
-| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 34 listener and auth + 34 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
+| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 37 listener and auth + 39 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
 | [`kafka/`](kafka/) | Six topics, JSON Schema per message value | **implemented**; `audio.transcode.v1` `completed` is produced by the local worker (RFC 0001) until workstream D's service exists | `playback.events.v1`, `library.events.v1`, `catalog.playlist.v1` from the event classes and `LibraryService`; the rest from the plan and table columns |
 | [`redis/`](redis/) | Key registry, TTLs, owners | **implemented** | `RedisKeys.java` + call sites |
 | [`cassandra/`](cassandra/) | History and play-count tables | **planned** (Postgres interim) | plan §1 day 4 |
@@ -83,6 +83,22 @@ Verbatim, because they are contract terms and not code-review preferences:
 - **Redis is never a source of truth.** The only tolerated loss is ≤30s of playback position.
 
 ## Changes
+
+### 1.5.0 — [RFC 0004](rfcs/0004-lyrics-chapters-autoplay.md), lyrics, chapters, autoplay
+- **Added** `openapi`: `GET /v1/media/{id}/lyrics` (404 also means "no lyrics"), `GET /v1/media/{id}/chapters`,
+  `GET /v1/autoplay?seed=…`; admin `GET`/`PUT`/`DELETE /v1/admin/media/{id}/lyrics` and
+  `GET`/`PUT /v1/admin/media/{id}/chapters` (`catalog:read` / `media:write`). Schemas `LyricsDto`,
+  `LyricLineDto`, `LyricsUpdateDto`, `ChaptersDto`, `ChapterDto`, `ChaptersUpdateDto`, `AutoplayDto`,
+  `LyricsMatchDto`.
+- **Added** `openapi`: optional `SearchResultsDto.lyricsMatches` and `UserSettingsDto.autoplay` (a client
+  that omits `autoplay` leaves it unchanged).
+- **Added** `postgres`: tables `media_lyrics`, `media_lyric_lines`, `media_chapters`; column
+  `user_settings.autoplay` (V8).
+- **Added** `kafka`: no schema change; a lyrics or chapters write re-announces the item on `catalog.media.v1`.
+- **Added** `examples`: `media.lyrics.json`, `media.lyrics.none.json`, `media.chapters.json`,
+  `recommendations.autoplay.json`, `search.lyrics.json`, `admin.media.lyrics.save.json`,
+  `admin.media.chapters.save.json`.
+- No breaking change.
 
 ### 1.4.0 — [RFC 0003](rfcs/0003-listening-progress.md), listening progress
 - **Added** `openapi`: `GET /v1/progress` and `PUT /v1/progress/{mediaItemId}` (tag `player`) —

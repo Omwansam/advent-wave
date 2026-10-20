@@ -4,7 +4,7 @@
 
 Current state of one media item, or its withdrawal. The first producer is the ingest/admin path (workstream A/H) and the transcode consumer that flips status to published (workstream D → A). Fields mirror media_items columns; changing them is an RFC. Compacted by media_item_id.
 
-- **Producer:** gateway CatalogAdminService + TranscodeCompletedHandler via outbox (every status change)
+- **Producer:** gateway CatalogAdminService + TranscodeCompletedHandler via outbox (every status change); MediaTextAdminService re-announces the item, payload unchanged, when its lyrics or chapters change (RFC 0004)
 - **Consumers:** workstream B (search index), workstream F
 - **Source of truth for the payload:** `media_items columns in contracts/postgres/schema.sql`
 
