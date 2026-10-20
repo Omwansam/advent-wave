@@ -12,7 +12,7 @@ hand-typed.
 | Topic | Key | Compacted | Producer | Consumers | Status |
 |---|---|---|---|---|---|
 | `playback.events.v1` | `user_id` | no (30d retention) | gateway `PlaybackIngestService` | C (Cassandra writer), F (features) | **implemented** |
-| `library.events.v1` | `user_id` | no | platform-core `LibraryService` | F | **implemented** |
+| `library.events.v1` | `user_id` | no | platform-core `LibraryService`, `FriendService` (1.6.0) | F | **implemented** |
 | `catalog.playlist.v1` | `playlist_id` | yes | platform-core `LibraryService` | B (search index), F | **implemented** |
 | `catalog.media.v1` | `media_item_id` | yes | gateway `CatalogAdminService` (every status change), `TranscodeCompletedHandler` | B, F | **implemented** (1.2.0) |
 | `catalog.artist.v1` | `artist_id` | yes | gateway `CatalogAdminService` (`/v1/admin/artists`) | B, F | **implemented** (1.2.0) |

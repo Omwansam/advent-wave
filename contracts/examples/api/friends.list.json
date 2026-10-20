@@ -1,0 +1,71 @@
+{
+  "_source": "live response from the gateway (contracts 1.6.0), throwaway account; tokens and passwords redacted",
+  "request": {
+    "method": "GET",
+    "path": "/v1/friends",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "friends": [
+        {
+          "id": "948a0c8a-3a2e-4bfd-8dbc-6b3872d88780",
+          "displayName": "Friendtest Ben",
+          "activity": {
+            "mediaItemId": "12d30ae4-97cb-561a-a1cd-fc259c11666c",
+            "playing": true,
+            "atEpochMs": 1792510370223
+          }
+        },
+        {
+          "id": "c399d031-a182-4f74-9506-99c3385ef5b6",
+          "displayName": "Friendtest Cara",
+          "activity": {
+            "mediaItemId": "1f6f0ceb-ebf1-5cac-b9b2-6079bcaec7fa",
+            "playing": false,
+            "atEpochMs": 1792508965561
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "id": "12d30ae4-97cb-561a-a1cd-fc259c11666c",
+          "title": "Great Is Thy Faithfulness",
+          "artist": "Loma Linda University Church",
+          "album": "Hymns Reimagined",
+          "duration": 278,
+          "cover": "https://picsum.photos/seed/faithfulness/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/12d30ae4-97cb-561a-a1cd-fc259c11666c/stream",
+          "mediaType": "song",
+          "artistId": "fcae3f97-ab4c-5953-8b85-69bb1276c048",
+          "albumId": "6bc3950d-e1c6-5059-ba0b-3fc8569f386a",
+          "durationMs": 278000,
+          "genre": "worship",
+          "language": "en",
+          "region": "global",
+          "popularity": 84,
+          "legacyId": "s3"
+        },
+        {
+          "id": "1f6f0ceb-ebf1-5cac-b9b2-6079bcaec7fa",
+          "title": "Blessed Assurance",
+          "artist": "Hope Channel Studio",
+          "album": "Quiet Hour",
+          "duration": 189,
+          "cover": "https://picsum.photos/seed/assurance/400/400",
+          "audioUrl": "http://localhost:8080/v1/media/1f6f0ceb-ebf1-5cac-b9b2-6079bcaec7fa/stream",
+          "mediaType": "song",
+          "artistId": "5735e77d-e4c8-566e-8b73-6dd34cc2f229",
+          "albumId": "7ea88c82-0e5e-5be7-9833-0dc69e78a7ac",
+          "durationMs": 189000,
+          "genre": "worship",
+          "language": "en",
+          "region": "global",
+          "popularity": 81,
+          "legacyId": "s6"
+        }
+      ]
+    }
+  }
+}

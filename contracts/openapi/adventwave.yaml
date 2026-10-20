@@ -9,7 +9,7 @@ info:
   license:
     name: Proprietary
   title: AdventWave API
-  version: 1.5.0
+  version: 1.6.0
 servers:
 - description: This instance
   url: http://localhost:8080
@@ -2048,13 +2048,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
           description: Unhandled failure; the body carries no detail
-        "501":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-          description: This instance cannot sign media URLs yet; previews are served
-            only in local development
       security:
       - bearerAuth:
         - catalog:read
@@ -2267,8 +2260,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: "No master storage is configured on this instance (locally:\
-            \ adventwave.catalog.local-media-root)"
+          description: "No master storage is configured on this instance (adventwave.storage.mode=s3,\
+            \ or locally adventwave.catalog.local-media-root)"
       security:
       - bearerAuth:
         - media:write
@@ -2484,6 +2477,171 @@ paths:
       security: []
       tags:
       - auth
+  /v1/auth/login:
+    post:
+      operationId: listenerLogin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListenerLoginRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListenerSessionDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Email or password incorrect, or the account has no password\
+            \ yet. Which one is not said"
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Too many attempts from this address, or (sign-in) the account\
+            \ is locked for adventwave.auth.listener.lockout"
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security: []
+      tags:
+      - auth
+  /v1/auth/password-reset:
+    post:
+      operationId: requestPasswordReset
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListenerPasswordResetRequest"
+        required: true
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Too many attempts from this address, or (sign-in) the account\
+            \ is locked for adventwave.auth.listener.lockout"
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security: []
+      tags:
+      - auth
+  /v1/auth/password-reset/confirm:
+    post:
+      operationId: confirmPasswordReset
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListenerPasswordResetConfirm"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListenerSessionDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Too many attempts from this address, or (sign-in) the account\
+            \ is locked for adventwave.auth.listener.lockout"
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security: []
+      tags:
+      - auth
+  /v1/auth/register:
+    post:
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListenerRegisterRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListenerSessionDto"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: An account with this email already exists
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Too many attempts from this address, or (sign-in) the account\
+            \ is locked for adventwave.auth.listener.lockout"
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security: []
+      tags:
+      - auth
   /v1/auth/session:
     post:
       operationId: createSession
@@ -2507,6 +2665,45 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Validation failed, a parameter would not convert, or a referenced\
             \ item is unknown"
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security: []
+      tags:
+      - auth
+  /v1/auth/verify-email:
+    post:
+      operationId: verifyEmail
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListenerEmailVerification"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Too many attempts from this address, or (sign-in) the account\
+            \ is locked for adventwave.auth.listener.lockout"
         "500":
           content:
             application/json:
@@ -2676,6 +2873,32 @@ paths:
           description: Unhandled failure; the body carries no detail
       tags:
       - events
+  /v1/friends:
+    get:
+      operationId: friends
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FriendsDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - friends
   /v1/history:
     delete:
       operationId: clearHistory
@@ -2882,6 +3105,53 @@ paths:
           description: Unhandled failure; the body carries no detail
       tags:
       - library
+  /v1/library/follows/user/{userId}:
+    put:
+      operationId: toggleFollowUser
+      parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowResultDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - friends
   /v1/library/likes/{mediaItemId}:
     put:
       operationId: toggleLike
@@ -2955,6 +3225,110 @@ paths:
           description: Unhandled failure; the body carries no detail
       tags:
       - account
+  /v1/me/password:
+    post:
+      operationId: changeListenerPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListenerPasswordChange"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListenerSessionDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The account signs in without an AdventWave password (dev issuer
+            or IdP)
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - auth
+  /v1/me/sign-out:
+    post:
+      operationId: signOutEverywhere
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The account signs in without an AdventWave password (dev issuer
+            or IdP)
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - auth
+  /v1/me/verify-email:
+    post:
+      operationId: resendVerification
+      responses:
+        "202":
+          description: Accepted
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The account signs in without an AdventWave password (dev issuer
+            or IdP)
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - auth
   /v1/media:
     get:
       operationId: batch
@@ -3840,6 +4214,99 @@ paths:
           description: Unhandled failure; the body carries no detail
       tags:
       - account
+  /v1/users:
+    get:
+      operationId: searchUsers
+      parameters:
+      - in: query
+        name: q
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSearchDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - friends
+  /v1/users/{id}:
+    get:
+      operationId: userProfile
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfileDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - friends
 components:
   schemas:
     AccountCreateRequest:
@@ -3876,6 +4343,16 @@ components:
         role:
           type: string
           pattern: super_admin|content_manager|rights_manager|viewer
+    Activity:
+      type: object
+      properties:
+        atEpochMs:
+          type: integer
+          format: int64
+        mediaItemId:
+          type: string
+        playing:
+          type: boolean
     AdminAccountDto:
       type: object
       properties:
@@ -4237,6 +4714,26 @@ components:
       properties:
         following:
           type: boolean
+    Friend:
+      type: object
+      properties:
+        activity:
+          $ref: "#/components/schemas/Activity"
+        displayName:
+          type: string
+        id:
+          type: string
+    FriendsDto:
+      type: object
+      properties:
+        friends:
+          type: array
+          items:
+            $ref: "#/components/schemas/Friend"
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackDto"
     HistoryDto:
       type: object
       properties:
@@ -4351,6 +4848,96 @@ components:
       properties:
         liked:
           type: boolean
+    ListenerEmailVerification:
+      type: object
+      properties:
+        token:
+          type: string
+          maxLength: 200
+          minLength: 0
+      required:
+      - token
+    ListenerLoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          minLength: 0
+        password:
+          type: string
+          maxLength: 128
+          minLength: 0
+      required:
+      - email
+      - password
+    ListenerPasswordChange:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+          maxLength: 128
+          minLength: 0
+        newPassword:
+          type: string
+          maxLength: 128
+          minLength: 0
+      required:
+      - currentPassword
+      - newPassword
+    ListenerPasswordResetConfirm:
+      type: object
+      properties:
+        newPassword:
+          type: string
+          maxLength: 128
+          minLength: 0
+        token:
+          type: string
+          maxLength: 200
+          minLength: 0
+      required:
+      - newPassword
+      - token
+    ListenerPasswordResetRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          minLength: 0
+      required:
+      - email
+    ListenerRegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          minLength: 0
+        name:
+          type: string
+          maxLength: 80
+          minLength: 0
+        password:
+          type: string
+          maxLength: 128
+          minLength: 0
+      required:
+      - email
+      - password
+    ListenerSessionDto:
+      type: object
+      properties:
+        expiresIn:
+          type: integer
+          format: int64
+        token:
+          type: string
+        tokenType:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserDto"
     ListeningProgressDto:
       type: object
       properties:
@@ -4861,12 +5448,40 @@ components:
           type: string
         email:
           type: string
+        emailVerified:
+          type: boolean
         id:
           type: string
         name:
           type: string
         region:
           type: string
+    UserProfileDto:
+      type: object
+      properties:
+        displayName:
+          type: string
+        followedByMe:
+          type: boolean
+        followerCount:
+          type: integer
+          format: int64
+        followingCount:
+          type: integer
+          format: int64
+        followsMe:
+          type: boolean
+        id:
+          type: string
+        isMe:
+          type: boolean
+    UserSearchDto:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserSummaryDto"
     UserSettingsDto:
       type: object
       properties:
@@ -4888,11 +5503,22 @@ components:
           type: boolean
         privateSession:
           type: boolean
+        shareActivity:
+          type: boolean
         sidebarCollapsed:
           type: boolean
         theme:
           type: string
           pattern: light|dark
+    UserSummaryDto:
+      type: object
+      properties:
+        displayName:
+          type: string
+        followedByMe:
+          type: boolean
+        id:
+          type: string
   securitySchemes:
     bearerAuth:
       bearerFormat: JWT

@@ -69,6 +69,47 @@ public final class UserFollow {
         }
     }
 
+    /** One listener following another (RFC 0007); the follower is the key's user. */
+    @Entity
+    @Table(
+        name = "user_follows_user"
+    )
+    public static class Listener {
+        @EmbeddedId
+        @AttributeOverride(
+            name = "targetId",
+            column = @Column(
+                name = "followee_id",
+                nullable = false
+            )
+        )
+        private UserFollow.Key id;
+        @Column(
+            name = "created_at",
+            nullable = false
+        )
+        private Instant createdAt = Instant.now();
+
+        public Listener(UUID userId, UUID followeeId) {
+            this.id = new UserFollow.Key(userId, followeeId);
+        }
+
+        protected Listener() {
+        }
+
+        public UUID getFolloweeId() {
+            return this.id.getTargetId();
+        }
+
+        public UserFollow.Key getId() {
+            return this.id;
+        }
+
+        public Instant getCreatedAt() {
+            return this.createdAt;
+        }
+    }
+
     @Embeddable
     public static class Key implements Serializable {
         @Column(

@@ -13,8 +13,7 @@ BASE_URL="${ADVENTWAVE_API_BASE_URL:-http://localhost:8080}"
 # The contract repo at the repository root, not the Maven module of the same name.
 OUT="$(cd "$(dirname "$0")/../.." && pwd)/contracts/openapi/adventwave.yaml"
 
-# Probe the document itself, not /actuator/health: health reports DOWN whenever Redis is
-# absent, which is a supported local setup (Redis is a cache, never a source of truth).
+# Probe the document itself: it is the one thing this script needs from the gateway.
 if ! curl -fsS -o /dev/null "$BASE_URL/v3/api-docs"; then
   echo "gateway is not serving /v3/api-docs on $BASE_URL — start it first" >&2
   exit 1

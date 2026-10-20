@@ -2,6 +2,7 @@ package org.adventwave.gateway.api;
 
 import java.nio.file.Path;
 import org.adventwave.catalog.CatalogProperties;
+import org.adventwave.gateway.storage.StorageProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -23,18 +24,21 @@ public class LocalMediaOriginConfig implements WebMvcConfigurer {
     public static final String PATH = "/media-storage/derived/**";
 
     private final CatalogProperties properties;
+    private final StorageProperties storage;
 
-    public LocalMediaOriginConfig(CatalogProperties properties) {
+    public LocalMediaOriginConfig(CatalogProperties properties, StorageProperties storage) {
         this.properties = properties;
+        this.storage = storage;
     }
 
-    public static boolean enabled(CatalogProperties properties) {
-        return properties.getLocalMediaRoot() != null && !properties.getLocalMediaRoot().isBlank();
+    /** A local media root, and object storage not chosen instead (RFC 0006). */
+    public static boolean enabled(CatalogProperties properties, StorageProperties storage) {
+        return !storage.isS3() && properties.getLocalMediaRoot() != null && !properties.getLocalMediaRoot().isBlank();
     }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        if (!enabled(this.properties)) return;
+        if (!enabled(this.properties, this.storage)) return;
         String derived = Path.of(this.properties.getLocalMediaRoot(), "derived").toAbsolutePath().normalize().toUri().toString();
         // a location without the trailing slash is taken as a file, not a directory
         registry.addResourceHandler(PATH).addResourceLocations(derived.endsWith("/") ? derived : derived + "/");

@@ -8,6 +8,7 @@ import org.adventwave.contracts.events.PlayCountingPolicy;
 import org.adventwave.contracts.events.PlaybackEvent;
 import org.adventwave.platform.library.ListeningHistoryService;
 import org.adventwave.platform.outbox.OutboxWriter;
+import org.adventwave.platform.social.FriendService;
 import org.adventwave.platform.user.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,12 +19,14 @@ public class PlaybackIngestService {
     private final UserService users;
     private final ListeningHistoryService history;
     private final OutboxWriter outbox;
+    private final FriendService friends;
 
-    public PlaybackIngestService(CatalogService catalog, UserService users, ListeningHistoryService history, OutboxWriter outbox) {
+    public PlaybackIngestService(CatalogService catalog, UserService users, ListeningHistoryService history, OutboxWriter outbox, FriendService friends) {
         this.catalog = catalog;
         this.users = users;
         this.history = history;
         this.outbox = outbox;
+        this.friends = friends;
     }
 
     @Transactional
@@ -60,6 +63,12 @@ public class PlaybackIngestService {
             this.outbox.append("playback", userId, "playback.events.v1", playbackevent, eventId);
             if (!flag2 && flag) {
                 this.history.record(userId, mediaitem.getId(), i, flag1, submission.sessionId(), submission.device());
+            }
+
+            // What the listener's followers see (RFC 0007). Unlike history, a play need not count:
+            // play_started is "now playing".
+            if (!flag2) {
+                this.friends.recordActivity(userId, mediaitem.getId(), submission.eventType());
             }
 
             return playbackevent;

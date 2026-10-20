@@ -13,10 +13,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
     private final PlatformRepositories.UserAccountRepository users;
     private final PlatformRepositories.UserSettingsRepository settings;
+    private final PlatformRepositories.ListenerCredentialRepository credentials;
+    private final PlatformRepositories.ListenerActivityRepository activity;
 
-    public UserService(PlatformRepositories.UserAccountRepository users, PlatformRepositories.UserSettingsRepository settings) {
+    public UserService(
+        PlatformRepositories.UserAccountRepository users,
+        PlatformRepositories.UserSettingsRepository settings,
+        PlatformRepositories.ListenerCredentialRepository credentials,
+        PlatformRepositories.ListenerActivityRepository activity
+    ) {
         this.users = users;
         this.settings = settings;
+        this.credentials = credentials;
+        this.activity = activity;
     }
 
     @Transactional
@@ -50,7 +59,8 @@ public class UserService {
         readOnly = true
     )
     public UserDto toDto(UserAccount user) {
-        return new UserDto(user.getId().toString(), user.getEmail(), user.getDisplayName(), user.getRegion(), user.getCreatedAt().toString());
+        Boolean verified = this.credentials.findById(user.getId()).map(c -> c.getEmailVerifiedAt() != null).orElse(null);
+        return new UserDto(user.getId().toString(), user.getEmail(), user.getDisplayName(), user.getRegion(), user.getCreatedAt().toString(), verified);
     }
 
     @Transactional
@@ -62,6 +72,10 @@ public class UserService {
     public UserSettingsDto updateSettings(UUID userId, UserSettingsDto update) {
         UserSettings usersettings = this.settings.findById(userId).orElseGet(() -> new UserSettings(userId));
         usersettings.apply(update);
+        if (usersettings.isPrivateSession() || !usersettings.isShareActivity()) {
+            // RFC 0007: what was playing before stays hidden, even once sharing is back on.
+            this.activity.clear(userId);
+        }
         return ((UserSettings)this.settings.save(usersettings)).toDto();
     }
 

@@ -1,5 +1,6 @@
 package org.adventwave.catalog.media;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,19 +23,24 @@ public class StreamService {
     private static final Logger log = LoggerFactory.getLogger(StreamService.class);
     private final CatalogRepositories.MediaItemRepository mediaItems;
     private final CatalogRepositories.MediaAssetRepository assets;
+    /** Beyond the recording's length: pauses, a slow start, a seek back near the end. */
+    private static final Duration PLAYBACK_MARGIN = Duration.ofMinutes(30);
     private final SignedUrlMinter minter;
     private final CatalogProperties properties;
+    private final AssetUrls assetUrls;
 
     public StreamService(
         CatalogRepositories.MediaItemRepository mediaItems,
         CatalogRepositories.MediaAssetRepository assets,
         SignedUrlMinter minter,
-        CatalogProperties properties
+        CatalogProperties properties,
+        AssetUrls assetUrls
     ) {
         this.mediaItems = mediaItems;
         this.assets = assets;
         this.minter = minter;
         this.properties = properties;
+        this.assetUrls = assetUrls;
     }
 
     public Optional<StreamManifestDto> manifest(UUID mediaItemId, UUID userId, String audioQuality) {
@@ -67,7 +73,9 @@ public class StreamService {
         return this.mediaItems.findPublished(mediaItemId).map(item -> {
             List<MediaAsset> list = this.assets.findByMediaItemIdOrderByBitrateKbpsAsc(mediaItemId);
             String s = "auto".equals(profile) ? this.selectProfile(item, list, audioQuality) : profile;
-            return list.stream().filter(a -> a.getProfile().equals(s)).findFirst().map(this::storageUrl).orElseGet(() -> this.fallbackUrl(item));
+            return list.stream().filter(a -> a.getProfile().equals(s)).findFirst()
+                .map(a -> this.storageUrl(a, item))
+                .orElseGet(() -> this.fallbackUrl(item));
         });
     }
 
@@ -76,8 +84,16 @@ public class StreamService {
         return available.stream().anyMatch(a -> a.getProfile().equals(s)) ? s : available.stream().map(MediaAsset::getProfile).findFirst().orElse(s);
     }
 
-    private String storageUrl(MediaAsset asset) {
-        return this.properties.mediaOrigin() + "/" + asset.getStorageKey();
+    /**
+     * The asset's own URL, valid for longer than the recording (RFC 0006): the player keeps making
+     * range requests to it for as long as it plays, and a 45-minute sermon must not 403 at minute 6.
+     * Never shorter than the playback redirect that leads here.
+     */
+    private String storageUrl(MediaAsset asset, MediaItem item) {
+        Duration recording = Duration.ofMillis(Math.max(0, item.getDurationMs()));
+        Duration validFor = recording.plus(PLAYBACK_MARGIN);
+        if (validFor.compareTo(this.properties.getSignedUrlTtl()) < 0) validFor = this.properties.getSignedUrlTtl();
+        return this.assetUrls.url(asset.getStorageKey(), validFor);
     }
 
     private String fallbackUrl(MediaItem item) {

@@ -136,6 +136,11 @@ public class OpenApiConfig {
     // Mirrors SecurityConfig's permitAll matchers for API operations. Keep the two in step.
     private static final Set<String> PUBLIC_OPERATIONS = Set.of(
         "POST /v1/auth/session",
+        "POST /v1/auth/register",
+        "POST /v1/auth/login",
+        "POST /v1/auth/password-reset",
+        "POST /v1/auth/password-reset/confirm",
+        "POST /v1/auth/verify-email",
         "POST /v1/auth/admin/login",
         "GET /v1/media/{id}/stream/{profile}"
     );
@@ -147,6 +152,7 @@ public class OpenApiConfig {
         Map.entry("media-controller", "media"),
         Map.entry("search-controller", "search"),
         Map.entry("library-controller", "library"),
+        Map.entry("friends-controller", "friends"),
         Map.entry("playlist-controller", "playlists"),
         Map.entry("player-state-controller", "player"),
         Map.entry("listening-progress-controller", "player"),
@@ -156,6 +162,7 @@ public class OpenApiConfig {
         Map.entry("catalog-admin-controller", "admin: catalogue"),
         Map.entry("media-text-admin-controller", "admin: catalogue"),
         Map.entry("admin-auth-controller", "auth"),
+        Map.entry("listener-auth-controller", "auth"),
         Map.entry("admin-self-controller", "admin: my account"),
         Map.entry("admin-accounts-controller", "admin: accounts")
     );
@@ -205,10 +212,20 @@ public class OpenApiConfig {
             error(op, "429", "More than adventwave.events.playback-per-minute events this minute");
         }
         if (path.equals("/v1/admin/media/{id}/upload")) {
-            error(op, "501", "No master storage is configured on this instance (locally: adventwave.catalog.local-media-root)");
+            error(op, "501", "No master storage is configured on this instance (adventwave.storage.mode=s3, or locally adventwave.catalog.local-media-root)");
         }
-        if (path.equals("/v1/admin/media/{id}/preview")) {
-            error(op, "501", "This instance cannot sign media URLs yet; previews are served only in local development");
+        // Listener accounts (RFC 0005). The address limit (AuthRateLimiter) applies to every open one.
+        if (path.startsWith("/v1/auth/") && !path.startsWith("/v1/auth/admin") && !path.equals("/v1/auth/session")) {
+            error(op, "429", "Too many attempts from this address, or (sign-in) the account is locked for adventwave.auth.listener.lockout");
+        }
+        if (path.equals("/v1/auth/register")) {
+            error(op, "409", "An account with this email already exists");
+        }
+        if (path.equals("/v1/auth/login")) {
+            error(op, "401", "Email or password incorrect, or the account has no password yet. Which one is not said");
+        }
+        if (path.equals("/v1/me/password") || path.equals("/v1/me/sign-out") || path.equals("/v1/me/verify-email")) {
+            error(op, "409", "The account signs in without an AdventWave password (dev issuer or IdP)");
         }
         if (path.equals("/v1/auth/admin/login")) {
             error(op, "401", "Email or password incorrect. Which one is not said");

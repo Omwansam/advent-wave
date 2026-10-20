@@ -77,7 +77,7 @@ class OutboxDispatchTest extends IntegrationTest {
     @Test
     @DisplayName("a private play is delivered, flagged, and never counted (the privacy rule, at the consumer)")
     void privatePlayIsNotCounted() {
-        this.users.updateSettings(this.userId, new UserSettingsDto("light", true, false, false, 6, false, false, "normal", null));
+        this.users.updateSettings(this.userId, new UserSettingsDto("light", true, false, false, 6, false, false, "normal", null, null));
         PlaybackEvent playbackevent = this.play("play_completed", 200000);
         Assertions.assertThat(playbackevent.privateSession()).isTrue();
         this.dispatcher.dispatchPending();

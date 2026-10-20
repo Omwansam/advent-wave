@@ -1,0 +1,17 @@
+{
+  "_source": "live response from the gateway (contracts 1.6.0), throwaway account; tokens and passwords redacted",
+  "request": {
+    "method": "GET",
+    "path": "/v1/users?q=f",
+    "authenticated": true
+  },
+  "response": {
+    "status": 400,
+    "body": {
+      "status": 400,
+      "timestamp": "2026-10-20T15:32:51.462779350Z",
+      "message": "q must be between 2 and 100 characters",
+      "error": "Bad Request"
+    }
+  }
+}

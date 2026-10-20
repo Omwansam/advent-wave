@@ -1,0 +1,20 @@
+{
+  "_source": "live response from the gateway (contracts 1.6.0), throwaway account; tokens and passwords redacted",
+  "request": {
+    "method": "GET",
+    "path": "/v1/users/948a0c8a-3a2e-4bfd-8dbc-6b3872d88780",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": "948a0c8a-3a2e-4bfd-8dbc-6b3872d88780",
+      "displayName": "Friendtest Ben",
+      "followerCount": 2,
+      "followingCount": 0,
+      "followedByMe": true,
+      "followsMe": false,
+      "isMe": false
+    }
+  }
+}

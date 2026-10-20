@@ -24,11 +24,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.adventwave.catalog.CatalogProperties;
 import org.adventwave.contracts.events.Topics;
 import org.adventwave.platform.outbox.OutboxWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -79,7 +79,7 @@ public class LocalTranscodeWorker {
     private final JdbcTemplate jdbc;
     private final ObjectMapper objectMapper;
     private final Path script;
-    private final Path mediaRoot;
+    private final TranscodeStorage storage;
     private final ScheduledExecutorService executor;
     /** Queued, running or waiting to retry. A job is accepted once until it reaches a verdict. */
     private final Set<UUID> pending = ConcurrentHashMap.newKeySet();
@@ -87,11 +87,11 @@ public class LocalTranscodeWorker {
 
     public LocalTranscodeWorker(
         AudioProperties audio,
-        CatalogProperties catalog,
         OutboxWriter outbox,
         TransactionTemplate transaction,
         JdbcTemplate jdbc,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        ObjectProvider<TranscodeStorage> storage
     ) {
         this.audio = audio;
         this.outbox = outbox;
@@ -99,19 +99,20 @@ public class LocalTranscodeWorker {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.script = Path.of(audio.getTranscodeScript()).toAbsolutePath().normalize();
-        if (catalog.getLocalMediaRoot() == null || catalog.getLocalMediaRoot().isBlank()) {
-            throw new IllegalStateException("adventwave.audio.local-worker-enabled needs adventwave.catalog.local-media-root: "
-                + "the worker reads masters and writes derived files there");
+        this.storage = storage.getIfAvailable();
+        if (this.storage == null) {
+            throw new IllegalStateException("adventwave.audio.local-worker-enabled needs somewhere to read masters and write derived "
+                + "files: adventwave.catalog.local-media-root, or adventwave.storage.mode=s3 (RFC 0006)");
         }
-        this.mediaRoot = Path.of(catalog.getLocalMediaRoot()).toAbsolutePath().normalize();
         this.checkPrerequisites();
         this.executor = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "transcode-worker");
             t.setDaemon(true);
             return t;
         });
-        log.info("local transcode worker: {} {}, media root {}, timeout {}, retries after {}",
-            audio.getPython(), this.script, this.mediaRoot, audio.getTranscodeTimeout(), audio.getRetryBackoff());
+        log.info("transcode worker: {} {}, storage {}, timeout {}, retries after {}",
+            audio.getPython(), this.script, this.storage instanceof TranscodeStorage.S3 ? "s3 staging" : "local media root",
+            audio.getTranscodeTimeout(), audio.getRetryBackoff());
     }
 
     /** Fail at startup, not on the first upload: a worker that cannot run would leave every item in processing. */
@@ -169,9 +170,15 @@ public class LocalTranscodeWorker {
         }
 
         String problem;
+        Path root = null;
         try {
-            Outcome outcome = this.invoke(job);
+            root = this.storage.prepare(job);
+            Outcome outcome = this.invoke(job, root);
             if (outcome.message() != null) {
+                // The outputs reach the derived store before the message that publishes them.
+                if ("completed".equals(outcome.message().path("status").asText())) {
+                    this.storage.publish(id, root, outcome.message());
+                }
                 this.deliver(outcome.message());
                 this.pending.remove(id);
                 return;
@@ -184,6 +191,8 @@ public class LocalTranscodeWorker {
         } catch (Exception e) {
             problem = "the transcode tool could not be run or its result recorded: " + e.getMessage();
             if (!this.executor.isShutdown()) log.warn("transcode {}: attempt {} errored", id, job.attempt(), e);
+        } finally {
+            if (root != null) this.storage.cleanup(id, root);
         }
         if (this.executor.isShutdown()) {
             // stop() killed the run; the next start finds the item in the outbox and resumes it
@@ -222,14 +231,14 @@ public class LocalTranscodeWorker {
     }
 
     /** Runs the tool once. A message for this item, or why there is none. */
-    private Outcome invoke(TranscodeJob job) throws IOException, InterruptedException {
+    private Outcome invoke(TranscodeJob job, Path mediaRoot) throws IOException, InterruptedException {
         UUID id = job.mediaItemId();
         List<String> command = List.of(
             this.audio.getPython(), this.script.toString(), "run",
             "--media-item-id", id.toString(),
             "--media-type", job.mediaType(),
             "--master-key", job.masterStorageKey(),
-            "--media-root", this.mediaRoot.toString());
+            "--media-root", mediaRoot.toString());
         log.info("transcode {}: attempt {} started", id, job.attempt());
         Process process = new ProcessBuilder(command).start();
         this.running = process;

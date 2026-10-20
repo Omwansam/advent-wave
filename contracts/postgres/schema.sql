@@ -117,6 +117,36 @@ CREATE TABLE public.licenses (
     CONSTRAINT licenses_consent_status_check CHECK ((consent_status = ANY (ARRAY['pending'::text, 'granted'::text, 'revoked'::text, 'expired'::text]))),
     CONSTRAINT licenses_revenue_share_pct_check CHECK (((revenue_share_pct >= (0)::numeric) AND (revenue_share_pct <= (100)::numeric)))
 );
+CREATE TABLE public.listener_activity (
+    user_id uuid NOT NULL,
+    media_item_id uuid NOT NULL,
+    playing boolean NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE TABLE public.listener_credentials (
+    user_id uuid NOT NULL,
+    password_hash text NOT NULL,
+    email_verified_at timestamp with time zone,
+    failed_logins integer DEFAULT 0 NOT NULL,
+    locked_until timestamp with time zone,
+    token_version integer DEFAULT 0 NOT NULL,
+    password_changed_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_login_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT listener_credentials_failed_logins_check CHECK ((failed_logins >= 0)),
+    CONSTRAINT listener_credentials_token_version_check CHECK ((token_version >= 0))
+);
+CREATE TABLE public.listener_tokens (
+    token_hash text NOT NULL,
+    user_id uuid NOT NULL,
+    purpose text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    used_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT listener_tokens_purpose_check CHECK ((purpose = ANY (ARRAY['password_reset'::text, 'email_verification'::text]))),
+    CONSTRAINT listener_tokens_token_hash_check CHECK ((token_hash ~ '^[0-9a-f]{64}$'::text))
+);
 CREATE TABLE public.listening_history (
     id bigint NOT NULL,
     user_id uuid NOT NULL,
@@ -295,6 +325,12 @@ CREATE TABLE public.user_follows_playlist (
     playlist_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
+CREATE TABLE public.user_follows_user (
+    user_id uuid NOT NULL,
+    followee_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT user_follows_user_not_self CHECK ((user_id <> followee_id))
+);
 CREATE TABLE public.user_likes (
     user_id uuid NOT NULL,
     media_item_id uuid NOT NULL,
@@ -314,6 +350,7 @@ CREATE TABLE public.user_settings (
     audio_quality text DEFAULT 'normal'::text NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     autoplay boolean DEFAULT true NOT NULL,
+    share_activity boolean DEFAULT true NOT NULL,
     CONSTRAINT user_settings_audio_quality_check CHECK ((audio_quality = ANY (ARRAY['data_saver'::text, 'normal'::text, 'high'::text, 'very_high'::text]))),
     CONSTRAINT user_settings_crossfade_sec_check CHECK (((crossfade_sec >= 0) AND (crossfade_sec <= 12))),
     CONSTRAINT user_settings_theme_check CHECK ((theme = ANY (ARRAY['light'::text, 'dark'::text])))
@@ -350,6 +387,12 @@ ALTER TABLE ONLY public.discover_category_items
     ADD CONSTRAINT discover_category_items_pkey PRIMARY KEY (category_id, media_item_id);
 ALTER TABLE ONLY public.licenses
     ADD CONSTRAINT licenses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.listener_activity
+    ADD CONSTRAINT listener_activity_pkey PRIMARY KEY (user_id);
+ALTER TABLE ONLY public.listener_credentials
+    ADD CONSTRAINT listener_credentials_pkey PRIMARY KEY (user_id);
+ALTER TABLE ONLY public.listener_tokens
+    ADD CONSTRAINT listener_tokens_pkey PRIMARY KEY (token_hash);
 ALTER TABLE ONLY public.listening_history
     ADD CONSTRAINT listening_history_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.listening_history
@@ -394,6 +437,8 @@ ALTER TABLE ONLY public.user_follows_artist
     ADD CONSTRAINT user_follows_artist_pkey PRIMARY KEY (user_id, artist_id);
 ALTER TABLE ONLY public.user_follows_playlist
     ADD CONSTRAINT user_follows_playlist_pkey PRIMARY KEY (user_id, playlist_id);
+ALTER TABLE ONLY public.user_follows_user
+    ADD CONSTRAINT user_follows_user_pkey PRIMARY KEY (user_id, followee_id);
 ALTER TABLE ONLY public.user_likes
     ADD CONSTRAINT user_likes_pkey PRIMARY KEY (user_id, media_item_id, collection);
 ALTER TABLE ONLY public.user_settings
@@ -407,6 +452,7 @@ ALTER TABLE ONLY public.users
 CREATE INDEX albums_title_trgm_idx ON public.albums USING gin (title public.gin_trgm_ops);
 CREATE INDEX artists_name_trgm_idx ON public.artists USING gin (name public.gin_trgm_ops);
 CREATE INDEX licenses_church_idx ON public.licenses USING btree (church_id);
+CREATE INDEX listener_tokens_user_purpose_idx ON public.listener_tokens USING btree (user_id, purpose);
 CREATE INDEX listening_history_user_played_idx ON public.listening_history USING btree (user_id, played_at DESC);
 CREATE INDEX listening_progress_user_updated_idx ON public.listening_progress USING btree (user_id, updated_at DESC);
 CREATE INDEX media_items_album_idx ON public.media_items USING btree (album_id);
@@ -422,7 +468,9 @@ CREATE INDEX play_counts_by_artist_day_recent_idx ON public.play_counts_by_artis
 CREATE INDEX play_counts_by_item_day_recent_idx ON public.play_counts_by_item_day USING btree (day DESC, plays DESC);
 CREATE INDEX playlist_items_order_idx ON public.playlist_items USING btree (playlist_id, "position");
 CREATE INDEX playlists_owner_idx ON public.playlists USING btree (owner_id);
+CREATE INDEX user_follows_user_followee_idx ON public.user_follows_user USING btree (followee_id);
 CREATE INDEX user_likes_user_created_idx ON public.user_likes USING btree (user_id, created_at DESC);
+CREATE INDEX users_display_name_trgm_idx ON public.users USING gin (display_name public.gin_trgm_ops);
 CREATE TRIGGER media_items_publication_gate BEFORE INSERT OR UPDATE OF status, license_id ON public.media_items FOR EACH ROW EXECUTE FUNCTION public.enforce_publication_requires_granted_license();
 ALTER TABLE ONLY public.albums
     ADD CONSTRAINT albums_artist_id_fkey FOREIGN KEY (artist_id) REFERENCES public.artists(id) ON DELETE CASCADE;
@@ -434,6 +482,14 @@ ALTER TABLE ONLY public.discover_category_items
     ADD CONSTRAINT discover_category_items_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.licenses
     ADD CONSTRAINT licenses_church_id_fkey FOREIGN KEY (church_id) REFERENCES public.churches(id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.listener_activity
+    ADD CONSTRAINT listener_activity_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.listener_activity
+    ADD CONSTRAINT listener_activity_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.listener_credentials
+    ADD CONSTRAINT listener_credentials_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.listener_tokens
+    ADD CONSTRAINT listener_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.listening_history
     ADD CONSTRAINT listening_history_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.listening_history
@@ -480,6 +536,10 @@ ALTER TABLE ONLY public.user_follows_playlist
     ADD CONSTRAINT user_follows_playlist_playlist_id_fkey FOREIGN KEY (playlist_id) REFERENCES public.playlists(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.user_follows_playlist
     ADD CONSTRAINT user_follows_playlist_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.user_follows_user
+    ADD CONSTRAINT user_follows_user_followee_id_fkey FOREIGN KEY (followee_id) REFERENCES public.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.user_follows_user
+    ADD CONSTRAINT user_follows_user_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.user_likes
     ADD CONSTRAINT user_likes_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.user_likes

@@ -1,0 +1,11 @@
+{
+  "_source": "live response from the gateway (contracts 1.6.0), throwaway account; tokens and passwords redacted",
+  "request": {
+    "method": "POST",
+    "path": "/v1/me/sign-out",
+    "authenticated": true
+  },
+  "response": {
+    "status": 204
+  }
+}

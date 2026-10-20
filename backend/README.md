@@ -111,12 +111,19 @@ Honest inventory, because "it runs" and "it is done" are different claims.
 - Play counting and private-session enforcement, both server-side, both tested.
 - Signed, expiring playback URLs. No endpoint returns a durable media URL.
 - Redis write buffer for player state, with the documented ≤30s loss window.
+- Listener accounts: email and password, lockout, single-use emailed reset and verification links,
+  sessions that end on a password change ([RFC 0005](../contracts/rfcs/0005-listener-accounts.md)).
+- Masters and derived audio in S3-compatible object storage, presigned uploads and playback
+  ([RFC 0006](../contracts/rfcs/0006-object-storage.md)).
+- Friend activity, with private session and the share setting enforced on the server
+  ([RFC 0007](../contracts/rfcs/0007-friend-activity.md)).
+- A one-server deployment: [`deploy/README.md`](../deploy/README.md).
 
 **Scaffolding, and why**
 
 | Thing | Status | Replaced by |
 | --- | --- | --- |
-| `POST /v1/auth/session` | Verifies no credential | The managed IdP, once chosen (§1 pre-work) |
+| `POST /v1/auth/session` | Verifies no credential; local development only | Listener accounts (RFC 0005) on every server; the route is off there |
 | `listening_history` in Postgres | Works, wrong home | Cassandra `listening_history_by_user`, WS C |
 | Outbox rows, unpublished | Written correctly, nothing reads them | Debezium → Kafka, WS C |
 | Search via Postgres `ILIKE` | Correct ranking, wrong engine | Elasticsearch, WS B |
@@ -181,7 +188,14 @@ For local work, put overrides in `application-local.yml` and run with
 | `ADVENTWAVE_ADMIN_TOKEN_SECRET` | dev placeholder | HMAC key for admin-portal tokens (≥ 32 bytes). **Set in production** |
 | `ADVENTWAVE_UPLOAD_SIGNING_SECRET` | dev placeholder | HMAC key for local upload URLs |
 | `ADVENTWAVE_ADMIN_BOOTSTRAP_EMAIL` / `_PASSWORD` | unset | The first super admin, created only while no admin account exists |
-| `ADVENTWAVE_LOCAL_WORKER` | `true` in `local` | Runs the transcode worker in the gateway (local profile only) |
+| `ADVENTWAVE_LOCAL_WORKER` | `true` in `local`, else `false` | Runs the transcode worker in the gateway; `true` on the single server too |
+| `ADVENTWAVE_LISTENER_TOKEN_SECRET` | dev placeholder | HMAC key for listener tokens (≥ 32 bytes). **Set in production** |
+| `ADVENTWAVE_APP_BASE_URL` | `http://localhost:5173` | The listener app's origin, for emailed links; https on a server |
+| `ADVENTWAVE_MAIL_MODE` | `log` | `smtp` on a server, with `SPRING_MAIL_HOST`, `_PORT`, `_USERNAME`, `_PASSWORD` |
+| `ADVENTWAVE_STORAGE_MODE` | `local` | `s3` on a server, with `ADVENTWAVE_S3_*` (endpoint, region, keys, the two buckets) |
+
+The gateway refuses to start outside the `local` profile while any of these is still a development
+value; [`deploy/gateway.env.example`](../deploy/gateway.env.example) is the complete server list.
 
 Setting `spring.security.oauth2.resourceserver.jwt.issuer-uri` switches to real IdP validation and
 retires both the dev decoder and the session endpoint.

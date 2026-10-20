@@ -1,0 +1,21 @@
+{
+  "_source": "live response from the gateway (contracts 1.6.0), throwaway account; tokens and passwords redacted",
+  "request": {
+    "method": "POST",
+    "path": "/v1/auth/login",
+    "body": {
+      "email": "contracts-example@example.org",
+      "password": "<redacted>"
+    },
+    "authenticated": false
+  },
+  "response": {
+    "status": 401,
+    "body": {
+      "status": 401,
+      "timestamp": "2026-10-20T15:32:50.833704640Z",
+      "message": "email or password is incorrect",
+      "error": "Unauthorized"
+    }
+  }
+}

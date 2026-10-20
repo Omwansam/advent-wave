@@ -13,6 +13,7 @@ import org.adventwave.platform.domain.OutboxEvent;
 import org.adventwave.platform.library.ListeningHistoryService;
 import org.adventwave.platform.library.LibrarySnapshot.HistoryRow;
 import org.adventwave.platform.repo.PlatformRepositories.OutboxRepository;
+import org.adventwave.platform.social.FriendService;
 import org.adventwave.platform.user.UserService;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,8 @@ class PrivateSessionConformanceTest extends IntegrationTest {
     OutboxRepository outbox;
     @Autowired
     MediaItemRepository mediaItems;
+    @Autowired
+    FriendService friends;
     private UUID userId;
     private UUID mediaItemId;
 
@@ -120,7 +123,35 @@ class PrivateSessionConformanceTest extends IntegrationTest {
         Assertions.assertThat(playbackevent.durationMs()).isEqualTo(((MediaItem)this.mediaItems.findById(this.mediaItemId).orElseThrow()).getDurationMs());
     }
 
+    @Test
+    @DisplayName("a private play never reaches the friend-activity feed (RFC 0007)")
+    void privatePlayLeavesNoFriendActivity() {
+        UUID follower = this.follower();
+        this.users.updateSettings(this.userId, this.privateSession(true));
+        this.play(120000);
+        Assertions.assertThat(this.friends.friends(follower)).singleElement().extracting(FriendService.Friend::activity).isNull();
+    }
+
+    @Test
+    @DisplayName("starting a private session removes what followers could already see, and ending it reveals nothing")
+    void privateSessionClearsFriendActivity() {
+        UUID follower = this.follower();
+        this.users.updateSettings(this.userId, this.privateSession(false));
+        this.play(1000);
+        Assertions.assertThat(this.friends.friends(follower)).singleElement().extracting(FriendService.Friend::activity).isNotNull();
+        this.users.updateSettings(this.userId, this.privateSession(true));
+        Assertions.assertThat(this.friends.friends(follower)).singleElement().extracting(FriendService.Friend::activity).isNull();
+        this.users.updateSettings(this.userId, this.privateSession(false));
+        Assertions.assertThat(this.friends.friends(follower)).singleElement().extracting(FriendService.Friend::activity).isNull();
+    }
+
+    private UUID follower() {
+        UUID follower = this.users.provision("test|follower-" + UUID.randomUUID(), UUID.randomUUID() + "@example.test", "Follower", null).getId();
+        this.friends.toggleFollow(follower, this.userId);
+        return follower;
+    }
+
     private UserSettingsDto privateSession(boolean on) {
-        return new UserSettingsDto("light", on, false, false, 6, false, false, "normal", null);
+        return new UserSettingsDto("light", on, false, false, 6, false, false, "normal", null, null);
     }
 }

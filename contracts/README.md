@@ -10,12 +10,12 @@ an RFC says otherwise — and the disagreement is recorded, never silently patch
 | Path | Contract | Status at 1.0.0 | Generated from |
 |---|---|---|---|
 | [`postgres/`](postgres/) | Schema, constraints, trigger, outbox | **implemented** | `backend/tools/dump-schema.sh` (pg_dump of a migrated DB) |
-| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 37 listener and auth + 39 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
+| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 49 listener and auth + 39 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
 | [`kafka/`](kafka/) | Six topics, JSON Schema per message value | **implemented**; `audio.transcode.v1` `completed` is produced by the local worker (RFC 0001) until workstream D's service exists | `playback.events.v1`, `library.events.v1`, `catalog.playlist.v1` from the event classes and `LibraryService`; the rest from the plan and table columns |
 | [`redis/`](redis/) | Key registry, TTLs, owners | **implemented** | `RedisKeys.java` + call sites |
 | [`cassandra/`](cassandra/) | History and play-count tables | **planned** (Postgres interim) | plan §1 day 4 |
 | [`proto/`](proto/) | gRPC service contracts | **deferred** — no service boundary exists | one README per service, mapping planned RPCs to the Java that backs them |
-| [`audio/transcode.md`](audio/transcode.md) | Transcode worker input/output, upload, serving | implemented locally: upload, worker, both sides of the seam (RFC 0001); object storage, CDN and the worker service are planned | plan §11 + `media_assets` |
+| [`audio/transcode.md`](audio/transcode.md) | Transcode worker input/output, upload, serving | implemented: upload, worker, both sides of the seam (RFC 0001), S3-compatible object storage (RFC 0006); the CDN and the worker as its own service are planned | plan §11 + `media_assets` |
 | [`examples/`](examples/) | Kafka messages and API responses | — | real outbox rows and live API responses; constructed where nothing exists yet |
 | [`rfcs/`](rfcs/) | Accepted changes, one file each | — | written by hand, before the change |
 
@@ -83,6 +83,28 @@ Verbatim, because they are contract terms and not code-review preferences:
 - **Redis is never a source of truth.** The only tolerated loss is ≤30s of playback position.
 
 ## Changes
+
+### 1.6.0 — RFCs [0005](rfcs/0005-listener-accounts.md), [0006](rfcs/0006-object-storage.md), [0007](rfcs/0007-friend-activity.md): accounts, object storage, friends
+- **Added** `openapi` (RFC 0005, tag `auth`): `POST /v1/auth/register`, `/v1/auth/login`,
+  `/v1/auth/password-reset`, `/v1/auth/password-reset/confirm`, `/v1/auth/verify-email` (public,
+  limited per address, **429**), `POST /v1/me/password`, `/v1/me/sign-out`, `/v1/me/verify-email`.
+  Schemas `ListenerRegisterRequest`, `ListenerLoginRequest`, `ListenerSessionDto`,
+  `ListenerPasswordResetRequest`, `ListenerPasswordResetConfirm`, `ListenerEmailVerification`,
+  `ListenerPasswordChange`; optional `UserDto.emailVerified`.
+- **Added** `openapi` (RFC 0007, tag `friends`): `GET /v1/users?q=`, `GET /v1/users/{id}`,
+  `PUT /v1/library/follows/user/{userId}`, `GET /v1/friends`. Schemas `UserSearchDto`, `UserSummaryDto`,
+  `UserProfileDto`, `FriendsDto`, `Friend`, `Activity`; optional `UserSettingsDto.shareActivity`.
+- **Changed** `openapi` (RFC 0006): `GET /v1/admin/media/{id}/preview` no longer returns 501; with
+  `storage.mode=s3` the upload URL and every playback 302 point at presigned bucket URLs.
+- **Added** `postgres`: `listener_credentials`, `listener_tokens` (V9); `user_follows_user`,
+  `listener_activity`, `user_settings.share_activity`, `users_display_name_trgm_idx` (V10).
+- **Added** `kafka`: `library.events.v1` shape `followed_user` / `unfollowed_user` with `followee_id`.
+- **Added** `examples`: `auth.register`, `auth.register.conflict`, `auth.login`, `auth.login.wrong`,
+  `auth.login.locked`, `auth.verifyEmail`, `auth.passwordReset`, `auth.passwordResetConfirm`,
+  `auth.passwordResetConfirm.spent`, `account.changePassword`, `account.signOut`,
+  `account.resendVerification`, `friends.searchUsers`, `friends.searchUsers.short`, `friends.profile`,
+  `friends.follow`, `friends.list` (api); `library.events.v1.followed_user`, `.unfollowed_user` (kafka).
+- Every existing `operationId` is unchanged. No breaking change.
 
 ### 1.5.0 — [RFC 0004](rfcs/0004-lyrics-chapters-autoplay.md), lyrics, chapters, autoplay
 - **Added** `openapi`: `GET /v1/media/{id}/lyrics` (404 also means "no lyrics"), `GET /v1/media/{id}/chapters`,

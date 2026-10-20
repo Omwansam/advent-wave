@@ -11,6 +11,8 @@ import org.adventwave.gateway.security.admin.AdminAccessRules;
 import org.adventwave.gateway.security.admin.AdminJwtAuthenticationConverter;
 import org.adventwave.gateway.security.admin.AdminPermissions;
 import org.adventwave.gateway.security.admin.AdminTokenService;
+import org.adventwave.gateway.security.listener.ListenerTokenService;
+import org.adventwave.gateway.storage.StorageProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,6 +42,11 @@ public class SecurityConfig {
     /** The pre-RBAC admin scope (contracts 1.2.0); still honoured on catalogue rules. See AdminPermissions. */
     public static final String CATALOG_WRITE_SCOPE = AdminPermissions.LEGACY_CATALOG_WRITE;
 
+    /** Mirrored in OpenApiConfig.PUBLIC_OPERATIONS; keep the two in step. */
+    public static final String[] LISTENER_AUTH_PATHS = {
+        "/v1/auth/register", "/v1/auth/login", "/v1/auth/password-reset", "/v1/auth/password-reset/confirm", "/v1/auth/verify-email"
+    };
+
     private static final String[] OPENAPI_PATHS = {
         "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-ui/**", "/swagger-ui.html"
     };
@@ -48,6 +55,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(
         HttpSecurity http,
         CatalogProperties catalog,
+        StorageProperties storage,
         AdminJwtAuthenticationConverter adminConverter,
         AdminAccessDeniedHandler accessDenied
     ) throws Exception {
@@ -62,6 +70,9 @@ public class SecurityConfig {
                         // what the generated client is built from.
                         .requestMatchers(OPENAPI_PATHS).permitAll()
                         .requestMatchers(HttpMethod.POST, "/v1/auth/session").permitAll()
+                        // Listener accounts (RFC 0005): sign-up, sign-in and the emailed links.
+                        // Limited per client address by ListenerAuthController.
+                        .requestMatchers(HttpMethod.POST, LISTENER_AUTH_PATHS).permitAll()
                         // Admin-portal sign-in: email and password, checked by AdminAccountService.
                         .requestMatchers(HttpMethod.POST, "/v1/auth/admin/login").permitAll()
                         // Already authorised by its HMAC signature and expiry, and followed by a
@@ -69,7 +80,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/v1/media/*/stream/*").permitAll();
                     // Where that redirect lands in local development, for the same reason. Open
                     // only when the local media origin is configured.
-                    if (LocalMediaOriginConfig.enabled(catalog)) {
+                    if (LocalMediaOriginConfig.enabled(catalog, storage)) {
                         auth
                             .requestMatchers(HttpMethod.GET, LocalMediaOriginConfig.PATH).permitAll()
                             .requestMatchers(HttpMethod.HEAD, LocalMediaOriginConfig.PATH).permitAll()
@@ -110,23 +121,34 @@ public class SecurityConfig {
     }
 
     /**
-     * Two kinds of bearer token, told apart by issuer and each verified with its own key: admin
-     * tokens ({@code iss = adventwave-admin}) with the admin secret, everything else as before —
-     * the dev issuer's secret, or the IdP at {@code spring.security.oauth2.resourceserver.jwt.issuer-uri}
-     * once one is configured. The issuer is read unverified only to pick the key; the chosen
-     * decoder then verifies signature, expiry and, for admin tokens, the issuer itself.
+     * Bearer tokens are told apart by issuer, and each kind is verified with its own key: admin
+     * tokens ({@code iss = adventwave-admin}) with the admin secret; listener-account tokens
+     * ({@code iss = adventwave}, RFC 0005) with the listener secret and a session-version check;
+     * anything else by the IdP at {@code spring.security.oauth2.resourceserver.jwt.issuer-uri} when
+     * one is configured, otherwise by the dev issuer's secret — but only while the dev issuer is on,
+     * so a server with it off accepts no dev token at all. The issuer is read unverified only to
+     * pick the key; the chosen decoder then verifies signature, expiry and issuer.
      */
     @Bean
     public JwtDecoder jwtDecoder(
         @Value("${adventwave.auth.dev-secret}") String devSecret,
+        @Value("${adventwave.auth.dev-issuer:false}") boolean devIssuer,
         @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}") String issuerUri,
-        AdminTokenService adminTokens
+        AdminTokenService adminTokens,
+        ListenerTokenService listenerTokens
     ) {
-        JwtDecoder listeners = issuerUri.isBlank()
-            ? NimbusJwtDecoder.withSecretKey(new SecretKeySpec(devSecret.getBytes(), "HmacSHA256")).build()
-            : new SupplierJwtDecoder(() -> JwtDecoders.fromIssuerLocation(issuerUri));
         JwtDecoder admins = adminTokens.decoder();
-        return token -> AdminTokenService.ISSUER.equals(unverifiedIssuer(token)) ? admins.decode(token) : listeners.decode(token);
+        JwtDecoder accounts = listenerTokens.decoder();
+        JwtDecoder idp = issuerUri.isBlank() ? null : new SupplierJwtDecoder(() -> JwtDecoders.fromIssuerLocation(issuerUri));
+        JwtDecoder dev = devIssuer ? NimbusJwtDecoder.withSecretKey(new SecretKeySpec(devSecret.getBytes(), "HmacSHA256")).build() : null;
+        return token -> {
+            String issuer = unverifiedIssuer(token);
+            if (AdminTokenService.ISSUER.equals(issuer)) return admins.decode(token);
+            if (ListenerTokenService.ISSUER.equals(issuer)) return accounts.decode(token);
+            if (idp != null) return idp.decode(token);
+            if (dev != null) return dev.decode(token);
+            throw new BadJwtException("tokens from this issuer are not accepted here");
+        };
     }
 
     private static String unverifiedIssuer(String token) {

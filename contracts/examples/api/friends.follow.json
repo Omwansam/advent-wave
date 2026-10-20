@@ -1,0 +1,14 @@
+{
+  "_source": "live response from the gateway (contracts 1.6.0), throwaway account; tokens and passwords redacted",
+  "request": {
+    "method": "PUT",
+    "path": "/v1/library/follows/user/c399d031-a182-4f74-9506-99c3385ef5b6",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "following": true
+    }
+  }
+}

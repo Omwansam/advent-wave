@@ -2,11 +2,11 @@
 
 **Status: IMPLEMENTED.** Key: `user_id`. Not compacted.
 
-A change to one user's library: a like toggled, an artist or playlist followed or unfollowed. Three shapes, discriminated by `action`. The envelope (outbox row) carries event_id and created_at; the payload does not repeat them.
+A change to one user's library: a like toggled, an artist, playlist or another listener followed or unfollowed. Four shapes, discriminated by `action`. The envelope (outbox row) carries event_id and created_at; the payload does not repeat them.
 
-- **Producer:** platform-core LibraryService via outbox
+- **Producer:** platform-core LibraryService and FriendService via outbox
 - **Consumers:** workstream F (features)
-- **Source of truth for the payload:** `backend/platform-core/src/main/java/org/adventwave/platform/library/LibraryService.java`
+- **Source of truth for the payload:** `backend/platform-core/src/main/java/org/adventwave/platform/library/LibraryService.java`; listener follows `backend/platform-core/src/main/java/org/adventwave/platform/social/FriendService.java`
 
 ## Message shapes
 
@@ -34,6 +34,16 @@ A change to one user's library: a like toggled, an artist or playlist followed o
 | `user_id` | string (uuid) | yes |  |
 | `action` | string enum ['followed_playlist', 'unfollowed_playlist'] | yes |  |
 | `playlist_id` | string (uuid) | yes |  |
+
+### `action` ∈ ['followed_user', 'unfollowed_user']
+
+Added in contracts 1.6.0 (RFC 0007): one listener following another.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `user_id` | string (uuid) | yes | The follower |
+| `action` | string enum ['followed_user', 'unfollowed_user'] | yes |  |
+| `followee_id` | string (uuid) | yes | The listener followed |
 
 ## Examples
 

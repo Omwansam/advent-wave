@@ -1,8 +1,12 @@
 package org.adventwave.platform.repo;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.adventwave.platform.domain.ListenerActivity;
+import org.adventwave.platform.domain.ListenerCredential;
+import org.adventwave.platform.domain.ListenerToken;
 import org.adventwave.platform.domain.ListeningHistoryEntry;
 import org.adventwave.platform.domain.ListeningProgress;
 import org.adventwave.platform.domain.OutboxEvent;
@@ -36,6 +40,56 @@ public final class PlatformRepositories {
             nativeQuery = true
         )
         void trimToNewest(@Param("userId") UUID userId, @Param("keep") int keep);
+    }
+
+    public interface ListenerActivityRepository extends JpaRepository<ListenerActivity, UUID> {
+        /**
+         * play_started: this listener is now playing this item (RFC 0007). One statement, so two
+         * events racing for a listener with no row yet cannot both try to insert it. Writes
+         * nothing in a private session or with sharing off.
+         */
+        @Modifying
+        @Query(
+            value = "INSERT INTO listener_activity (user_id, media_item_id, playing, updated_at)\nSELECT s.user_id, :mediaItemId, TRUE, now() FROM user_settings s\nWHERE s.user_id = :userId AND s.share_activity AND NOT s.private_session\nON CONFLICT (user_id) DO UPDATE\n  SET media_item_id = EXCLUDED.media_item_id,\n      playing       = TRUE,\n      updated_at    = EXCLUDED.updated_at\n",
+            nativeQuery = true
+        )
+        int started(@Param("userId") UUID userId, @Param("mediaItemId") UUID mediaItemId);
+
+        /**
+         * play_completed or skipped. Ends the row only if it is still this item: the client sends
+         * the old song's end and the next song's start together, and they can arrive either way
+         * round.
+         */
+        @Modifying
+        @Query(
+            value = "INSERT INTO listener_activity (user_id, media_item_id, playing, updated_at)\nSELECT s.user_id, :mediaItemId, FALSE, now() FROM user_settings s\nWHERE s.user_id = :userId AND s.share_activity AND NOT s.private_session\nON CONFLICT (user_id) DO UPDATE\n  SET playing    = FALSE,\n      updated_at = EXCLUDED.updated_at\n  WHERE listener_activity.media_item_id = EXCLUDED.media_item_id\n",
+            nativeQuery = true
+        )
+        int ended(@Param("userId") UUID userId, @Param("mediaItemId") UUID mediaItemId);
+
+        /** What one listener may see: the people they follow who share, outside a private session. */
+        @Query(
+            value = "SELECT a.* FROM listener_activity a\nJOIN user_follows_user f ON f.followee_id = a.user_id\nJOIN user_settings s ON s.user_id = a.user_id\nWHERE f.user_id = :followerId AND s.share_activity AND NOT s.private_session\nORDER BY a.updated_at DESC\nLIMIT :limit\n",
+            nativeQuery = true
+        )
+        List<ListenerActivity> visibleTo(@Param("followerId") UUID followerId, @Param("limit") int limit);
+
+        @Modifying
+        @Query("delete from ListenerActivity a where a.userId = :userId")
+        int clear(@Param("userId") UUID userId);
+    }
+
+    public interface ListenerCredentialRepository extends JpaRepository<ListenerCredential, UUID> {
+    }
+
+    public interface ListenerTokenRepository extends JpaRepository<ListenerToken, String> {
+        /** Unused links of one purpose created since a moment, newest first: the resend throttle. */
+        List<ListenerToken> findByUserIdAndPurposeAndCreatedAtAfterOrderByCreatedAtDesc(UUID userId, String purpose, Instant since);
+
+        /** Spends every outstanding link of one purpose — a used reset link retires its siblings. */
+        @Modifying
+        @Query("update ListenerToken t set t.usedAt = :now where t.userId = :userId and t.purpose = :purpose and t.usedAt is null")
+        int spendAll(@Param("userId") UUID userId, @Param("purpose") String purpose, @Param("now") Instant now);
     }
 
     public interface ListeningProgressRepository extends JpaRepository<ListeningProgress, ListeningProgress.Key> {
@@ -99,10 +153,30 @@ public final class PlatformRepositories {
         Optional<UserAccount> findByExternalAuthId(String externalAuthId);
 
         Optional<UserAccount> findByEmail(String email);
+
+        /**
+         * Finding a friend by name (RFC 0007): exact matches, then names that start with the
+         * query, then the rest. {@code pattern} is the query with LIKE's wildcards escaped.
+         */
+        @Query(
+            value = "SELECT * FROM users\nWHERE display_name ILIKE ('%' || :pattern || '%') AND id <> :exclude\nORDER BY CASE WHEN lower(display_name) = lower(:query) THEN 0\n              WHEN display_name ILIKE (:pattern || '%') THEN 1\n              ELSE 2 END,\n         display_name, id\nLIMIT :limit\n",
+            nativeQuery = true
+        )
+        List<UserAccount> searchByName(
+            @Param("query") String query, @Param("pattern") String pattern, @Param("exclude") UUID exclude, @Param("limit") int limit
+        );
     }
 
     public interface UserFollowArtistRepository extends JpaRepository<UserFollow.Artist, UserFollow.Key> {
         List<UserFollow.Artist> findByIdUserId(UUID userId);
+    }
+
+    public interface UserFollowUserRepository extends JpaRepository<UserFollow.Listener, UserFollow.Key> {
+        List<UserFollow.Listener> findByIdUserIdOrderByCreatedAtDesc(UUID userId, Limit limit);
+
+        long countByIdUserId(UUID userId);
+
+        long countByIdTargetId(UUID followeeId);
     }
 
     public interface UserFollowPlaylistRepository extends JpaRepository<UserFollow.PlaylistFollow, UserFollow.Key> {

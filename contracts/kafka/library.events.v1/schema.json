@@ -2,16 +2,16 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://contracts.adventwave.app/kafka/library.events.v1/schema.json",
   "title": "library.events.v1",
-  "description": "A change to one user's library: a like toggled, an artist or playlist followed or unfollowed. Three shapes, discriminated by `action`. The envelope (outbox row) carries event_id and created_at; the payload does not repeat them.",
+  "description": "A change to one user's library: a like toggled, an artist, playlist or another listener followed or unfollowed. Four shapes, discriminated by `action`. The envelope (outbox row) carries event_id and created_at; the payload does not repeat them.",
   "x-adventwave": {
     "status": "implemented",
-    "producer": "platform-core LibraryService via outbox",
+    "producer": "platform-core LibraryService and FriendService via outbox",
     "consumers": [
       "workstream F (features)"
     ],
     "key": "user_id",
     "compaction": false,
-    "source": "backend/platform-core/src/main/java/org/adventwave/platform/library/LibraryService.java"
+    "source": "backend/platform-core/src/main/java/org/adventwave/platform/library/LibraryService.java, backend/platform-core/src/main/java/org/adventwave/platform/social/FriendService.java"
   },
   "oneOf": [
     {
@@ -95,6 +95,33 @@
           ]
         },
         "playlist_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "RFC 0007: one listener following another. followee_id is the listener followed.",
+      "required": [
+        "user_id",
+        "action",
+        "followee_id"
+      ],
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "followed_user",
+            "unfollowed_user"
+          ]
+        },
+        "followee_id": {
           "type": "string",
           "format": "uuid"
         }

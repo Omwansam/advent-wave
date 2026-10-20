@@ -15,9 +15,12 @@ public record UserSettingsDto(
     @Pattern(regexp = "data_saver|normal|high|very_high") String audioQuality,
     // Optional (RFC 0004): a client that does not send it leaves it as it is, rather than
     // switching it off — which is what a missing primitive would do.
-    Boolean autoplay
+    Boolean autoplay,
+    // Optional (RFC 0007), for the same reason: "Share my listening activity" with the people
+    // who follow you.
+    Boolean shareActivity
 ) {
     public static UserSettingsDto defaults() {
-        return new UserSettingsDto("light", false, false, false, 6, false, false, "normal", true);
+        return new UserSettingsDto("light", false, false, false, 6, false, false, "normal", true, true);
     }
 }

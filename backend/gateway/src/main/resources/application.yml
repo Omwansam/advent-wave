@@ -39,6 +39,14 @@ spring:
     virtual:
       enabled: true
 
+  mail:
+    # spring.mail.host and the rest come from the environment (deploy/gateway.env.example). Without
+    # these JavaMail waits for ever on an SMTP server that accepts a connection and then stalls.
+    properties:
+      "[mail.smtp.connectiontimeout]": 10000
+      "[mail.smtp.timeout]": 10000
+      "[mail.smtp.writetimeout]": 10000
+
   jackson:
     default-property-inclusion: non_null
 
@@ -93,6 +101,26 @@ adventwave:
       bootstrap-email: ${ADVENTWAVE_ADMIN_BOOTSTRAP_EMAIL:}
       bootstrap-password: ${ADVENTWAVE_ADMIN_BOOTSTRAP_PASSWORD:}
       bootstrap-name: ${ADVENTWAVE_ADMIN_BOOTSTRAP_NAME:Administrator}
+    # Listener accounts (RFC 0005): email + password sign-in run by the gateway itself.
+    listener:
+      # HMAC key for listener tokens, distinct from the admin and dev secrets.
+      token-secret: ${ADVENTWAVE_LISTENER_TOKEN_SECRET:dev-only-listener-token-secret-at-least-32-bytes-change-me}
+      token-ttl: ${ADVENTWAVE_LISTENER_TOKEN_TTL:30d}
+      max-failed-logins: 10
+      lockout: 15m
+      min-password-length: 8
+      password-reset-ttl: 1h
+      email-verification-ttl: 7d
+      max-emails-per-hour: 3
+      # The listener web app's origin; emailed links point here. https on a server.
+      app-base-url: ${ADVENTWAVE_APP_BASE_URL:http://localhost:5173}
+
+  # Outgoing email (RFC 0005). smtp on a server, with spring.mail.* (SPRING_MAIL_HOST, _PORT,
+  # _USERNAME, _PASSWORD). log writes the email, link and all, to the log instead — for a laptop
+  # only; DevDefaultsGuard refuses it anywhere else.
+  mail:
+    mode: ${ADVENTWAVE_MAIL_MODE:log}
+    from: ${ADVENTWAVE_MAIL_FROM:AdventWave <no-reply@adventwave.app>}
 
   catalog:
     api-base-url: ${ADVENTWAVE_API_BASE_URL:http://localhost:8080}
@@ -103,11 +131,27 @@ adventwave:
     # {api-base-url}/media-storage, which only the local profile's media origin answers.
     media-origin-url: ${ADVENTWAVE_MEDIA_ORIGIN_URL:}
 
+  # Where masters and derived audio live (RFC 0006). local: adventwave.catalog.local-media-root on
+  # this machine, development only. s3: S3-compatible object storage (AWS S3, Cloudflare R2,
+  # DigitalOcean Spaces, Backblaze B2, MinIO) with presigned uploads and playback.
+  storage:
+    mode: ${ADVENTWAVE_STORAGE_MODE:local}
+    s3:
+      endpoint: ${ADVENTWAVE_S3_ENDPOINT:}
+      region: ${ADVENTWAVE_S3_REGION:us-east-1}
+      access-key: ${ADVENTWAVE_S3_ACCESS_KEY:}
+      secret-key: ${ADVENTWAVE_S3_SECRET_KEY:}
+      masters-bucket: ${ADVENTWAVE_S3_MASTERS_BUCKET:}
+      derived-bucket: ${ADVENTWAVE_S3_DERIVED_BUCKET:}
+      path-style: ${ADVENTWAVE_S3_PATH_STYLE:false}
+      staging-dir: ${ADVENTWAVE_S3_STAGING_DIR:${java.io.tmpdir}/adventwave-transcode}
+
   audio:
     # Master uploads and the local transcode worker (RFC 0001, contracts/audio/transcode.md).
-    # The worker runs in this process only where application-local.yml turns it on; elsewhere it
+    # The worker runs in this process where ADVENTWAVE_LOCAL_WORKER=true: the local profile, and
+    # the single-server deployment with object storage (RFC 0006, deploy/README.md). Elsewhere it
     # is workstream D's service and this gateway only produces `requested`.
-    local-worker-enabled: false
+    local-worker-enabled: ${ADVENTWAVE_LOCAL_WORKER:false}
     # Relative to the working directory, which is backend/gateway under spring-boot:run.
     transcode-script: ${ADVENTWAVE_TRANSCODE_SCRIPT:../tools/transcode.py}
     transcode-timeout: 60m
@@ -133,7 +177,7 @@ adventwave:
   contracts:
     # The contract version this build implements — <repo>/contracts/VERSION. CI asserts the
     # generated OpenAPI carries the same value.
-    version: 1.5.0
+    version: 1.6.0
 
 springdoc:
   # The document is generated from the controllers and dumped to contracts/openapi/ by
@@ -160,3 +204,14 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    # /actuator/health answers "can this gateway serve listeners?" — deploy/install-release.sh
+    # waits on it. Two dependencies are left out on purpose, because neither one down means that:
+    redis:
+      # A cache and a write buffer, never a source of truth: every call site catches its own
+      # failure and falls through to Postgres. Redis down is slower, not broken.
+      enabled: false
+    mail:
+      # Checked when it is used: a failed send is logged with its reason (ListenerMailer). The SMTP
+      # provider being unreachable for a minute is not the gateway being down.
+      enabled: false

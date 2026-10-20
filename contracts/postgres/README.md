@@ -80,6 +80,8 @@ All additive. Each is annotated `ADDED` in V1 with its reason.
 | `processed_events` (1.1.0) | **Permanent, not interim.** `(event_id, handler)` claims — how a consumer is idempotent under any transport |
 | `media_lyrics`, `media_lyric_lines`, `media_chapters`, `user_settings.autoplay` (1.5.0) | Lyrics, chapters and autoplay, [RFC 0004](../rfcs/0004-lyrics-chapters-autoplay.md) |
 | `listening_progress` (1.4.0) | Per-item resume points for sermons and podcasts, [RFC 0003](../rfcs/0003-listening-progress.md); `player_state` keeps only the current item's |
+| `listener_credentials`, `listener_tokens` (1.6.0) | AdventWave's own listener accounts: password hash, lockout, session version, single-use emailed links stored only as SHA-256, [RFC 0005](../rfcs/0005-listener-accounts.md) |
+| `user_follows_user`, `listener_activity`, `user_settings.share_activity` (1.6.0) | Friend activity, [RFC 0007](../rfcs/0007-friend-activity.md); `listener_activity` is written only outside a private session and while sharing is on |
 
 ## Not in the schema
 

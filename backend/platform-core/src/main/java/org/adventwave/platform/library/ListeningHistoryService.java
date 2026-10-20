@@ -12,9 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class ListeningHistoryService {
     public static final int MAX_RECENT = 100;
     private final PlatformRepositories.ListeningHistoryRepository repository;
+    private final PlatformRepositories.ListenerActivityRepository activity;
 
-    public ListeningHistoryService(PlatformRepositories.ListeningHistoryRepository repository) {
+    public ListeningHistoryService(PlatformRepositories.ListeningHistoryRepository repository, PlatformRepositories.ListenerActivityRepository activity) {
         this.repository = repository;
+        this.activity = activity;
     }
 
     @Transactional
@@ -46,5 +48,7 @@ public class ListeningHistoryService {
     @Transactional
     public void clear(UUID userId) {
         this.repository.deleteByUserId(userId);
+        // What friends see is the newest history entry by another name (RFC 0007).
+        this.activity.clear(userId);
     }
 }

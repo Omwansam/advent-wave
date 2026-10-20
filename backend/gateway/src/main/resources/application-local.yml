@@ -43,12 +43,3 @@ adventwave:
     # writing to the local media root above. Startup fails if the script, python3, ffmpeg or
     # ffprobe is missing. Set ADVENTWAVE_LOCAL_WORKER=false to leave items in processing instead.
     local-worker-enabled: ${ADVENTWAVE_LOCAL_WORKER:true}
-
-management:
-  health:
-    redis:
-      # Redis is a cache and a write buffer here, never a source of truth: every call site
-      # catches its own failure and falls through to Postgres. Running without it is a
-      # supported local setup, so its absence must not make /actuator/health return 503 —
-      # a DOWN aggregate reads as "the backend is broken" when nothing is.
-      enabled: false

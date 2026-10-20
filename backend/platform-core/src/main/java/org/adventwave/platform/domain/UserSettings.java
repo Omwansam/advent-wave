@@ -66,6 +66,12 @@ public class UserSettings {
         nullable = false
     )
     private boolean autoplay = true;
+    /** RFC 0007: the people who follow this listener see what they are playing. */
+    @Column(
+        name = "share_activity",
+        nullable = false
+    )
+    private boolean shareActivity = true;
     @Column(
         name = "updated_at",
         nullable = false
@@ -86,7 +92,8 @@ public class UserSettings {
             this.sidebarCollapsed,
             this.friendActivityCollapsed,
             this.audioQuality,
-            this.autoplay
+            this.autoplay,
+            this.shareActivity
         );
     }
 
@@ -101,6 +108,10 @@ public class UserSettings {
 
         if (dto.autoplay() != null) {
             this.autoplay = dto.autoplay();
+        }
+
+        if (dto.shareActivity() != null) {
+            this.shareActivity = dto.shareActivity();
         }
 
         this.privateSession = dto.privateSession();
@@ -150,6 +161,10 @@ public class UserSettings {
     @Generated
     public boolean isFriendActivityCollapsed() {
         return this.friendActivityCollapsed;
+    }
+
+    public boolean isShareActivity() {
+        return this.shareActivity;
     }
 
     @Generated

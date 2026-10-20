@@ -7,6 +7,7 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import org.adventwave.catalog.domain.License;
 import org.adventwave.catalog.domain.MediaAsset;
 import org.adventwave.catalog.domain.MediaItem;
 import org.adventwave.catalog.media.BitrateLadder;
+import org.adventwave.catalog.media.AssetUrls;
 import org.adventwave.catalog.repo.CatalogRepositories;
 import org.adventwave.contracts.api.MediaType;
 import org.adventwave.contracts.api.admin.AdminAlbumDto;
@@ -68,6 +70,7 @@ public class CatalogAdminService {
     private final MediaPublicationService publication;
     private final OutboxWriter outbox;
     private final CatalogProperties catalog;
+    private final AssetUrls assetUrls;
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -80,7 +83,8 @@ public class CatalogAdminService {
         CatalogRepositories.MediaAssetRepository assets,
         MediaPublicationService publication,
         OutboxWriter outbox,
-        CatalogProperties catalog
+        CatalogProperties catalog,
+        AssetUrls assetUrls
     ) {
         this.churches = churches;
         this.licenses = licenses;
@@ -91,6 +95,7 @@ public class CatalogAdminService {
         this.publication = publication;
         this.outbox = outbox;
         this.catalog = catalog;
+        this.assetUrls = assetUrls;
     }
 
     // ----------------------------------------------------------------- churches
@@ -375,14 +380,12 @@ public class CatalogAdminService {
      */
     @Transactional(readOnly = true)
     public Map<String, String> preview(UUID id) {
-        if (this.catalog.getLocalMediaRoot() == null || this.catalog.getLocalMediaRoot().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED,
-                "previews need signed media URLs, which this instance cannot issue yet; only local development serves them");
-        }
-        this.requireMedia(id);
+        MediaItem m = this.requireMedia(id);
+        // Long enough to listen to the whole recording in the portal (RFC 0006 for object storage).
+        Duration validFor = Duration.ofMillis(Math.max(0, m.getDurationMs())).plusMinutes(30);
         Map<String, String> urls = new LinkedHashMap<>();
         for (MediaAsset a : this.assets.findByMediaItemIdOrderByBitrateKbpsAsc(id)) {
-            urls.put(a.getProfile(), this.catalog.mediaOrigin() + "/" + a.getStorageKey());
+            urls.put(a.getProfile(), this.assetUrls.url(a.getStorageKey(), validFor));
         }
         return urls;
     }

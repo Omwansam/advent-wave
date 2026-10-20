@@ -10,7 +10,7 @@ Six workstreams sharing one Redis without a registry is a guaranteed collision. 
 | `a:player:dirty` | A | none (drained each flush) | Set of listeners with unflushed state | yes — `PlayerStateService` |
 | `a:home:{segment}` | A | 5m ±20% jitter | Assembled shared home sections | yes — `HomeSectionCache` |
 | `a:ratelimit:{user_id}:{route}` | A | 1m | Fixed-window limiter, esp. `/v1/events/playback` | yes — `RateLimiter` |
-| `a:friendfeed:{user_id}` | A | 10m | Backs `FriendActivityPanel` | not yet — no friend graph exists |
+| `a:friendfeed:{user_id}` | A | 10m | Backs `FriendActivityPanel` | not used — since 1.6.0 (RFC 0007) `GET /v1/friends` reads Postgres (`listener_activity`), one indexed query per minute per open app; held for when that stops being cheap |
 | `b:media:{media_item_id}` | B | 1h + event-invalidated | Catalog read cache | not yet — catalogue is small enough to read through |
 | `b:typeahead:{query_prefix}` | B | 15m | In front of Elasticsearch | not yet — no Elasticsearch yet |
 | `c:trending:{region}:{day}` | C | 48h | Sorted set of live counts | not yet — workstream C |
