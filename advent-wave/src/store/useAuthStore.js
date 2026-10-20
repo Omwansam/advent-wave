@@ -4,6 +4,7 @@ import { createSession } from '../api'
 import { setAuthToken } from '../api/token'
 import { useLibraryStore } from './useLibraryStore'
 import { usePlayerStore } from './usePlayerStore'
+import { useSleepTimerStore } from './useSleepTimerStore'
 import { useUiStore } from './useUiStore'
 
 /**
@@ -37,6 +38,8 @@ export const useAuthStore = create(
         useLibraryStore.getState().reset()
         usePlayerStore.getState().resetForLogout()
         useUiStore.getState().resetSettings()
+        // A timer set by one listener must not pause the next one's session.
+        useSleepTimerStore.getState().cancel()
       },
     }),
     {

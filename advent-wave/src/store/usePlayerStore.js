@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { PLAYBACK_RATES } from '../utils/longForm'
 
 /** @typedef {'off' | 'all' | 'one'} RepeatMode */
 
@@ -49,6 +50,12 @@ export const usePlayerStore = create(
       orderedQueue: null,
       currentIndex: 0,
       volume: 0.85,
+      /**
+       * Speed for sermons and podcasts. Songs always play at 1× whatever this says; MusicPlayer
+       * applies it per item (see utils/longForm). This device only, like volume's local copy:
+       * the server's player_state has no field for it.
+       */
+      playbackRate: 1,
       currentTime: 0,
       duration: 0,
       shuffle: false,
@@ -386,6 +393,19 @@ export const usePlayerStore = create(
 
       setVolume: (v) => set({ volume: Math.min(1, Math.max(0, v)) }),
 
+      setPlaybackRate: (r) => {
+        if (PLAYBACK_RATES.includes(r)) set({ playbackRate: r })
+      },
+
+      /** One step faster (+1) or slower (-1) through PLAYBACK_RATES; stops at either end. */
+      stepPlaybackRate: (dir) => {
+        const i = PLAYBACK_RATES.indexOf(get().playbackRate)
+        const from = i >= 0 ? i : PLAYBACK_RATES.indexOf(1)
+        const to = Math.min(PLAYBACK_RATES.length - 1, Math.max(0, from + Math.sign(dir)))
+        set({ playbackRate: PLAYBACK_RATES[to] })
+        return PLAYBACK_RATES[to]
+      },
+
       setCurrentTime: (t) => set({ currentTime: t }),
 
       setDuration: (d) => set({ duration: d || 0 }),
@@ -396,6 +416,7 @@ export const usePlayerStore = create(
       name: 'adventwave-player',
       partialize: (s) => ({
         volume: s.volume,
+        playbackRate: s.playbackRate,
         shuffle: s.shuffle,
         repeat: s.repeat,
       }),

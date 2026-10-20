@@ -3,6 +3,8 @@ import { useUiStore } from '../store/useUiStore'
 
 const ROWS = [
   ['Play / Pause', 'Space'],
+  ['Sermon speed up / down', '> / <'],
+  ['Sleep timer', 'Moon icon in player'],
   ['Queue', 'Click queue in player'],
   ['Full screen player', 'Click artwork or expand in bar'],
   ['Close modal / drawer', 'Escape'],

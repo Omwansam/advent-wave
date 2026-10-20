@@ -21,7 +21,13 @@ import { FullPlayerModal } from './FullPlayerModal'
 import { LikeButton } from './LikeButton'
 import { usePlaybackSource } from '../hooks/usePlaybackSource'
 import { usePlaybackReporter } from '../hooks/usePlaybackReporter'
+import { useListeningProgress } from '../hooks/useListeningProgress'
 import { useToastStore } from '../store/useToastStore'
+import { useProgressStore } from '../store/useProgressStore'
+import { useSleepTimerStore } from '../store/useSleepTimerStore'
+import { formatRate, isLongForm } from '../utils/longForm'
+import { PlaybackSpeedButton } from './PlaybackSpeedButton'
+import { SleepTimerButton } from './SleepTimerButton'
 
 /**
  * play(), with its rejection handled. AbortError means a newer load() or pause() superseded
@@ -36,6 +42,17 @@ function startPlayback(audio) {
   })
 }
 
+function isTyping(el) {
+  const tag = el?.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || Boolean(el?.isContentEditable)
+}
+
+function sleepTimerFired() {
+  useSleepTimerStore.getState().cancel()
+  usePlayerStore.getState().setPlaying(false)
+  useToastStore.getState().showToast('Sleep timer ended. Playback paused')
+}
+
 export function MusicPlayer() {
   const audioRef = useRef(null)
   const progressRef = useRef(null)
@@ -48,6 +65,8 @@ export function MusicPlayer() {
   const duration = usePlayerStore((s) => s.duration)
   const shuffle = usePlayerStore((s) => s.shuffle)
   const repeat = usePlayerStore((s) => s.repeat)
+  const playbackRate = usePlayerStore((s) => s.playbackRate)
+  const sleepEndsAt = useSleepTimerStore((s) => s.endsAt)
 
   const togglePlay = usePlayerStore((s) => s.togglePlay)
   const nextSong = usePlayerStore((s) => s.nextSong)
@@ -69,6 +88,8 @@ export function MusicPlayer() {
   const { url: streamUrl, gainFactor, error: streamError } = usePlaybackSource(currentSong?.id)
 
   usePlaybackReporter(audioRef, currentSong)
+  useListeningProgress(audioRef, currentSong)
+  const longForm = isLongForm(currentSong)
 
   useEffect(() => {
     if (!currentSong?.id) return
@@ -112,16 +133,33 @@ export function MusicPlayer() {
       // A resumed session: seek to where the account stopped, once, then forget it. Only on
       // the restored track; one picked before that track finished loading starts from the top.
       const { pendingSeekSec, pendingSeekId, currentSong: song, clearPendingSeek } = usePlayerStore.getState()
+      let resumed = false
       if (pendingSeekSec != null) {
         if (pendingSeekId === song?.id && pendingSeekSec > 0 && pendingSeekSec < a.duration) {
           a.currentTime = pendingSeekSec
           setCurrentTime(pendingSeekSec)
+          resumed = true
         }
         clearPendingSeek()
+      }
+      // A sermon or episode picked up again starts where this account left it, not at the
+      // top. The account's server copy above wins when it applies; it is the newer of the two.
+      if (!resumed && isLongForm(song)) {
+        const at = useProgressStore.getState().resumeAt(song.id)
+        if (at != null && at < a.duration) {
+          a.currentTime = at
+          setCurrentTime(at)
+        }
       }
     }
     const onEnd = () => {
       const st = usePlayerStore.getState()
+      // "End of this sermon": move on to the next item, but leave it paused.
+      if (useSleepTimerStore.getState().endOfItem) {
+        st.nextSong()
+        sleepTimerFired()
+        return
+      }
       if (st.repeat === 'one') {
         a.currentTime = 0
         startPlayback(a)
@@ -175,6 +213,28 @@ export function MusicPlayer() {
     if (volume > 0.001) volumeBeforeMuteRef.current = volume
   }, [volume])
 
+  // Speed applies to sermons and podcasts; songs always play as recorded. load() resets
+  // playbackRate to defaultPlaybackRate, so both are set and the next source keeps the speed.
+  useEffect(() => {
+    const a = audioRef.current
+    if (!a) return
+    const r = longForm ? playbackRate : 1
+    a.defaultPlaybackRate = r
+    a.playbackRate = r
+  }, [longForm, playbackRate])
+
+  // A timed sleep. Wall-clock, not listening time: "stop in 30 minutes" means 30 minutes.
+  useEffect(() => {
+    if (sleepEndsAt == null) return undefined
+    const ms = sleepEndsAt - Date.now()
+    if (ms <= 0) {
+      sleepTimerFired()
+      return undefined
+    }
+    const t = setTimeout(sleepTimerFired, ms)
+    return () => clearTimeout(t)
+  }, [sleepEndsAt])
+
   const onPrev = () => {
     const a = audioRef.current
     if (a && a.currentTime > 3) {
@@ -206,20 +266,22 @@ export function MusicPlayer() {
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.code !== 'Space') return
       const el = document.activeElement
-      const tag = el?.tagName
-      if (
-        tag === 'INPUT' ||
-        tag === 'TEXTAREA' ||
-        tag === 'BUTTON' ||
-        tag === 'SELECT' ||
-        el?.isContentEditable
-      ) {
+      if (isTyping(el)) return
+      if (e.code === 'Space') {
+        // A focused button's own Space press is a click; do not also toggle playback.
+        if (el?.tagName === 'BUTTON') return
+        e.preventDefault()
+        usePlayerStore.getState().togglePlay()
         return
       }
-      e.preventDefault()
-      usePlayerStore.getState().togglePlay()
+      if (e.key === '>' || e.key === '<') {
+        const st = usePlayerStore.getState()
+        if (!isLongForm(st.currentSong)) return
+        e.preventDefault()
+        const r = st.stepPlaybackRate(e.key === '>' ? 1 : -1)
+        useToastStore.getState().showToast(`Speed ${formatRate(r)}`)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -386,6 +448,8 @@ export function MusicPlayer() {
               </div>
 
               <div className="flex min-w-0 items-center justify-end gap-1 md:gap-2">
+                <PlaybackSpeedButton className="hidden sm:block" />
+                <SleepTimerButton className="hidden sm:block" />
                 <button
                   type="button"
                   onClick={() => setFullPlayerOpen(true)}

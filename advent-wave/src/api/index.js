@@ -156,6 +156,18 @@ export function savePlayerState(state, options) {
   return api.put('/v1/player-state', state, options)
 }
 
+/* -------------------------------------------------------------- listening progress */
+
+/** Resume points in sermons and podcast episodes, newest first (RFC 0003). */
+export function getProgress(options) {
+  return api.get('/v1/progress', options)
+}
+
+/** The server refuses songs (400) and unpublished items (404). */
+export function saveProgress(mediaItemId, { positionMs, completed }, options) {
+  return api.put(`/v1/progress/${encodeURIComponent(mediaItemId)}`, { positionMs, completed }, options)
+}
+
 /* -------------------------------------------------------------- recommendations */
 
 export function getRecommendations(options) {

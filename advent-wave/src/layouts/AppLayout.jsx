@@ -12,6 +12,7 @@ import { FriendActivityPanel } from '../components/FriendActivityPanel'
 import { useUiStore } from '../store/useUiStore'
 import { useAuthStore } from '../store/useAuthStore'
 import { useLibraryStore } from '../store/useLibraryStore'
+import { useProgressStore } from '../store/useProgressStore'
 import { usePlayerSync } from '../hooks/usePlayerSync'
 
 const LEGACY_THEME_KEY = 'adventwave-theme'
@@ -35,6 +36,7 @@ export function AppLayout() {
   const token = useAuthStore((s) => s.token)
   const loadLibrary = useLibraryStore((s) => s.load)
   const hydrateSettings = useUiStore((s) => s.hydrateSettings)
+  const hydrateProgress = useProgressStore((s) => s.hydrate)
 
   // Every page reads likes, follows and playlists from this store, and settings decide what
   // the server does with playback, so both are fetched once here rather than per page.
@@ -42,7 +44,8 @@ export function AppLayout() {
     if (!token) return
     loadLibrary()
     hydrateSettings()
-  }, [token, loadLibrary, hydrateSettings])
+    hydrateProgress()
+  }, [token, loadLibrary, hydrateSettings, hydrateProgress])
 
   // Resume where this account stopped, and keep the server's copy of the player current.
   usePlayerSync(token)
