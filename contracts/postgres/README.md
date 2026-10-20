@@ -32,6 +32,9 @@ These are the ones a consumer can rely on without reading Java.
 - **One listening-history row per (user, item).** `listening_history_user_item_unique`. This is
   "last played", not a play log — see the Cassandra contract for how that changes.
 - **`player_state.queue` holds ids, never objects.** JSONB array of media item id strings.
+- **One resume point per (user, item), sermons and podcasts only.** `listening_progress_pkey`;
+  the gateway refuses songs (RFC 0003). Not listening history: a private session does not
+  suppress it, and it has no outbox row.
 
 ## State transitions
 
@@ -72,6 +75,7 @@ All additive. Each is annotated `ADDED` in V1 with its reason.
 | `outbox.event_id` | Consumers are idempotent on it (plan §6) |
 | `play_counts_by_item_day`, `play_counts_by_artist_day` (1.1.0) | Interim for the Cassandra tables of the same name and columns; written only by `PlayCountRecorder`, read only by `TrendingService` |
 | `processed_events` (1.1.0) | **Permanent, not interim.** `(event_id, handler)` claims — how a consumer is idempotent under any transport |
+| `listening_progress` (1.4.0) | Per-item resume points for sermons and podcasts, [RFC 0003](../rfcs/0003-listening-progress.md); `player_state` keeps only the current item's |
 
 ## Not in the schema
 

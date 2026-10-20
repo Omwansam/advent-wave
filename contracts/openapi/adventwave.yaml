@@ -9,7 +9,7 @@ info:
   license:
     name: Proprietary
   title: AdventWave API
-  version: 1.3.0
+  version: 1.4.0
 servers:
 - description: This instance
   url: http://localhost:8080
@@ -3173,6 +3173,85 @@ paths:
           description: Unhandled failure; the body carries no detail
       tags:
       - playlists
+  /v1/progress:
+    get:
+      operationId: listProgress
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListeningProgressListDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - player
+  /v1/progress/{mediaItemId}:
+    put:
+      operationId: saveProgress
+      parameters:
+      - in: path
+        name: mediaItemId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListeningProgressDto"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListeningProgressDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Not found — also returned when the caller does not own the
+            resource
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - player
   /v1/recommendations:
     get:
       operationId: recommendations
@@ -3773,6 +3852,26 @@ components:
       properties:
         liked:
           type: boolean
+    ListeningProgressDto:
+      type: object
+      properties:
+        completed:
+          type: boolean
+        mediaItemId:
+          type: string
+        positionMs:
+          type: integer
+          format: int32
+          minimum: 0
+        updatedAt:
+          type: string
+    ListeningProgressListDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListeningProgressDto"
     MasterUploadDto:
       type: object
       properties:

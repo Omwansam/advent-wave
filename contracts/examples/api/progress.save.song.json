@@ -1,0 +1,21 @@
+{
+  "_source": "live response from the gateway, seeded listener account: a song, which keeps no progress",
+  "request": {
+    "method": "PUT",
+    "path": "/v1/progress/3268c157-91dc-5e4f-a1ac-5ec9357c98b9",
+    "body": {
+      "positionMs": 1325000,
+      "completed": false
+    },
+    "authenticated": true
+  },
+  "response": {
+    "status": 400,
+    "body": {
+      "status": 400,
+      "error": "Bad Request",
+      "message": "progress is kept for sermons and podcasts only",
+      "timestamp": "2026-10-20T11:04:59.076426975Z"
+    }
+  }
+}

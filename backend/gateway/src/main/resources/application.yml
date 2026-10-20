@@ -133,7 +133,7 @@ adventwave:
   contracts:
     # The contract version this build implements — <repo>/contracts/VERSION. CI asserts the
     # generated OpenAPI carries the same value.
-    version: 1.3.0
+    version: 1.4.0
 
 springdoc:
   # The document is generated from the controllers and dumped to contracts/openapi/ by

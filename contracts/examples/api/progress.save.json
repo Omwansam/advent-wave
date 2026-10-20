@@ -1,0 +1,21 @@
+{
+  "_source": "live response from the gateway, seeded listener account",
+  "request": {
+    "method": "PUT",
+    "path": "/v1/progress/6ade5605-c3f6-5e34-a73f-a1ab936f1c1e",
+    "body": {
+      "positionMs": 1325000,
+      "completed": false
+    },
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "mediaItemId": "6ade5605-c3f6-5e34-a73f-a1ab936f1c1e",
+      "positionMs": 1325000,
+      "completed": false,
+      "updatedAt": "2026-10-20T11:04:58.814287Z"
+    }
+  }
+}

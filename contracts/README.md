@@ -10,7 +10,7 @@ an RFC says otherwise — and the disagreement is recorded, never silently patch
 | Path | Contract | Status at 1.0.0 | Generated from |
 |---|---|---|---|
 | [`postgres/`](postgres/) | Schema, constraints, trigger, outbox | **implemented** | `backend/tools/dump-schema.sh` (pg_dump of a migrated DB) |
-| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 32 listener and auth + 34 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
+| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 34 listener and auth + 34 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
 | [`kafka/`](kafka/) | Six topics, JSON Schema per message value | **implemented**; `audio.transcode.v1` `completed` is produced by the local worker (RFC 0001) until workstream D's service exists | `playback.events.v1`, `library.events.v1`, `catalog.playlist.v1` from the event classes and `LibraryService`; the rest from the plan and table columns |
 | [`redis/`](redis/) | Key registry, TTLs, owners | **implemented** | `RedisKeys.java` + call sites |
 | [`cassandra/`](cassandra/) | History and play-count tables | **planned** (Postgres interim) | plan §1 day 4 |
@@ -83,6 +83,16 @@ Verbatim, because they are contract terms and not code-review preferences:
 - **Redis is never a source of truth.** The only tolerated loss is ≤30s of playback position.
 
 ## Changes
+
+### 1.4.0 — [RFC 0003](rfcs/0003-listening-progress.md), listening progress
+- **Added** `openapi`: `GET /v1/progress` and `PUT /v1/progress/{mediaItemId}` (tag `player`) —
+  one resume point per sermon or podcast episode, so a listener picks up where they stopped on any
+  device. Songs are refused (400), unpublished items are 404. Schemas `ListeningProgressDto`,
+  `ListeningProgressListDto`.
+- **Added** `postgres`: table `listening_progress` (V7).
+- **Added** `examples`: `progress.list.json`, `progress.save.json`, `progress.save.song.json`.
+- Not listening history: a private session does not suppress it, and no outbox row is written.
+- No breaking change.
 
 ### 1.3.0 — [RFC 0001](rfcs/0001-admin-portal.md), admin portal
 - **Added** `openapi`: 12 operations. `POST /v1/admin/media/{id}/upload` (a URL to PUT the master to,

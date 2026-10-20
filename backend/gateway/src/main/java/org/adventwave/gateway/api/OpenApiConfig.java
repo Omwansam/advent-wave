@@ -149,6 +149,7 @@ public class OpenApiConfig {
         Map.entry("library-controller", "library"),
         Map.entry("playlist-controller", "playlists"),
         Map.entry("player-state-controller", "player"),
+        Map.entry("listening-progress-controller", "player"),
         Map.entry("recommendation-controller", "recommendations"),
         Map.entry("events-controller", "events"),
         Map.entry("church-admin-controller", "admin: contributors"),

@@ -134,6 +134,14 @@ CREATE SEQUENCE public.listening_history_id_seq
     NO MAXVALUE
     CACHE 1;
 ALTER SEQUENCE public.listening_history_id_seq OWNED BY public.listening_history.id;
+CREATE TABLE public.listening_progress (
+    user_id uuid NOT NULL,
+    media_item_id uuid NOT NULL,
+    position_ms integer NOT NULL,
+    completed boolean DEFAULT false NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT listening_progress_position_ms_check CHECK ((position_ms >= 0))
+);
 CREATE TABLE public.media_assets (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     media_item_id uuid NOT NULL,
@@ -318,6 +326,8 @@ ALTER TABLE ONLY public.listening_history
     ADD CONSTRAINT listening_history_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.listening_history
     ADD CONSTRAINT listening_history_user_item_unique UNIQUE (user_id, media_item_id);
+ALTER TABLE ONLY public.listening_progress
+    ADD CONSTRAINT listening_progress_pkey PRIMARY KEY (user_id, media_item_id);
 ALTER TABLE ONLY public.media_assets
     ADD CONSTRAINT media_assets_item_profile_unique UNIQUE (media_item_id, profile);
 ALTER TABLE ONLY public.media_assets
@@ -362,6 +372,7 @@ CREATE INDEX albums_title_trgm_idx ON public.albums USING gin (title public.gin_
 CREATE INDEX artists_name_trgm_idx ON public.artists USING gin (name public.gin_trgm_ops);
 CREATE INDEX licenses_church_idx ON public.licenses USING btree (church_id);
 CREATE INDEX listening_history_user_played_idx ON public.listening_history USING btree (user_id, played_at DESC);
+CREATE INDEX listening_progress_user_updated_idx ON public.listening_progress USING btree (user_id, updated_at DESC);
 CREATE INDEX media_items_album_idx ON public.media_items USING btree (album_id);
 CREATE INDEX media_items_artist_idx ON public.media_items USING btree (artist_id);
 CREATE INDEX media_items_popularity_idx ON public.media_items USING btree (popularity DESC);
@@ -390,6 +401,10 @@ ALTER TABLE ONLY public.listening_history
     ADD CONSTRAINT listening_history_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.listening_history
     ADD CONSTRAINT listening_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.listening_progress
+    ADD CONSTRAINT listening_progress_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.listening_progress
+    ADD CONSTRAINT listening_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.media_assets
     ADD CONSTRAINT media_assets_media_item_id_fkey FOREIGN KEY (media_item_id) REFERENCES public.media_items(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.media_items

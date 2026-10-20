@@ -1,0 +1,27 @@
+{
+  "_source": "live response from the gateway, seeded listener account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/progress",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "mediaItemId": "6ade5605-c3f6-5e34-a73f-a1ab936f1c1e",
+          "positionMs": 1325000,
+          "completed": false,
+          "updatedAt": "2026-10-20T11:04:58.814287Z"
+        },
+        {
+          "mediaItemId": "c9aecd72-1f6b-52d6-8efd-25e7f7bc6f6d",
+          "positionMs": 61000,
+          "completed": false,
+          "updatedAt": "2026-10-20T10:59:29.863126Z"
+        }
+      ]
+    }
+  }
+}
