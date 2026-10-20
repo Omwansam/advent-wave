@@ -24,6 +24,7 @@ const SERVER_FIELDS = [
   'friendActivityCollapsed',
   'audioQuality',
   'autoplay',
+  'shareActivity',
 ]
 
 const PUSH_DELAY_MS = 400
@@ -121,14 +122,15 @@ export const useUiStore = create(
         autoplay: true,
         setAutoplay: (v) => setSynced({ autoplay: Boolean(v) }),
 
+        /** The people who follow you see what you play (RFC 0007). Private session still hides it. */
+        shareActivity: true,
+        setShareActivity: (v) => setSynced({ shareActivity: Boolean(v) }),
+
         // ---------------------------------------------------------- local only
         fullPlayerOpen: false,
         setFullPlayerOpen: (v) => set({ fullPlayerOpen: Boolean(v) }),
         toggleFullPlayer: () =>
           set((s) => ({ fullPlayerOpen: !s.fullPlayerOpen })),
-
-        connectDeviceOpen: false,
-        setConnectDeviceOpen: (v) => set({ connectDeviceOpen: Boolean(v) }),
 
         shortcutsOpen: false,
         setShortcutsOpen: (v) => set({ shortcutsOpen: Boolean(v) }),

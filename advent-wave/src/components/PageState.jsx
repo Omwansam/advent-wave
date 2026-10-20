@@ -26,7 +26,9 @@ export function PageError({ error, onRetry, what = 'this page' }) {
       </p>
       <p className="mt-2 text-sm text-[var(--aw-muted)]">
         {offline
-          ? 'The gateway is not answering. Start it with ./mvnw spring-boot:run -pl gateway.'
+          ? import.meta.env.DEV
+            ? 'The gateway is not answering. Start it with ./mvnw spring-boot:run -pl gateway.'
+            : 'Check your connection and try again in a moment.'
           : error?.message}
       </p>
       {onRetry ? (

@@ -12,12 +12,48 @@ export { ApiError } from './client'
 /* -------------------------------------------------------------- auth */
 
 /**
- * Exchanges an email for a bearer token. The dev issuer verifies no credential — it stands
- * in for the managed IdP that has not been chosen yet (plan §1 pre-work), so the password
- * collected by the login form is not sent anywhere.
+ * Local development only: the dev issuer exchanges an email for a token and checks nothing.
+ * A server runs with it off (DevDefaultsGuard), and then this answers 404.
  */
 export function createSession(email, name) {
   return api.post('/v1/auth/session', { email, name }, { auth: false })
+}
+
+/* Listener accounts (RFC 0005). Each signed-in answer is { token, tokenType, expiresIn, user }. */
+
+export function register({ email, password, name }) {
+  return api.post('/v1/auth/register', { email, password, name }, { auth: false })
+}
+
+export function login(email, password) {
+  return api.post('/v1/auth/login', { email, password }, { auth: false })
+}
+
+/** 202 whether or not the email has an account. */
+export function requestPasswordReset(email) {
+  return api.post('/v1/auth/password-reset', { email }, { auth: false })
+}
+
+export function confirmPasswordReset(token, newPassword) {
+  return api.post('/v1/auth/password-reset/confirm', { token, newPassword }, { auth: false })
+}
+
+/** Returns the account, now verified. */
+export function verifyEmail(token) {
+  return api.post('/v1/auth/verify-email', { token }, { auth: false })
+}
+
+/** Ends every session, this one too, and returns a fresh one. */
+export function changePassword(currentPassword, newPassword) {
+  return api.post('/v1/me/password', { currentPassword, newPassword })
+}
+
+export function signOutEverywhere() {
+  return api.post('/v1/me/sign-out')
+}
+
+export function resendVerification() {
+  return api.post('/v1/me/verify-email')
 }
 
 /* -------------------------------------------------------------- me */
@@ -113,6 +149,28 @@ export function getHistory(options) {
 
 export function clearHistory(options) {
   return api.del('/v1/history', options)
+}
+
+/* -------------------------------------------------------------- friends */
+
+/** Listeners by display name (RFC 0007): 2–100 characters, the caller excluded. */
+export function searchUsers(q, { limit = 20, ...options } = {}) {
+  return api.get('/v1/users', { ...options, query: { q, limit } })
+}
+
+/** A listener's public profile: name, counts, and who follows whom. Never an email. */
+export function getUserProfile(id, options) {
+  return api.get(`/v1/users/${encodeURIComponent(id)}`, options)
+}
+
+/** A toggle, like following an artist. */
+export function toggleFollowUser(userId, options) {
+  return api.put(`/v1/library/follows/user/${encodeURIComponent(userId)}`, undefined, options)
+}
+
+/** Everyone the caller follows, with what each last played when they share it. */
+export function getFriends(options) {
+  return api.get('/v1/friends', options)
 }
 
 /* -------------------------------------------------------------- playlists */

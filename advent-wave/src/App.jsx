@@ -15,7 +15,11 @@ import { Browse } from './pages/Browse'
 import { Settings } from './pages/Settings'
 import { ListeningHistory } from './pages/ListeningHistory'
 import { FollowedArtists } from './pages/FollowedArtists'
+import { FriendsPage } from './pages/FriendsPage'
+import { UserProfile } from './pages/UserProfile'
 import { LoginPage } from './pages/LoginPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { SplashScreen } from './components/SplashScreen'
 import { RequireAuth } from './components/RequireAuth'
 import { onUnauthorized } from './api/token'
@@ -46,6 +50,9 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        {/* Emailed links (RFC 0005): open signed in or not. */}
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
             <Route index element={<Home />} />
@@ -59,6 +66,8 @@ export default function App() {
             <Route path="liked" element={<LikedSongs />} />
             <Route path="album/:id" element={<AlbumDetail />} />
             <Route path="artist/:id" element={<ArtistDetail />} />
+            <Route path="friends" element={<FriendsPage />} />
+            <Route path="user/:id" element={<UserProfile />} />
             <Route path="podcasts" element={<Podcasts />} />
             <Route path="sermons" element={<Sermons />} />
             <Route path="playlist/:id" element={<PlaylistDetail />} />

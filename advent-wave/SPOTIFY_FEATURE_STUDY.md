@@ -37,7 +37,8 @@ Evidence is chunk + column in the minified bundle, and the i18n key the chunk re
 | **Smart shuffle / fewer repeats** | settings chunk, `desktop.settings.shuffle.mode.*` | plain shuffle | Not built |
 | **Sort newest / oldest** | `xpui-routes-show.js`, `shows.sort.*` | — | Not built — `TrackDto` has no publish date (contract change) |
 | **Recents** grouped by day; played / saved / shared | `xpui-routes-recents.js`, `web-player.recents.*` | Listening history (flat) | Not built |
-| Normalize volume, private session, friend activity, queue | settings, buddy feed | **present** | — |
+| **Friend activity** — per followed person: track, artist, "now" or how long ago; hidden in a private session; "Share my listening activity", on by default | buddy feed, `desktop.settings.privateSession`, settings chunk | panel with three invented people ("Mock feed") | **Built** ([RFC 0007](../contracts/rfcs/0007-friend-activity.md)): follow listeners, search by name, profiles, live panel and a Friends page for small screens, share setting; private session and sharing enforced on the server |
+| Normalize volume, private session, queue | settings | **present** | — |
 | Equalizer, offline downloads, Jam, Blend, audiobooks, ads | settings, blend, offline chunks | — | Out of scope for now |
 
 ## What was verified, and how
@@ -49,12 +50,22 @@ Evidence is chunk + column in the minified bundle, and the i18n key the chunk re
   checked against the running gateway; REA inventoried the built jar for the new classes and V7.
   Testcontainers integration tests were **not** run (no Docker on this machine).
 
+## Ready for a server
+
+Beyond the Spotify study, three things stood between the app and real listeners, and are now built:
+listener accounts with email and password ([RFC 0005](../contracts/rfcs/0005-listener-accounts.md)),
+audio in S3-compatible object storage ([RFC 0006](../contracts/rfcs/0006-object-storage.md)), and a
+one-server deployment — systemd, Caddy, nightly backups, a first-deploy script that takes the
+development seed out of view ([`deploy/README.md`](../deploy/README.md)). The demo-account sign-in
+and the fake "Connect to a device" list are gone from production builds; What's New lists what shipped.
+
 ## Next, by value to a sermon-and-hymn listener
 
-1. **Enter the words.** Lyrics and chapters are empty until editors add them: Admin → Media library →
+1. **Deploy**, following `deploy/README.md`, and add the first church's recordings in the admin portal.
+2. **Enter the words.** Lyrics and chapters are empty until editors add them: Admin → Media library →
    a song → *Add lyrics* (choose the rights basis; public-domain hymn texts need only a credit), or a
    sermon → *Add chapters*.
-2. **Transcripts** for sermons, for the hard of hearing and for search.
-3. **Lyric translation** — an English hymn's Swahili words, or the reverse, side by side.
-4. **Sort by date** on Sermons and Podcasts — needs a publish date on `TrackDto`.
-5. **A delete for listening progress** — with a tombstone, see RFC 0003's known limitation.
+3. **Transcripts** for sermons, for the hard of hearing and for search.
+4. **Lyric translation** — an English hymn's Swahili words, or the reverse, side by side.
+5. **Sort by date** on Sermons and Podcasts — needs a publish date on `TrackDto`.
+6. **A delete for listening progress** — with a tombstone, see RFC 0003's known limitation.

@@ -1,21 +1,31 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   ChevronRight,
-  ExternalLink,
   EyeOff,
   Infinity as InfinityIcon,
-  LogOut,
   Moon,
   Sun,
+  Users,
   Volume2,
   Waves,
 } from 'lucide-react'
-import { useAuthStore } from '../store/useAuthStore'
 import { useUiStore } from '../store/useUiStore'
+import { AccountSettings } from '../components/AccountSettings'
+
+/**
+ * What the stream manifest picks for each setting (plan §11.2). Speech uses a lighter ladder, so
+ * a sermon on High is 128 kbps, not 160 — the same choice, sized for a voice.
+ */
+const QUALITY = [
+  { id: 'data_saver', label: 'Data saver', detail: 'About 24 kbps. For patchy mobile data.' },
+  { id: 'normal', label: 'Normal', detail: 'About 96 kbps for music, 64 for sermons.' },
+  { id: 'high', label: 'High', detail: 'About 160 kbps for music, 128 for sermons.' },
+  { id: 'very_high', label: 'Very high', detail: 'About 320 kbps for music.' },
+]
 
 export function Settings() {
-  const navigate = useNavigate()
-  const logout = useAuthStore((s) => s.logout)
+  const audioQuality = useUiStore((s) => s.audioQuality)
+  const setAudioQuality = useUiStore((s) => s.setAudioQuality)
   const theme = useUiStore((s) => s.theme)
   const toggleTheme = useUiStore((s) => s.toggleTheme)
   const privateSession = useUiStore((s) => s.privateSession)
@@ -28,13 +38,15 @@ export function Settings() {
   const setCrossfadeSec = useUiStore((s) => s.setCrossfadeSec)
   const autoplay = useUiStore((s) => s.autoplay)
   const setAutoplay = useUiStore((s) => s.setAutoplay)
+  const shareActivity = useUiStore((s) => s.shareActivity)
+  const setShareActivity = useUiStore((s) => s.setShareActivity)
 
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-3xl font-bold text-[var(--aw-text)]">Settings</h1>
       <p className="mt-2 text-[var(--aw-muted)]">
-        Playback, appearance, and account — Spotify-style preferences (mock
-        where noted).
+        Playback, appearance and your account. Saved to your account, so they
+        follow you to every device.
       </p>
 
       <section className="mt-10 space-y-3">
@@ -64,15 +76,41 @@ export function Settings() {
         <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--aw-muted)]">
           Playback
         </h2>
-        <div className="flex items-start gap-3 rounded-2xl border border-[var(--aw-border)] bg-[var(--aw-surface)] px-4 py-4">
-          <Volume2 className="mt-0.5 size-5 shrink-0 text-[var(--aw-primary)]" />
-          <div>
-            <p className="font-medium text-[var(--aw-text)]">Streaming quality</p>
-            <p className="mt-1 text-sm text-[var(--aw-muted)]">
-              High (demo) — Ogg 320kbps equivalent when you plug in a CDN.
-            </p>
+        <fieldset className="rounded-2xl border border-[var(--aw-border)] bg-[var(--aw-surface)] px-4 py-4">
+          <legend className="sr-only">Streaming quality</legend>
+          <div className="flex items-start gap-3">
+            <Volume2 className="mt-0.5 size-5 shrink-0 text-[var(--aw-primary)]" />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-[var(--aw-text)]">Streaming quality</p>
+              <p className="mt-1 text-sm text-[var(--aw-muted)]">
+                Takes effect from the next song or sermon.
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {QUALITY.map((q) => (
+                  <label
+                    key={q.id}
+                    className={`cursor-pointer rounded-xl border px-3 py-2 text-sm transition ${
+                      audioQuality === q.id
+                        ? 'border-[var(--aw-primary)] bg-[var(--aw-primary)]/10 text-[var(--aw-text)]'
+                        : 'border-[var(--aw-border)] text-[var(--aw-muted)] hover:text-[var(--aw-text)]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="audio-quality"
+                      value={q.id}
+                      checked={audioQuality === q.id}
+                      onChange={() => setAudioQuality(q.id)}
+                      className="sr-only"
+                    />
+                    <span className="block font-semibold">{q.label}</span>
+                    <span className="mt-0.5 block text-xs">{q.detail}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        </fieldset>
         <button
           type="button"
           onClick={() => setNormalizeAudio(!normalizeAudio)}
@@ -197,7 +235,9 @@ export function Settings() {
                 Private session
               </span>
               <span className="mt-1 block text-sm text-[var(--aw-muted)]">
-                Hides friend activity and listening from the mock social rail.
+                While it is on, nothing you play reaches your history, your
+                recommendations or the people who follow you, and what they could
+                see before is removed.
               </span>
             </span>
           </span>
@@ -214,6 +254,45 @@ export function Settings() {
             />
           </span>
         </button>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={shareActivity}
+          onClick={() => setShareActivity(!shareActivity)}
+          className="flex w-full items-center justify-between rounded-2xl border border-[var(--aw-border)] bg-[var(--aw-surface)] px-4 py-4 text-left transition hover:bg-[var(--aw-surface-elevated)]"
+        >
+          <span className="flex items-center gap-3">
+            <Users className="size-5 text-[var(--aw-primary)]" />
+            <span>
+              <span className="font-medium text-[var(--aw-text)]">
+                Share my listening activity
+              </span>
+              <span className="mt-1 block text-sm text-[var(--aw-muted)]">
+                The people who follow you see what you are playing and what you
+                played last. Turning it off also removes what they can see now.
+              </span>
+            </span>
+          </span>
+          <span
+            className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition ${
+              shareActivity ? 'bg-[var(--aw-primary)]' : 'bg-[var(--aw-border)]'
+            }`}
+            aria-hidden
+          >
+            <span
+              className={`absolute top-1 size-5 rounded-full bg-white shadow transition ${
+                shareActivity ? 'left-6' : 'left-1'
+              }`}
+            />
+          </span>
+        </button>
+        <Link
+          to="/friends"
+          className="flex w-full items-center justify-between rounded-2xl border border-[var(--aw-border)] bg-[var(--aw-surface)] px-4 py-4 text-left transition hover:bg-[var(--aw-surface-elevated)]"
+        >
+          <span className="font-medium text-[var(--aw-text)]">Find and manage friends</span>
+          <ChevronRight className="size-5 text-[var(--aw-muted)]" />
+        </Link>
         <Link
           to="/history"
           className="flex w-full items-center justify-between rounded-2xl border border-[var(--aw-border)] bg-[var(--aw-surface)] px-4 py-4 text-left transition hover:bg-[var(--aw-surface-elevated)]"
@@ -225,38 +304,15 @@ export function Settings() {
         </Link>
       </section>
 
-      <section className="mt-8 space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--aw-muted)]">
-          Account
-        </h2>
-        <button
-          type="button"
-          onClick={() => {
-            logout()
-            navigate('/login', { replace: true })
-          }}
-          className="flex w-full items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-left text-red-800 transition hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200 dark:hover:bg-red-950/50"
-        >
-          <LogOut className="size-5 shrink-0" />
-          <span className="font-semibold">Log out</span>
-        </button>
-      </section>
+      <AccountSettings />
 
       <section className="mt-8 rounded-2xl border border-[var(--aw-border)] bg-[var(--aw-surface)] p-6">
         <h2 className="font-semibold text-[var(--aw-text)]">About AdventWave</h2>
         <p className="mt-2 text-sm text-[var(--aw-muted)]">
-          MVP streaming shell for faith-centered content. Replace mock data and
-          auth with your production API.
+          Worship music, sermons and podcasts from Seventh-day Adventist churches,
+          shared with their consent. Every recording here is licensed by the church
+          that made it.
         </p>
-        <a
-          href="https://github.com"
-          className="mt-4 inline-flex items-center gap-2 text-sm text-[var(--aw-primary)]"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Documentation
-          <ExternalLink className="size-4" />
-        </a>
       </section>
     </div>
   )

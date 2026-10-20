@@ -16,10 +16,12 @@ import {
   Settings,
   Sparkles,
   UserRound,
+  Users,
   X,
 } from 'lucide-react'
 import { useUiStore } from '../store/useUiStore'
 import { useAuthStore } from '../store/useAuthStore'
+import { UserAvatar } from './Friends'
 
 const nav = [
   { to: '/', label: 'Home', Icon: Home },
@@ -30,6 +32,7 @@ const nav = [
   { to: '/liked', label: 'Liked songs', Icon: Heart },
   { to: '/history', label: 'Listening history', Icon: Clock },
   { to: '/artists', label: 'Your artists', Icon: UserRound },
+  { to: '/friends', label: 'Friends', Icon: Users },
   { to: '/podcasts', label: 'Podcasts', Icon: Mic2 },
   { to: '/sermons', label: 'Sermons', Icon: BookOpen },
   { to: '/settings', label: 'Settings', Icon: Settings },
@@ -138,11 +141,7 @@ function SidebarShell({ compact, onClose }) {
         <div
           className={`flex items-center gap-3 ${compact ? 'justify-center' : ''}`}
         >
-          <img
-            src={`https://picsum.photos/seed/${encodeURIComponent(authUser?.email ?? 'profile')}/96/96`}
-            alt=""
-            className="size-10 shrink-0 rounded-full object-cover ring-2 ring-[var(--aw-gold)]/40"
-          />
+          <UserAvatar name={authUser?.name ?? 'Listener'} />
           {!compact ? (
             <div className="min-w-0 flex-1 text-left">
               <p className="truncate text-sm font-semibold text-[var(--aw-text)]">

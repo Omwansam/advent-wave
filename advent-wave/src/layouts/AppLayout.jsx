@@ -4,7 +4,6 @@ import { Sidebar } from '../components/Sidebar'
 import { Navbar } from '../components/Navbar'
 import { MusicPlayer } from '../components/MusicPlayer'
 import { QueueDrawer } from '../components/QueueDrawer'
-import { ConnectDeviceModal } from '../components/ConnectDeviceModal'
 import { KeyboardShortcutsModal } from '../components/KeyboardShortcutsModal'
 import { ToastHost } from '../components/ToastHost'
 import { CreatePlaylistModal } from '../components/CreatePlaylistModal'
@@ -14,6 +13,7 @@ import { useAuthStore } from '../store/useAuthStore'
 import { useLibraryStore } from '../store/useLibraryStore'
 import { useProgressStore } from '../store/useProgressStore'
 import { usePlayerSync } from '../hooks/usePlayerSync'
+import { useFriendsPoll } from '../hooks/useFriendsPoll'
 
 const LEGACY_THEME_KEY = 'adventwave-theme'
 
@@ -49,6 +49,9 @@ export function AppLayout() {
 
   // Resume where this account stopped, and keep the server's copy of the player current.
   usePlayerSync(token)
+
+  // The activity panel, the Friends page and every Follow button read this list.
+  useFriendsPoll()
 
   const theme = useUiStore((s) => s.theme)
   const toggleTheme = useUiStore((s) => s.toggleTheme)
@@ -129,7 +132,6 @@ export function AppLayout() {
         </div>
       </main>
 
-      <ConnectDeviceModal />
       <KeyboardShortcutsModal />
       <CreatePlaylistModal />
       <ToastHost />

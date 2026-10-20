@@ -1,193 +1,168 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
-import { Sparkles } from 'lucide-react'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { requestPasswordReset } from '../api'
 import { useAuthStore } from '../store/useAuthStore'
-import { ApiError } from '../api'
-import { DEMO_LOGIN } from '../data/demoLogin'
+import { AuthField, AuthMessage, AuthShell, AuthSubmit } from '../components/AuthShell'
+import { describeError } from '../utils/errors'
 
+const TITLES = {
+  login: ['Log in to AdventWave', 'Worship, sermons and podcasts, wherever you left them.'],
+  register: ['Create your account', 'Free. Your library and listening follow you to every device.'],
+  forgot: ['Reset your password', "Enter your email and we'll send you a link to choose a new one."],
+}
+
+/**
+ * Sign-in, sign-up and the password-reset request, on one page (RFC 0005). An account made by
+ * the dev issuer or seeded for demos has no password: "Forgot password" is how its owner sets one.
+ */
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const user = useAuthStore((s) => s.user)
+  const token = useAuthStore((s) => s.token)
   const login = useAuthStore((s) => s.login)
+  const register = useAuthStore((s) => s.register)
 
-  const [email, setEmail] = useState(DEMO_LOGIN.email)
-  const [password, setPassword] = useState(DEMO_LOGIN.password)
+  const [mode, setMode] = useState('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
   const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [pending, setPending] = useState(false)
 
-  if (user) {
-    return <Navigate to="/" replace />
+  if (user && token) {
+    return <Navigate to={location.state?.from || '/'} replace />
+  }
+
+  const switchTo = (next) => {
+    setMode(next)
+    setError('')
+    setNotice('')
   }
 
   const onSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    const em = email.trim()
-    if (!em || !em.includes('@')) {
+    setNotice('')
+    if (!email.trim().includes('@')) {
       setError('Enter a valid email address.')
       return
     }
-    setSubmitting(true)
+    setPending(true)
     try {
-      await login(em, em.split('@')[0])
-      navigate('/', { replace: true })
+      if (mode === 'forgot') {
+        await requestPasswordReset(email.trim())
+        setNotice(`If ${email.trim()} has an AdventWave account, a reset link is on its way. It works for an hour.`)
+        setPending(false)
+        return
+      }
+      if (mode === 'register') {
+        await register({ email, password, name })
+      } else {
+        await login(email, password)
+      }
+      navigate(location.state?.from || '/', { replace: true })
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : 'Could not reach the AdventWave server. Is the gateway running on :8080?',
-      )
-      setSubmitting(false)
+      setError(describeError(err))
+      setPending(false)
     }
   }
 
+  const [title, subtitle] = TITLES[mode]
+
   return (
-    <div className="flex min-h-svh flex-col bg-[var(--aw-bg)]">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-50 dark:opacity-30"
-        style={{
-          background:
-            'radial-gradient(ellipse 100% 80% at 50% -30%, rgba(109,93,246,0.25), transparent), radial-gradient(ellipse 80% 60% at 100% 100%, rgba(201,162,39,0.15), transparent)',
-        }}
-      />
-
-      <header className="relative flex justify-center px-6 pt-10 pb-4">
-        <div className="flex items-center gap-2">
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--aw-primary)] to-[#8b7cff] text-white shadow-lg">
-            <Sparkles className="size-6" aria-hidden />
-          </span>
-          <span className="text-xl font-bold tracking-tight text-[var(--aw-text)]">
-            AdventWave
-          </span>
-        </div>
-      </header>
-
-      <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-16 pt-4">
-        <div className="rounded-3xl bg-[var(--aw-surface)] p-8 shadow-[var(--aw-shadow-hover)] ring-1 ring-black/[0.06] dark:ring-white/10">
-          <h2 className="text-center text-2xl font-bold text-[var(--aw-text)]">
-            Log in to continue
-          </h2>
-          <p className="mt-2 text-center text-sm text-[var(--aw-muted)]">
-            Any email signs you in and gets its own library. The server issues a
-            real token; the password is not checked until an identity provider
-            is wired up.
-          </p>
-
-          <div className="mt-6 rounded-2xl border border-[var(--aw-primary)]/25 bg-[var(--aw-primary)]/8 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--aw-primary)]">
-              Demo account (try this)
-            </p>
-            <dl className="mt-3 space-y-2 text-sm">
-              <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
-                <dt className="shrink-0 text-[var(--aw-muted)]">Email</dt>
-                <dd className="font-mono text-[var(--aw-text)]">
-                  {DEMO_LOGIN.email}
-                </dd>
-              </div>
-              <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
-                <dt className="shrink-0 text-[var(--aw-muted)]">Password</dt>
-                <dd className="font-mono text-[var(--aw-text)]">
-                  {DEMO_LOGIN.password}
-                </dd>
-              </div>
-            </dl>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail(DEMO_LOGIN.email)
-                setPassword(DEMO_LOGIN.password)
-                setError('')
-              }}
-              className="mt-4 w-full rounded-xl border border-[var(--aw-border)] bg-[var(--aw-surface)] py-2.5 text-sm font-semibold text-[var(--aw-text)] transition hover:bg-[var(--aw-surface-elevated)]"
-            >
-              Reset fields to demo values
+    <AuthShell
+      title={title}
+      subtitle={subtitle}
+      footer={
+        mode === 'login' ? (
+          <>
+            New to AdventWave?{' '}
+            <button type="button" onClick={() => switchTo('register')} className="font-semibold text-[var(--aw-primary)] hover:underline">
+              Create an account
             </button>
-          </div>
-
-          <form onSubmit={onSubmit} className="mt-8 space-y-4">
-            <div>
-              <label
-                htmlFor="login-email"
-                className="mb-1.5 block text-sm font-medium text-[var(--aw-text)]"
-              >
-                Email
-              </label>
-              <input
-                id="login-email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="h-12 w-full rounded-xl border border-[var(--aw-border)] bg-[var(--aw-bg)] px-4 text-[var(--aw-text)] outline-none transition focus:border-[var(--aw-primary)] focus:ring-2 focus:ring-[var(--aw-primary)]/25"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="login-password"
-                className="mb-1.5 block text-sm font-medium text-[var(--aw-text)]"
-              >
-                Password
-              </label>
-              <input
-                id="login-password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="h-12 w-full rounded-xl border border-[var(--aw-border)] bg-[var(--aw-bg)] px-4 text-[var(--aw-text)] outline-none transition focus:border-[var(--aw-primary)] focus:ring-2 focus:ring-[var(--aw-primary)]/25"
-              />
-            </div>
-
-            {error ? (
-              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-                {error}
-              </p>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="h-12 w-full rounded-full bg-[var(--aw-primary)] text-sm font-bold text-white shadow-lg shadow-[var(--aw-primary)]/30 transition hover:bg-[var(--aw-primary-hover)] disabled:opacity-60"
-            >
-              {submitting ? 'Signing in…' : 'Log in'}
+          </>
+        ) : (
+          <>
+            Already have an account?{' '}
+            <button type="button" onClick={() => switchTo('login')} className="font-semibold text-[var(--aw-primary)] hover:underline">
+              Log in
             </button>
-          </form>
+          </>
+        )
+      }
+    >
+      <form onSubmit={onSubmit} className="mt-8 space-y-4" noValidate>
+        {mode === 'register' ? (
+          <AuthField id="auth-name" label="Your name" type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="How friends will see you" />
+        ) : null}
+        <AuthField id="auth-email" label="Email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+        {mode !== 'forgot' ? (
+          <AuthField
+            id="auth-password"
+            label="Password"
+            type="password"
+            required
+            autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            hint={mode === 'register' ? 'At least 8 characters. A short phrase is easier to remember and harder to guess.' : undefined}
+          />
+        ) : null}
 
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[var(--aw-border)]" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[var(--aw-surface)] px-3 text-[var(--aw-muted)]">
-                or
-              </span>
-            </div>
-          </div>
+        <AuthMessage>{error}</AuthMessage>
+        <AuthMessage tone="info">{notice}</AuthMessage>
 
-          <button
-            type="button"
-            disabled
-            className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-2 rounded-full border border-[var(--aw-border)] text-sm font-semibold text-[var(--aw-muted)] opacity-70"
-          >
-            Continue with Google
-            <span className="text-xs font-normal">(soon)</span>
+        <AuthSubmit pending={pending} pendingLabel={mode === 'forgot' ? 'Sending…' : 'One moment…'}>
+          {mode === 'login' ? 'Log in' : mode === 'register' ? 'Create account' : 'Send reset link'}
+        </AuthSubmit>
+
+        {mode === 'login' ? (
+          <button type="button" onClick={() => switchTo('forgot')} className="block w-full text-center text-sm font-medium text-[var(--aw-muted)] hover:text-[var(--aw-text)] hover:underline">
+            Forgot your password?
           </button>
+        ) : null}
+      </form>
 
-          <p className="mt-8 text-center text-sm text-[var(--aw-muted)]">
-            Don&apos;t have an account?{' '}
-            <span className="font-medium text-[var(--aw-primary)]">
-              Sign up
-            </span>{' '}
-            <span className="text-xs">(coming soon)</span>
-          </p>
-        </div>
-      </main>
+      {import.meta.env.DEV ? <DevSignIn /> : null}
+    </AuthShell>
+  )
+}
 
-      <footer className="relative px-6 pb-8 text-center text-xs text-[var(--aw-muted)]">
-        By continuing, you agree to our Terms and Privacy Policy (demo).
-      </footer>
+/**
+ * Local development only — compiled out of production builds. The dev issuer signs in any email
+ * without a password, including the seeded demo accounts; a server runs with it off.
+ */
+function DevSignIn() {
+  const navigate = useNavigate()
+  const devLogin = useAuthStore((s) => s.devLogin)
+  const [error, setError] = useState('')
+  return (
+    <div className="mt-8 rounded-2xl border border-dashed border-[var(--aw-border)] p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--aw-muted)]">Local development</p>
+      <p className="mt-1 text-xs text-[var(--aw-muted)]">Sign in as a seeded demo account through the dev issuer. Not in production builds.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {['listener@adventwave.app', 'pastor@adventwave.app', 'newuser@adventwave.app'].map((email) => (
+          <button
+            key={email}
+            type="button"
+            onClick={async () => {
+              setError('')
+              try {
+                await devLogin(email)
+                navigate('/', { replace: true })
+              } catch (err) {
+                setError(describeError(err))
+              }
+            }}
+            className="rounded-full border border-[var(--aw-border)] px-3 py-1.5 text-xs font-medium text-[var(--aw-text)] hover:bg-[var(--aw-surface-elevated)]"
+          >
+            {email.split('@')[0]}
+          </button>
+        ))}
+      </div>
+      <AuthMessage>{error}</AuthMessage>
     </div>
   )
 }

@@ -2,30 +2,67 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, Sparkles } from 'lucide-react'
 
+/** Newest first. Give a new entry a new id: the dot shows until the newest id has been seen. */
 const ITEMS = [
   {
-    id: 'n1',
-    title: 'New: Full screen player',
-    body: 'Tap artwork or expand — lyrics placeholder included.',
-    to: '/',
+    id: '2026-10-friends',
+    title: 'Friend activity',
+    body: 'Follow friends and see what they are listening to. You choose whether they see yours.',
+    to: '/friends',
   },
   {
-    id: 'n2',
-    title: 'Browse by mood',
-    body: 'Discover categories tuned for worship and rest.',
-    to: '/browse',
+    id: '2026-10-lyrics',
+    title: 'Hymn lyrics',
+    body: 'Sing along: the words follow the recording, and search finds a hymn by a line you remember.',
+    to: '/search',
   },
   {
-    id: 'n3',
-    title: 'Listening history',
-    body: 'Replay everything you have started recently.',
-    to: '/history',
+    id: '2026-10-chapters',
+    title: 'Sermon chapters',
+    body: 'Jump straight to the scripture reading, the sermon or the appeal.',
+    to: '/sermons',
+  },
+  {
+    id: '2026-10-autoplay',
+    title: 'Autoplay and crossfade',
+    body: 'When your queue ends, similar songs keep playing. Crossfade blends one song into the next.',
+    to: '/settings',
+  },
+  {
+    id: '2026-10-progress',
+    title: 'Pick up where you left off',
+    body: 'Sermons and podcasts remember your place on every device, with a sleep timer and speed control.',
+    to: '/sermons',
   },
 ]
 
+const SEEN_KEY = 'adventwave-whats-new-seen'
+
+function readSeen() {
+  try {
+    return localStorage.getItem(SEEN_KEY)
+  } catch {
+    return null
+  }
+}
+
 export function WhatsNewMenu() {
   const [open, setOpen] = useState(false)
+  const [seen, setSeen] = useState(readSeen)
   const wrapRef = useRef(null)
+  const unread = seen !== ITEMS[0].id
+
+  const toggle = () => {
+    setOpen((v) => !v)
+    if (unread) {
+      setSeen(ITEMS[0].id)
+      try {
+        localStorage.setItem(SEEN_KEY, ITEMS[0].id)
+      } catch {
+        // Storage blocked: the dot comes back next visit, nothing worse.
+      }
+    }
+  }
 
   useEffect(() => {
     if (!open) return
@@ -42,13 +79,15 @@ export function WhatsNewMenu() {
     <div ref={wrapRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         className="relative rounded-full p-2 text-[var(--aw-muted)] transition hover:bg-black/5 hover:text-[var(--aw-text)] dark:hover:bg-white/10"
         aria-label="What is new"
         aria-expanded={open}
       >
         <Bell className="size-5" />
-        <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-[var(--aw-primary)] ring-2 ring-[var(--aw-nav-bg)]" />
+        {unread ? (
+          <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-[var(--aw-primary)] ring-2 ring-[var(--aw-nav-bg)]" />
+        ) : null}
       </button>
       {open ? (
         <div
