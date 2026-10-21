@@ -10,7 +10,7 @@ its `web` and `gateway` containers join the proxy's network (`fibi_internal`) as
 Cloudflare ─► fibi-proxy-1 (80/443, Let's Encrypt via fibi-certbot-1)
                  │  adventwave.draftbitlabs.tech        /v1/* → adventwave-gateway:8080
                  │                                       /     → adventwave-web:80
-                 │  adventwave-admin.draftbitlabs.tech  /v1/* → adventwave-gateway:8080
+                 │  admin.draftbitlabs.tech             /v1/* → adventwave-gateway:8080
                  │                                       /     → adventwave-web:81
               compose project "adventwave": gateway, web, postgres, redis, backup
 ```
@@ -33,7 +33,7 @@ Cloudflare ─► fibi-proxy-1 (80/443, Let's Encrypt via fibi-certbot-1)
 git clone https://github.com/Omwansam/advent-wave.git /srv/adventtwave/app
 cd /srv/adventtwave/app
 deploy/docker/install.sh --app-host adventwave.draftbitlabs.tech \
-                         --admin-host adventwave-admin.draftbitlabs.tech --admin-email you@example.org
+                         --admin-host admin.draftbitlabs.tech --admin-email you@example.org
 ```
 
 It writes `adventwave.env` with fresh secrets, builds both images, starts the stack, waits for the
@@ -46,12 +46,15 @@ gateway to report healthy, and renders the port-80 vhost.
 - `deploy/nginx.conf`, end of the `http` block:
   `include /etc/nginx/conf.d/vhosts-adventwave/*.conf;  # AdventWave — /srv/adventtwave`
 
-Check with `docker compose run --rm --no-deps proxy nginx -t`, then `docker compose up -d proxy`
-(a couple of seconds without any site while the container is recreated).
+Copy both files to `*.bak-pre-adventwave-<date>` first, then `docker compose up -d proxy` (a couple
+of seconds without any site while the container is recreated). FIBI's entrypoint runs `nginx -t`
+before it starts nginx, and ignores any command given to it — so `docker compose run proxy nginx -t`
+does not test anything, it starts a second nginx. If the proxy does not come back (`docker ps`
+shows it Restarting), restore the two `.bak` files and `docker compose up -d proxy` again.
 
-**DNS.** In Cloudflare, for `draftbitlabs.tech`: two `A` records, `adventwave` and
-`adventwave-admin`, to `2.24.114.80`, proxied. One level below the domain on purpose: Cloudflare's
-free certificate covers `*.draftbitlabs.tech`, not `admin.adventwave.draftbitlabs.tech`.
+**DNS.** In Cloudflare, for `draftbitlabs.tech`: two `A` records, `adventwave` and `admin`, to
+`2.24.114.80`, proxied. Keep both one level below the domain: Cloudflare's free certificate covers
+`*.draftbitlabs.tech`, not a name like `admin.adventwave.draftbitlabs.tech`.
 
 **HTTPS**, once both names resolve: `deploy/docker/enable-https.sh`. It issues one certificate for
 both through the proxy's certbot, installs the HTTPS vhost after the proxy accepts it, and reloads.

@@ -23,6 +23,9 @@ dump() {
 if [ "${1:-}" = once ]; then dump; exit $?; fi
 
 trap 'exit 0' TERM
+# The gateway creates the schema when it first starts; a dump taken before that is empty.
+sleep "${BACKUP_FIRST_DELAY:-900}" &
+wait $!
 while :; do
   if dump; then
     delay=${BACKUP_EVERY:-86400}
