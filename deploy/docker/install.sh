@@ -17,6 +17,7 @@ ENV_FILE="$AW_HOME/adventwave.env"
 PROXY=${AW_PROXY_CONTAINER:-fibi-proxy-1}
 PORT=${AW_GATEWAY_PORT:-8090}
 APP_HOST="" ADMIN_HOST="" ADMIN_EMAIL="" PULL=1
+ARGS=("$@")
 
 while [ $# -gt 0 ]; do
   case $1 in
@@ -82,7 +83,13 @@ fi
 APP_HOST=$(setting AW_APP_HOST); ADMIN_HOST=$(setting AW_ADMIN_HOST)
 
 if [ "$PULL" = 1 ] && git -C "$repo" rev-parse --git-dir >/dev/null 2>&1; then
+  before=$(git -C "$repo" rev-parse HEAD)
   git -C "$repo" pull --ff-only
+  # bash reads a script as it runs it, so the rest of this file may just have changed under it:
+  # start again from the top with the version that was pulled.
+  if [ "$(git -C "$repo" rev-parse HEAD)" != "$before" ]; then
+    exec "$here/install.sh" "${ARGS[@]}" --no-pull
+  fi
 fi
 echo "==> release $(git -C "$repo" log -1 --format='%h %s' 2>/dev/null || echo unknown)"
 
