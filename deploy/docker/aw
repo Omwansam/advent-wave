@@ -1,0 +1,6 @@
+#!/bin/sh
+# `docker compose` for this stack, from anywhere:  ./aw ps · ./aw logs -f gateway · ./aw restart gateway
+AW_HOME=${AW_HOME:-/srv/adventtwave}
+export AW_HOME
+here=$(cd "$(dirname "$0")" && pwd)
+exec docker compose -f "$here/compose.yml" --env-file "$AW_HOME/adventwave.env" "$@"

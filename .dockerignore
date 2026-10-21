@@ -1,0 +1,10 @@
+# Build context for deploy/docker images: source only. Dependencies and build output are produced
+# inside the image, so local copies would only slow the context upload and could leak in.
+.git
+**/node_modules
+**/dist
+**/target
+deploy/out
+**/.env
+**/.env.*
+backend/gateway/config

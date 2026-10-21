@@ -1,0 +1,20 @@
+# AdventWave — port 80. Rendered by deploy/docker/install.sh into $AW_HOME/vhosts, which the edge
+# proxy includes. A separate file from the HTTPS block on purpose: nginx refuses to start when a
+# server block names a certificate that does not exist, so this one alone is safe before the
+# certificate is issued.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name __APP_HOST__ __ADMIN_HOST__;
+
+    # Let's Encrypt HTTP-01, through the proxy's shared webroot. Never behind the redirect:
+    # renewal happens exactly when the certificate is about to expire.
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}

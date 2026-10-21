@@ -1,0 +1,118 @@
+# AdventWave on a shared Docker host (deploy/docker/README.md).
+#
+#   docker compose -f deploy/docker/compose.yml --env-file "$AW_HOME/adventwave.env" up -d --build
+#
+# Publishes nothing to the internet. The host's existing edge proxy (here the FIBI stack's nginx,
+# which owns 80/443) reaches `web` and `gateway` over its network, `fibi_internal`, by the
+# prefixed aliases below; postgres and redis stay on this stack's own network. The gateway is also
+# bound to the host's loopback, for health checks and the first-deploy script.
+name: adventwave
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: adventwave
+      POSTGRES_USER: adventwave
+      POSTGRES_PASSWORD: ${ADVENTWAVE_DB_PASSWORD:?set it in adventwave.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [adventwave]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adventwave -d adventwave"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  redis:
+    # A cache and a write buffer, never a source of truth: nothing to persist.
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    networks: [adventwave]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.gateway
+    image: adventwave-gateway:latest
+    restart: unless-stopped
+    env_file: ${AW_HOME:-/srv/adventtwave}/adventwave.env
+    environment:
+      ADVENTWAVE_DB_URL: jdbc:postgresql://postgres:5432/adventwave
+      ADVENTWAVE_DB_USER: adventwave
+      ADVENTWAVE_REDIS_HOST: redis
+      ADVENTWAVE_LOCAL_WORKER: "true"
+      # The edge proxy is on a Docker network (172.16/12), which Tomcat trusts by default; it
+      # sends the real client address, which the per-address sign-in limits need.
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+    volumes:
+      - transcode:/var/lib/adventwave/transcode
+    ports:
+      - "127.0.0.1:${AW_GATEWAY_PORT:-8090}:8080"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    networks:
+      adventwave: {}
+      fibi_internal:
+        aliases: [adventwave-gateway]
+    logging: *logging
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.web
+    image: adventwave-web:latest
+    restart: unless-stopped
+    networks:
+      fibi_internal:
+        aliases: [adventwave-web]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging
+
+  backup:
+    # Nightly pg_dump into $AW_HOME/backups, the newest 14 kept (backup-loop.sh).
+    image: postgres:16-alpine
+    restart: unless-stopped
+    user: "${AW_UID:-1001}:${AW_GID:-1001}"
+    environment:
+      PGHOST: postgres
+      PGUSER: adventwave
+      PGDATABASE: adventwave
+      PGPASSWORD: ${ADVENTWAVE_DB_PASSWORD:?set it in adventwave.env}
+      BACKUP_KEEP: "14"
+    entrypoint: ["/bin/sh", "/backup-loop.sh"]
+    volumes:
+      - ./backup-loop.sh:/backup-loop.sh:ro
+      - ${AW_HOME:-/srv/adventtwave}/backups:/backups
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [adventwave]
+    logging: *logging
+
+volumes:
+  pgdata:
+  transcode:
+
+networks:
+  adventwave: {}
+  # Created by the FIBI stack. `external`: compose attaches to it and never changes or removes it.
+  fibi_internal:
+    external: true

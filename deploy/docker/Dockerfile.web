@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1.7
+# Both web apps, built with no VITE_API_BASE_URL (each is served on the same origin as its /v1
+# proxy), behind one small nginx: the listener app on port 80, the admin portal on 81.
+# Build context: the repository root.
+FROM node:22-bookworm-slim AS build
+WORKDIR /src
+COPY advent-wave/package.json advent-wave/package-lock.json advent-wave/
+COPY admin/advent-admin/package.json admin/advent-admin/package-lock.json admin/advent-admin/
+RUN --mount=type=cache,target=/root/.npm \
+    (cd advent-wave && npm ci --no-audit --no-fund --loglevel=error) \
+    && (cd admin/advent-admin && npm ci --no-audit --no-fund --loglevel=error)
+COPY advent-wave/ advent-wave/
+COPY admin/advent-admin/ admin/advent-admin/
+RUN (cd advent-wave && npx vite build) && (cd admin/advent-admin && npx vite build) \
+    # Development hints must not ship (PageState.jsx); fail the build if one did.
+    && ! grep -rlq 'spring-boot:run\|localhost:8080' advent-wave/dist admin/advent-admin/dist
+
+FROM nginx:1.27-alpine
+COPY deploy/docker/web.nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /src/advent-wave/dist /usr/share/nginx/web
+COPY --from=build /src/admin/advent-admin/dist /usr/share/nginx/admin
+EXPOSE 80 81

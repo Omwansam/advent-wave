@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1.7
+# The gateway with everything the in-process transcode worker needs (RFC 0006): Java 21,
+# python3, ffmpeg and ffprobe, and tools/transcode.py. Build context: the repository root.
+FROM eclipse-temurin:21-jdk-noble AS build
+WORKDIR /src
+COPY backend/ backend/
+RUN --mount=type=cache,target=/root/.m2 \
+    cd backend && ./mvnw -q -B -DskipTests package -pl gateway -am \
+    && find gateway/target -maxdepth 1 -name 'gateway-*.jar' ! -name '*-plain.jar' -exec cp {} /gateway.jar \;
+
+FROM eclipse-temurin:21-jre-noble
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 ffmpeg curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 --home-dir /app --shell /usr/sbin/nologin adventwave \
+    && install -d -o adventwave -g adventwave /var/lib/adventwave/transcode
+WORKDIR /app
+COPY --from=build /gateway.jar /app/gateway.jar
+COPY backend/tools/transcode.py /app/tools/transcode.py
+USER adventwave
+ENV ADVENTWAVE_TRANSCODE_SCRIPT=/app/tools/transcode.py \
+    ADVENTWAVE_S3_STAGING_DIR=/var/lib/adventwave/transcode \
+    JAVA_OPTS="-Xms256m -Xmx1g -XX:+ExitOnOutOfMemoryError"
+EXPOSE 8080
+HEALTHCHECK --interval=15s --timeout=5s --start-period=90s --retries=5 \
+    CMD curl -fsS http://127.0.0.1:8080/actuator/health || exit 1
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/gateway.jar"]

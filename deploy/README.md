@@ -1,5 +1,8 @@
 # Deploying AdventWave to one Linux server
 
+> **Server already runs everything in Docker behind its own proxy?** Use
+> [`docker/README.md`](docker/README.md) instead: the same pieces as containers.
+
 Everything runs on one Ubuntu 24.04 server: Postgres, Redis, the gateway as a systemd service, and
 Caddy for HTTPS in front of it. Audio lives in S3-compatible object storage (RFC 0006); the
 gateway transcodes uploads itself. Listeners sign in with an AdventWave email and password
