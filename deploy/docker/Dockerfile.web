@@ -2,9 +2,9 @@
 # Both web apps, built with no VITE_API_BASE_URL (each is served on the same origin as its /v1
 # proxy), behind one small nginx: the listener app on port 80, the admin portal on 81.
 # Build context: the repository root.
-# Node 24 (npm 11), as in development: npm 10 reads this lockfile's optional wasm
-# dependencies differently and refuses `npm ci`.
-FROM node:24-bookworm-slim AS build
+# Node 24 with npm 11.19, pinned: npm versions disagree on whether this lockfile's optional wasm
+# dependencies are complete, and `npm ci` refuses a lockfile it thinks is not.
+FROM node:24.22.0-bookworm-slim AS build
 WORKDIR /src
 COPY advent-wave/package.json advent-wave/package-lock.json advent-wave/
 COPY admin/advent-admin/package.json admin/advent-admin/package-lock.json admin/advent-admin/
