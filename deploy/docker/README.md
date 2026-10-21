@@ -52,6 +52,14 @@ before it starts nginx, and ignores any command given to it — so `docker compo
 does not test anything, it starts a second nginx. If the proxy does not come back (`docker ps`
 shows it Restarting), restore the two `.bak` files and `docker compose up -d proxy` again.
 
+**Unknown hostnames are refused** (since 2026-10-21). fibi's `nginx.conf` has a catch-all
+`default_server` on 80 and 443 (`return 444`, `ssl_reject_handshake on`). Before it, a hostname no
+vhost claimed fell to FIBI's first server block, which answers with a *permanent* redirect to
+fibicommunity.org. A browser that asked for `adventwave.draftbitlabs.tech` in the minutes between the
+DNS record and this vhost cached that 301, and kept going to FIBI afterwards. Clear the browser's
+cached files (or use a private window) if a new site does that. Backup of the file before the
+change: `deploy/nginx.conf.bak-pre-catchall-*`.
+
 **DNS.** In Cloudflare, for `draftbitlabs.tech`: two `A` records, `adventwave` and `admin`, to
 `2.24.114.80`, proxied. Keep both one level below the domain: Cloudflare's free certificate covers
 `*.draftbitlabs.tech`, not a name like `admin.adventwave.draftbitlabs.tech`.
