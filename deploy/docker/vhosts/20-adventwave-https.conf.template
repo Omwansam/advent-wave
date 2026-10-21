@@ -24,6 +24,17 @@ server {
     set $aw_gateway http://adventwave-gateway:8080;
     set $aw_web     http://adventwave-web:80;
 
+    # When AdventWave's containers are stopped or not answering, say so on this domain: a 503
+    # page with Retry-After (Cloudflare passes a 503 through; a 502 it replaces with its own bare
+    # "error code: 502"). install.sh puts the page beside these files; only *.conf is included.
+    error_page 502 504 =503 /__site-down.html;
+    location = /__site-down.html {
+        internal;
+        root /etc/nginx/conf.d/vhosts-adventwave;
+        add_header Cache-Control "no-store" always;
+        add_header Retry-After "300" always;
+    }
+
     # The gateway limits sign-in per address itself (RFC 0005); this is the proxy's coarser guard.
     location /v1/auth/ {
         limit_req zone=auth_limit burst=20 nodelay;
@@ -58,6 +69,17 @@ server {
     limit_conn conn_limit 50;
     set $aw_gateway http://adventwave-gateway:8080;
     set $aw_admin   http://adventwave-web:81;
+
+    # When AdventWave's containers are stopped or not answering, say so on this domain: a 503
+    # page with Retry-After (Cloudflare passes a 503 through; a 502 it replaces with its own bare
+    # "error code: 502"). install.sh puts the page beside these files; only *.conf is included.
+    error_page 502 504 =503 /__site-down.html;
+    location = /__site-down.html {
+        internal;
+        root /etc/nginx/conf.d/vhosts-adventwave;
+        add_header Cache-Control "no-store" always;
+        add_header Retry-After "300" always;
+    }
 
     location /v1/auth/ {
         limit_req zone=auth_limit burst=20 nodelay;

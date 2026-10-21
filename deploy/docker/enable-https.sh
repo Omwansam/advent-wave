@@ -20,6 +20,7 @@ done
 docker exec "$CERTBOT" certbot certonly --webroot -w /var/www/certbot --cert-name adventwave \
   -d "$APP_HOST" -d "$ADMIN_HOST" --non-interactive --agree-tos --keep-until-expiring ${EMAIL:+-m "$EMAIL"}
 
+cp "$here/vhosts/__site-down.html" "$AW_HOME/vhosts/"
 out="$AW_HOME/vhosts/20-adventwave-https.conf"
 sed -e "s/__APP_HOST__/$APP_HOST/g" -e "s/__ADMIN_HOST__/$ADMIN_HOST/g" -e "s/__CERT_NAME__/adventwave/g" \
   "$here/vhosts/20-adventwave-https.conf.template" > "$out"

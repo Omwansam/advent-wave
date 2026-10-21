@@ -97,6 +97,7 @@ curl -fsS "http://127.0.0.1:$PORT/actuator/health" >/dev/null 2>&1 \
   || { echo; echo "not healthy; ./aw logs --tail 100 gateway says why" >&2; exit 1; }
 
 render() { sed -e "s/__APP_HOST__/$APP_HOST/g" -e "s/__ADMIN_HOST__/$ADMIN_HOST/g" -e "s/__CERT_NAME__/adventwave/g" "$here/vhosts/$1.template" > "$AW_HOME/vhosts/$1"; }
+cp "$here/vhosts/__site-down.html" "$AW_HOME/vhosts/"   # shown when the containers are down
 render 10-adventwave-http.conf
 # The HTTPS block only once enable-https.sh has issued the certificate; refreshed on every update.
 [ -f "$AW_HOME/vhosts/20-adventwave-https.conf" ] && render 20-adventwave-https.conf
