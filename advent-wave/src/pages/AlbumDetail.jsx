@@ -59,6 +59,7 @@ export function AlbumDetail() {
             type="button"
             disabled={!tracks.length}
             onClick={() => playQueue(tracks, 0)}
+            data-prefetch={tracks[0]?.id}
             className="mt-6 inline-flex items-center gap-2 rounded-full bg-[var(--aw-primary)] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[var(--aw-primary)]/25 transition enabled:hover:bg-[var(--aw-primary-hover)] disabled:opacity-50"
           >
             <Play className="size-4 fill-current" />

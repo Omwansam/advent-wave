@@ -62,3 +62,24 @@ GET that answered a range request **206** `audio/mp4` and a full GET with a 45.0
 tampered gateway signature each **403**; admin preview returned four presigned bucket URLs. The admin
 portal sends the same `Content-Type` in the ticket request and the PUT. The release jar booted in
 production mode with `s3` and the worker on, under systemd with `deploy/gateway.env.example` filled in.
+
+## Amendment, 2026-10-22: the manifest hands out the presigned URL itself
+
+With `storage.mode=s3`, `StreamManifestDto.audioUrl` is now the presigned GET on the derived bucket,
+not the gateway's signed redirect to it, and `expiresAtEpochSeconds` is that URL's expiry (the
+recording plus 30 minutes). No field or operation changes.
+
+**Why.** Measured from Nairobi against the server in Boston (through Cloudflare's edge), the
+redirect was a second transatlantic round trip between the manifest and the first byte of audio:
+0.9–2 s on every track, on top of the manifest's own. The gateway's part of each was 10–15 ms.
+
+**What it does not change.** Nothing unsigned leaves the gateway, and the caller receives nothing
+the redirect did not already hand the same caller: the presigned URL was the redirect's target,
+and it was never bound to the listener. Local storage, and an item with no stored asset, keep the
+redirect, because an unsigned origin URL must not reach a client. `GET
+/v1/media/{id}/stream/{profile}` still answers manifests issued before, and any client that follows
+it.
+
+The web player also prefetches a song's manifest when the listener reaches for it, and buffers the
+next song in the queue on its second audio element, so Next and the end of a song swap elements
+instead of starting from nothing.

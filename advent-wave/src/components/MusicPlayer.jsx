@@ -27,9 +27,10 @@ import { useToastStore } from '../store/useToastStore'
 import { useProgressStore } from '../store/useProgressStore'
 import { useSleepTimerStore } from '../store/useSleepTimerStore'
 import { formatRate, isLongForm } from '../utils/longForm'
-import { startPlayback } from '../utils/playback'
+import { peekNext, releaseElement, startPlayback } from '../utils/playback'
 import { useCrossfade } from '../hooks/useCrossfade'
 import { useAutoplay } from '../hooks/useAutoplay'
+import { usePreloadNext } from '../hooks/usePreloadNext'
 import { indexAt, useChapters, useLyrics } from '../hooks/useMediaText'
 import { PlaybackSpeedButton } from './PlaybackSpeedButton'
 import { SleepTimerButton } from './SleepTimerButton'
@@ -88,6 +89,7 @@ export function MusicPlayer() {
   const cycleRepeat = usePlayerStore((s) => s.cycleRepeat)
   const toggleQueuePanel = usePlayerStore((s) => s.toggleQueuePanel)
   const queuePanelOpen = usePlayerStore((s) => s.queuePanelOpen)
+  const nextUpId = usePlayerStore((s) => peekNext(s)?.id)
   const setFullPlayerOpen = useUiStore((s) => s.setFullPlayerOpen)
 
   const likedSongIds = useLibraryStore((s) => s.likedSongIds)
@@ -100,6 +102,7 @@ export function MusicPlayer() {
   usePlaybackReporter(audioRef, currentSong, active, handoffRef)
   useListeningProgress(audioRef, currentSong, active)
   const { fadeRef, cancel: cancelFade } = useCrossfade({ slotsRef, active, activeRef, setActive, loadedUrlsRef, targetVolumeRef, handoffRef })
+  usePreloadNext({ slotsRef, active, activeRef, setActive, loadedUrlsRef, fadeRef })
   useAutoplay()
   const longForm = isLongForm(currentSong)
   const lyrics = useLyrics(currentSong)
@@ -127,6 +130,14 @@ export function MusicPlayer() {
     }
     // A crossfade has already loaded this URL into this element; reloading would restart it.
     if (loadedUrlsRef.current[active] !== streamUrl) {
+      // A preloaded next item becomes the player when the track changes (usePreloadNext), so a
+      // URL still sitting on the other element here belongs to a track no longer coming next.
+      const other = active === 0 ? 1 : 0
+      if (!fadeRef.current && loadedUrlsRef.current[other]) {
+        // Preloaded for a track that is not the one playing now: stop downloading it.
+        releaseElement(slotsRef.current[other])
+        loadedUrlsRef.current[other] = null
+      }
       loadedUrlsRef.current[active] = streamUrl
       a.src = streamUrl
       a.load()
@@ -137,7 +148,7 @@ export function MusicPlayer() {
       // Pausing mid-fade stops the outgoing song too, rather than leaving it to play out alone.
       cancelFade()
     }
-  }, [active, streamUrl, isPlaying, cancelFade])
+  }, [active, streamUrl, isPlaying, cancelFade, fadeRef])
 
   // A track whose manifest cannot be fetched is not playing, whatever was asked for.
   useEffect(() => {
@@ -461,6 +472,7 @@ export function MusicPlayer() {
                   <button
                     type="button"
                     onClick={onNext}
+                    data-prefetch={nextUpId}
                     className="rounded-full p-2 text-[var(--aw-text)] transition hover:bg-black/5 dark:hover:bg-white/10"
                     aria-label="Next"
                   >

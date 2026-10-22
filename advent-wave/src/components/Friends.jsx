@@ -81,6 +81,7 @@ export function FriendRow({ friend }) {
               <button
                 type="button"
                 onClick={() => playSong(track, [track])}
+                data-prefetch={track.id}
                 className="text-[var(--aw-text)]/90 hover:text-[var(--aw-primary)] hover:underline"
                 title={`Play ${track.title}`}
               >

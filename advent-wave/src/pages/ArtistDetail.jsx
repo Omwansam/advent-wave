@@ -60,6 +60,7 @@ export function ArtistDetail() {
                 type="button"
                 disabled={!tracks.length}
                 onClick={() => playQueue(tracks, 0)}
+                data-prefetch={tracks[0]?.id}
                 className="inline-flex items-center gap-2 rounded-full bg-[var(--aw-primary)] px-8 py-3 text-sm font-bold text-white shadow-xl shadow-[var(--aw-primary)]/30 transition enabled:hover:scale-[1.02] enabled:hover:bg-[var(--aw-primary-hover)] disabled:opacity-50"
               >
                 <Play className="size-5 fill-current" />

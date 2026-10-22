@@ -14,6 +14,7 @@ import { useLibraryStore } from '../store/useLibraryStore'
 import { useProgressStore } from '../store/useProgressStore'
 import { usePlayerSync } from '../hooks/usePlayerSync'
 import { useFriendsPoll } from '../hooks/useFriendsPoll'
+import { usePrefetchOnIntent } from '../hooks/usePrefetchOnIntent'
 
 const LEGACY_THEME_KEY = 'adventwave-theme'
 
@@ -52,6 +53,9 @@ export function AppLayout() {
 
   // The activity panel, the Friends page and every Follow button read this list.
   useFriendsPoll()
+
+  // A song's playback link is fetched when the listener reaches for it, not after the click.
+  usePrefetchOnIntent()
 
   const theme = useUiStore((s) => s.theme)
   const toggleTheme = useUiStore((s) => s.toggleTheme)

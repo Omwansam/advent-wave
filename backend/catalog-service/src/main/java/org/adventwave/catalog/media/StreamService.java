@@ -1,6 +1,7 @@
 package org.adventwave.catalog.media;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,7 +51,7 @@ public class StreamService {
                 item -> {
                     List<MediaAsset> list = this.assets.findByMediaItemIdOrderByBitrateKbpsAsc(mediaItemId);
                     String s = this.selectProfile(item, list, audioQuality);
-                    SignedUrlMinter.Signed signedurlminter$signed = this.minter.mint(mediaItemId, s, userId, this.properties.getSignedUrlTtl());
+                    SignedUrlMinter.Signed signedurlminter$signed = this.playbackUrl(item, list, s, userId);
                     Double d0 = item.getLoudnessLufs() == null ? null : item.getLoudnessLufs().doubleValue();
                     Double d1 = d0 == null ? null : this.properties.getTargetLufs() - d0;
                     return new StreamManifestDto(
@@ -79,6 +80,24 @@ public class StreamService {
         });
     }
 
+    /**
+     * What the player loads. With signed storage URLs (object storage, RFC 0006) that is the asset's
+     * own presigned URL: the player goes straight to the bucket instead of through the gateway's
+     * redirect, one round trip fewer before the first sound. Otherwise, and for an item with no
+     * asset in that profile, the gateway's signed redirect, which checks the signature first.
+     */
+    private SignedUrlMinter.Signed playbackUrl(MediaItem item, List<MediaAsset> assets, String profile, UUID userId) {
+        if (this.assetUrls.signed()) {
+            Optional<MediaAsset> asset = assets.stream().filter(a -> a.getProfile().equals(profile)).findFirst();
+            if (asset.isPresent()) {
+                Duration validFor = this.validFor(item);
+                long expiresAt = Instant.now().plus(validFor).getEpochSecond();
+                return new SignedUrlMinter.Signed(this.assetUrls.url(asset.get().getStorageKey(), validFor), expiresAt);
+            }
+        }
+        return this.minter.mint(item.getId(), profile, userId, this.properties.getSignedUrlTtl());
+    }
+
     private String selectProfile(MediaItem item, List<MediaAsset> available, String audioQuality) {
         String s = BitrateLadder.resolveProfile(item.getMediaType(), audioQuality);
         return available.stream().anyMatch(a -> a.getProfile().equals(s)) ? s : available.stream().map(MediaAsset::getProfile).findFirst().orElse(s);
@@ -90,10 +109,12 @@ public class StreamService {
      * Never shorter than the playback redirect that leads here.
      */
     private String storageUrl(MediaAsset asset, MediaItem item) {
-        Duration recording = Duration.ofMillis(Math.max(0, item.getDurationMs()));
-        Duration validFor = recording.plus(PLAYBACK_MARGIN);
-        if (validFor.compareTo(this.properties.getSignedUrlTtl()) < 0) validFor = this.properties.getSignedUrlTtl();
-        return this.assetUrls.url(asset.getStorageKey(), validFor);
+        return this.assetUrls.url(asset.getStorageKey(), this.validFor(item));
+    }
+
+    private Duration validFor(MediaItem item) {
+        Duration validFor = Duration.ofMillis(Math.max(0, item.getDurationMs())).plus(PLAYBACK_MARGIN);
+        return validFor.compareTo(this.properties.getSignedUrlTtl()) < 0 ? this.properties.getSignedUrlTtl() : validFor;
     }
 
     private String fallbackUrl(MediaItem item) {

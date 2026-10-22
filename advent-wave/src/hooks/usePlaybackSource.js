@@ -11,21 +11,53 @@ function gainToVolumeFactor(gainDb) {
 }
 
 /**
- * Crossfade needs the next song's manifest before the current one ends (RFC 0004), so it asks
- * ahead with prefetchManifest. A prefetched manifest is used once, by the next mount of this hook
- * for that id, and only while young: signed URLs live five minutes on the server, and a manifest
- * kept longer than this would hand the player a URL close to expiry.
+ * Manifests asked for ahead of need: the next song in the queue (usePreloadNext, crossfade) and
+ * any song the listener is about to pick (usePrefetchOnIntent). A prefetched manifest is used
+ * once, by the next mount of this hook for that id, and only while its URL has time left: it is
+ * signed and expires (expiresAtEpochSeconds), and one close to expiry could 403 mid-song. A bucket
+ * URL lasts the recording plus 30 minutes from when it was signed, so past 25 minutes it may not
+ * outlast the song it plays; the age cap also keeps a changed quality setting from lingering.
  */
-const PREFETCH_TTL_MS = 60_000
+const PREFETCH_MAX_AGE_MS = 25 * 60_000
+const MIN_URL_LIFE_MS = 90_000
 const prefetched = new Map()
+
+function usable(entry, now = Date.now()) {
+  if (now - entry.at > PREFETCH_MAX_AGE_MS) return false
+  const expires = entry.manifest?.expiresAtEpochSeconds
+  return !expires || expires * 1000 - now > MIN_URL_LIFE_MS
+}
+
+/**
+ * Opens the connection to where the audio lives as soon as its host is known — DNS, TCP and TLS
+ * to the bucket are otherwise paid after the click. Once per origin; no crossorigin attribute,
+ * because <audio> fetches without CORS and the browser keeps the two kinds of connection apart.
+ */
+const warmedOrigins = new Set()
+function warmOrigin(url) {
+  let origin
+  try {
+    origin = new URL(url).origin
+  } catch {
+    return
+  }
+  if (warmedOrigins.has(origin) || origin === window.location.origin) return
+  warmedOrigins.add(origin)
+  const link = document.createElement('link')
+  link.rel = 'preconnect'
+  link.href = origin
+  document.head.appendChild(link)
+}
 
 export function prefetchManifest(mediaItemId) {
   const hit = prefetched.get(mediaItemId)
-  if (hit && Date.now() - hit.at < PREFETCH_TTL_MS) return hit.promise
+  if (hit && usable(hit)) return hit.promise
+  for (const [id, e] of prefetched) if (!usable(e)) prefetched.delete(id)
   const entry = { at: Date.now(), manifest: null, promise: null }
   entry.promise = getStreamManifest(mediaItemId).then(
     (manifest) => {
       entry.manifest = manifest
+      if (manifest?.audioUrl) warmOrigin(manifest.audioUrl)
       return manifest
     },
     (error) => {
@@ -37,18 +69,24 @@ export function prefetchManifest(mediaItemId) {
   return entry.promise
 }
 
-/** A prefetched manifest that has arrived and is still young, or null. Synchronous. */
+/** A prefetched manifest that has arrived and whose URL still has time left, or null. Synchronous. */
 export function peekPrefetched(mediaItemId) {
   const hit = prefetched.get(mediaItemId)
-  return hit?.manifest && Date.now() - hit.at < PREFETCH_TTL_MS ? hit.manifest : null
+  return hit?.manifest && usable(hit) ? hit.manifest : null
+}
+
+/** A prefetch still on its way — a click right after a hover — so the click waits for it rather than asking again. */
+function inFlight(mediaItemId) {
+  const hit = prefetched.get(mediaItemId)
+  return hit && !hit.manifest && usable(hit) ? hit.promise : null
 }
 
 /**
  * Resolves a playable URL for a media item.
  *
  * `TrackDto.audioUrl` points at the manifest endpoint, not at audio bytes: the catalogue is
- * church-licensed, so every real URL is signed and short-lived (plan §11.8). The manifest is
- * fetched per track and never cached — a cached `audioUrl` is an expired one.
+ * church-licensed, so every real URL is signed and expires (plan §11.8). The manifest is fetched
+ * per track — or taken, once, from the prefetch above while its URL is still good.
  *
  * @param {string | undefined} mediaItemId
  * @returns {{ url: string | null, gainFactor: number, manifest: object | null,
@@ -65,12 +103,16 @@ export function usePlaybackSource(mediaItemId) {
 
     const controller = new AbortController()
     const ready = peekPrefetched(mediaItemId)
+    const pending = ready ? null : inFlight(mediaItemId)
+    const shared = Boolean(ready || pending)
 
-    ;(ready ? Promise.resolve(ready) : getStreamManifest(mediaItemId, { signal: controller.signal }))
+    ;(ready ? Promise.resolve(ready) : pending ?? getStreamManifest(mediaItemId, { signal: controller.signal }))
       .then((manifest) => {
+        if (controller.signal.aborted) return
+        if (manifest?.audioUrl) warmOrigin(manifest.audioUrl)
         setEntry({ id: mediaItemId, manifest, error: null })
         // Used: a later play of the same item fetches a fresh signature.
-        if (ready) prefetched.delete(mediaItemId)
+        if (shared) prefetched.delete(mediaItemId)
       })
       .catch((error) => {
         if (controller.signal.aborted || error.name === 'AbortError') return

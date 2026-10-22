@@ -337,6 +337,7 @@ export function PlaylistDetail() {
                 setShuffle(false)
                 playQueue(songs, 0)
               }}
+              data-prefetch={songs[0]?.id}
               className="inline-flex items-center gap-2 rounded-full bg-[var(--aw-primary)] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[var(--aw-primary)]/25 transition enabled:hover:bg-[var(--aw-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Play className="size-4 fill-current" />

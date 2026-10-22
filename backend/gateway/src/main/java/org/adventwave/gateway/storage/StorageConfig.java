@@ -68,10 +68,20 @@ public class StorageConfig {
         AssetUrls s3AssetUrls(S3Presigner presigner, StorageProperties storage) {
             String bucket = storage.getS3().getDerivedBucket();
             Duration max = Duration.ofDays(7);
-            return (storageKey, validFor) -> presigner.presignGetObject(p -> p
-                    .signatureDuration(validFor.compareTo(max) > 0 ? max : validFor)
-                    .getObjectRequest(GetObjectRequest.builder().bucket(bucket).key(storageKey).build()))
-                .url().toString();
+            return new AssetUrls() {
+                @Override
+                public String url(String storageKey, Duration validFor) {
+                    return presigner.presignGetObject(p -> p
+                            .signatureDuration(validFor.compareTo(max) > 0 ? max : validFor)
+                            .getObjectRequest(GetObjectRequest.builder().bucket(bucket).key(storageKey).build()))
+                        .url().toString();
+                }
+
+                @Override
+                public boolean signed() {
+                    return true;
+                }
+            };
         }
 
         private static StorageProperties.S3 require(StorageProperties storage) {

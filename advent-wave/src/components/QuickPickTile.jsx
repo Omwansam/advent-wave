@@ -19,6 +19,8 @@ export function QuickPickTile({
   onPlay,
   playing = false,
   canPlay = true,
+  /** A track id: its manifest is fetched when the tile is hovered or pressed (usePrefetchOnIntent). */
+  prefetchId,
 }) {
   const cls =
     'group relative flex h-14 items-center gap-3 overflow-hidden rounded-md bg-[var(--aw-tile)] pr-2 text-left transition-colors duration-200 hover:bg-[var(--aw-tile-hover)] md:h-16'
@@ -52,7 +54,7 @@ export function QuickPickTile({
 
   if (to) {
     return (
-      <Link to={to} className={cls} {...hoverProps}>
+      <Link to={to} className={cls} data-prefetch={prefetchId} {...hoverProps}>
         {body}
       </Link>
     )
@@ -69,6 +71,7 @@ export function QuickPickTile({
         }
       }}
       className={`cursor-pointer ${cls}`}
+      data-prefetch={prefetchId}
       {...hoverProps}
     >
       {body}
@@ -101,6 +104,7 @@ export function TrackQuickTile({ track, queue, tint, onHover }) {
       onHover={onHover}
       onPlay={onPlay}
       playing={active && isPlaying}
+      prefetchId={track.id}
     />
   )
 }

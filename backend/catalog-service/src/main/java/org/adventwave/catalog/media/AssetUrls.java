@@ -13,4 +13,14 @@ public interface AssetUrls {
      * requests to it until the recording ends, so callers ask for longer than the recording.
      */
     String url(String storageKey, Duration validFor);
+
+    /**
+     * Whether {@link #url} is itself signed and expires (object storage). A manifest may then give
+     * it to the player directly instead of the gateway's signed redirect, which saves the player a
+     * round trip to the gateway on every track. An unsigned origin URL always stays behind the
+     * redirect, where the gateway checks the playback signature first.
+     */
+    default boolean signed() {
+        return false;
+    }
 }

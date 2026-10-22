@@ -59,6 +59,7 @@ export function SongRow({
     <div
       role="button"
       tabIndex={0}
+      data-prefetch={song.id}
       onClick={onRowClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

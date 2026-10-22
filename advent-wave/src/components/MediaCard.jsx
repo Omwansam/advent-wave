@@ -51,6 +51,8 @@ export function MediaCard({
   playing = false,
   canPlay = true,
   onPlay,
+  /** A track id: its manifest is fetched when the card is hovered or pressed (usePrefetchOnIntent). */
+  prefetchId,
 }) {
   const body = (
     <>
@@ -91,7 +93,7 @@ export function MediaCard({
 
   if (to) {
     return (
-      <Link to={to} className={cls}>
+      <Link to={to} className={cls} data-prefetch={prefetchId}>
         {body}
       </Link>
     )
@@ -108,6 +110,7 @@ export function MediaCard({
         }
       }}
       className={`cursor-pointer ${cls}`}
+      data-prefetch={prefetchId}
     >
       {body}
     </div>
@@ -139,6 +142,7 @@ export function TrackCard({ track, queue }) {
       active={active}
       playing={active && isPlaying}
       onPlay={onPlay}
+      prefetchId={track.id}
     />
   )
 }

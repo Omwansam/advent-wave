@@ -64,6 +64,7 @@ function TopResultCard({ top, query, results }) {
             <button
               type="button"
               onClick={() => playQueue(queue, start)}
+              data-prefetch={queue[start]?.id}
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--aw-primary)] px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-[var(--aw-primary-hover)]"
             >
               <Play className="size-4 fill-current" />
@@ -103,6 +104,7 @@ function TopResultCard({ top, query, results }) {
             <button
               type="button"
               onClick={() => playQueue(queue, start)}
+              data-prefetch={queue[start]?.id}
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--aw-primary)] px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-[var(--aw-primary-hover)]"
             >
               <Play className="size-4 fill-current" />
@@ -363,6 +365,7 @@ export function SearchResults() {
                   <button
                     type="button"
                     onClick={() => playQueue(results.songs, 0)}
+                    data-prefetch={results.songs[0]?.id}
                     className="text-sm font-semibold text-[var(--aw-primary)] hover:underline"
                   >
                     Play all
@@ -502,6 +505,7 @@ export function SearchResults() {
                   <button
                     type="button"
                     onClick={() => playQueue(results.sermons, 0)}
+                    data-prefetch={results.sermons[0]?.id}
                     className="text-sm font-semibold text-[var(--aw-primary)] hover:underline"
                   >
                     Play all
@@ -540,6 +544,7 @@ export function SearchResults() {
                   <button
                     type="button"
                     onClick={() => playQueue(results.podcasts, 0)}
+                    data-prefetch={results.podcasts[0]?.id}
                     className="text-sm font-semibold text-[var(--aw-primary)] hover:underline"
                   >
                     Play all

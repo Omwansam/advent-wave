@@ -85,12 +85,16 @@ export function useCrossfade({ slotsRef, active, activeRef, setActive, loadedUrl
       const inc = slotsRef.current[inSlot]
       if (!inc) return
 
-      inc.src = manifest.audioUrl
-      loadedUrlsRef.current[inSlot] = manifest.audioUrl
+      // usePreloadNext has usually loaded it here already; loading again would drop the buffer.
+      if (loadedUrlsRef.current[inSlot] !== manifest.audioUrl) {
+        inc.src = manifest.audioUrl
+        loadedUrlsRef.current[inSlot] = manifest.audioUrl
+        inc.defaultPlaybackRate = 1
+        inc.load()
+      }
       inc.volume = 0
       inc.defaultPlaybackRate = 1
       inc.playbackRate = 1
-      inc.load()
       startPlayback(inc)
 
       const f = { out, outSlot, outFrom: out.volume, seconds, toId: next.id, step: null, timer: null }
