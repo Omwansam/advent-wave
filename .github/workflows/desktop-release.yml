@@ -102,8 +102,13 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           PUBLISH: ${{ needs.prepare.outputs.release == 'true' && 'always' || 'never' }}
         run: |
-          # No certificate: build unsigned rather than search the runner's keychain for one.
-          if [[ -z "$CSC_LINK" && -z "$WIN_CSC_LINK" ]]; then export CSC_IDENTITY_AUTO_DISCOVERY=false; fi
+          # A secret that is not set arrives as an empty string, and electron-builder reads an
+          # empty CSC_LINK as a certificate path ("DESKTOP not a file"). Unset what is empty and
+          # build unsigned rather than search the runner's keychain for an identity.
+          for v in CSC_LINK CSC_KEY_PASSWORD WIN_CSC_LINK WIN_CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            [[ -z "${!v}" ]] && unset "$v"
+          done
+          if [[ -z "${CSC_LINK:-}" && -z "${WIN_CSC_LINK:-}" ]]; then export CSC_IDENTITY_AUTO_DISCOVERY=false; fi
           npx electron-builder ${{ matrix.platform }} --publish "$PUBLISH"
       - uses: actions/upload-artifact@v4
         if: needs.prepare.outputs.release != 'true'
