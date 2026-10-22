@@ -32,7 +32,7 @@ done
 setting() { grep -E "^$1=" "$ENV_FILE" | tail -n 1 | cut -d= -f2-; }
 secret() { openssl rand -hex "${1:-32}" 2>/dev/null || python3 -c "import secrets,sys; print(secrets.token_hex(int(sys.argv[1])))" "${1:-32}"; }
 
-mkdir -p "$AW_HOME/backups" "$AW_HOME/vhosts"
+mkdir -p "$AW_HOME/backups" "$AW_HOME/vhosts" "$AW_HOME/downloads"
 
 if [ ! -f "$ENV_FILE" ]; then
   [ -n "$APP_HOST" ] && [ -n "$ADMIN_HOST" ] && [ -n "$ADMIN_EMAIL" ] \

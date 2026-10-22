@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AdventWave — offline</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle at 50% 0%, rgba(109, 93, 246, 0.35), #121118 60%);
+        color: #eceaf2;
+        font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        text-align: center;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      main {
+        max-width: 360px;
+        padding: 24px;
+      }
+      .mark {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 20px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #7b6cff, #3a2cb0);
+        display: grid;
+        place-items: center;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+      }
+      p {
+        margin: 0 0 24px;
+        color: #9b95ad;
+      }
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 28px;
+        background: #6d5df6;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #7b6cff;
+      }
+      button:focus-visible {
+        outline: 2px solid #c9a227;
+        outline-offset: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 40 40">
+          <g fill="#fff">
+            <rect x="4" y="15" width="4" height="10" rx="2" />
+            <rect x="11" y="10" width="4" height="20" rx="2" />
+            <rect x="25" y="9" width="4" height="22" rx="2" />
+            <rect x="32" y="14" width="4" height="12" rx="2" />
+          </g>
+          <rect x="18" y="4" width="4" height="32" rx="2" fill="#c9a227" />
+        </svg>
+      </div>
+      <h1>You're offline</h1>
+      <p>AdventWave can't reach the internet. It will reconnect on its own when you're back online.</p>
+      <button id="retry" type="button" autofocus>Try again</button>
+    </main>
+    <script>
+      const retry = () => window.adventwaveDesktop?.retry();
+      document.getElementById('retry').addEventListener('click', retry);
+      window.addEventListener('online', retry);
+      // A server that was down rather than a lost connection: keep trying, quietly.
+      setInterval(() => navigator.onLine && retry(), 30000);
+    </script>
+  </body>
+</html>

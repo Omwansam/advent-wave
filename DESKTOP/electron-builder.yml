@@ -1,0 +1,106 @@
+# Installers for Windows, macOS and Linux. Built by .github/workflows/desktop-release.yml on a
+# `desktop-v*` tag (GitHub's runners are the only Windows and Mac machines we have) and attached
+# to that GitHub release. Our server copies each release to /srv/adventtwave/downloads
+# (deploy/docker/desktop-sync.py) and serves it: the website's /download page and the app's own
+# updater both read from https://adventwave.draftbitlabs.tech/downloads/.
+#
+# Every file name is fixed (no version in it), so the same links always serve the newest.
+
+appId: tech.draftbitlabs.adventwave.desktop
+productName: AdventWave
+copyright: Copyright © 2026 AdventWave
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - src/**/*
+  - assets/**/*
+  - package.json
+
+asar: true
+
+protocols:
+  - name: AdventWave
+    schemes: [adventwave]
+
+# Hardening baked into the Electron binary: it cannot be run as plain Node, cannot be opened
+# with an inspector, and only loads this app's own (integrity-checked) app.asar.
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  loadBrowserProcessSpecificV8Snapshot: false
+  grantFileProtocolExtraPrivileges: false
+  # Unsigned Mac builds: flipping fuses breaks the ad-hoc signature, so it is redone.
+  resetAdHocDarwinSignature: true
+
+publish:
+  # First: where installed apps look for updates — our own server.
+  - provider: generic
+    url: https://adventwave.draftbitlabs.tech/downloads
+  # Second: where CI uploads the files for the server to collect. Tagged desktop-v1.2.3, apart
+  # from anything else the repository releases.
+  - provider: github
+    owner: Omwansam
+    repo: advent-wave
+    tagNamePrefix: desktop-v
+    releaseType: draft
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: AdventWave-Setup.${ext}
+
+nsis:
+  # One click, installed for this user only (no admin prompt), with Start menu and desktop shortcuts.
+  oneClick: true
+  perMachine: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: AdventWave
+  deleteAppDataOnUninstall: false
+
+mac:
+  category: public.app-category.music
+  target:
+    - target: dmg
+      arch: [universal]
+    # The updater needs the zip; it only works once the app is signed (see README).
+    - target: zip
+      arch: [universal]
+  artifactName: AdventWave.${ext}
+  hardenedRuntime: true
+
+dmg:
+  title: AdventWave
+  artifactName: AdventWave.dmg
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  category: Audio
+  synopsis: Adventist hymns, choirs, sermons and podcasts
+  description: >-
+    AdventWave brings hymns, choirs, sermons and podcasts from Seventh-day Adventist churches to
+    your desktop: the same account, library and queue as the website and the phone app.
+  maintainer: AdventWave <omwansamarnold@gmail.com>
+  vendor: AdventWave
+  executableName: adventwave
+  desktop:
+    entry:
+      StartupWMClass: AdventWave
+
+appImage:
+  artifactName: AdventWave.AppImage
+
+deb:
+  artifactName: AdventWave.deb

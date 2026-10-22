@@ -77,6 +77,9 @@ services:
       dockerfile: deploy/docker/Dockerfile.web
     image: adventwave-web:latest
     restart: unless-stopped
+    volumes:
+      # The desktop installers and update feeds, kept current by the `downloads` service.
+      - ${AW_HOME:-/srv/adventtwave}/downloads:/usr/share/nginx/downloads:ro
     networks:
       fibi_internal:
         aliases: [adventwave-web]
@@ -105,6 +108,21 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
     networks: [adventwave]
+    logging: *logging
+
+  downloads:
+    # Copies each new desktop release (built by .github/workflows/desktop-release.yml) into
+    # $AW_HOME/downloads, which the web container serves at /downloads/ (desktop-sync.py).
+    image: python:3.13-alpine
+    restart: unless-stopped
+    user: "${AW_UID:-1001}:${AW_GID:-1001}"
+    environment:
+      DESKTOP_REPO: Omwansam/advent-wave
+      DESKTOP_SYNC_EVERY: "900"
+    entrypoint: ["python", "-u", "/desktop-sync.py"]
+    volumes:
+      - ./desktop-sync.py:/desktop-sync.py:ro
+      - ${AW_HOME:-/srv/adventtwave}/downloads:/downloads
     logging: *logging
 
 volumes:

@@ -1,0 +1,28 @@
+{
+  "name": "adventwave-desktop",
+  "productName": "AdventWave",
+  "version": "1.0.0",
+  "description": "AdventWave for Windows, macOS and Linux: hymns, choirs, sermons and podcasts from Adventist churches.",
+  "author": {
+    "name": "AdventWave",
+    "email": "omwansamarnold@gmail.com"
+  },
+  "homepage": "https://adventwave.draftbitlabs.tech",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "ADVENTWAVE_URL=http://localhost:5173 electron .",
+    "dist": "electron-builder --publish never",
+    "dist:linux": "electron-builder --linux --publish never",
+    "release": "electron-builder --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.10"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.17.0"
+  }
+}

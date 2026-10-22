@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   Mic2,
+  MonitorDown,
   Plus,
   Search,
   Settings,
@@ -22,6 +23,7 @@ import {
 import { useUiStore } from '../store/useUiStore'
 import { useAuthStore } from '../store/useAuthStore'
 import { UserAvatar } from './Friends'
+import { isDesktopApp } from '../utils/desktop'
 
 const nav = [
   { to: '/', label: 'Home', Icon: Home },
@@ -105,6 +107,20 @@ function SidebarShell({ compact, onClose }) {
           )
         })}
       </nav>
+
+      {isDesktopApp ? null : (
+        <Link
+          to="/download"
+          onClick={() => onClose?.()}
+          title="Get the desktop app"
+          className={`mb-2 flex items-center rounded-xl py-2.5 text-sm font-medium text-[var(--aw-muted)] transition hover:bg-[var(--aw-surface-elevated)] hover:text-[var(--aw-text)] ${
+            compact ? 'justify-center px-2' : 'gap-3 px-3'
+          }`}
+        >
+          <MonitorDown className="size-5 shrink-0" aria-hidden />
+          {!compact ? <span className="truncate">Get the desktop app</span> : null}
+        </Link>
+      )}
 
       <button
         type="button"

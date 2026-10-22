@@ -20,6 +20,7 @@ import { UserProfile } from './pages/UserProfile'
 import { LoginPage } from './pages/LoginPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
+import { DownloadPage } from './pages/DownloadPage'
 import { SplashScreen } from './components/SplashScreen'
 import { RequireAuth } from './components/RequireAuth'
 import { onUnauthorized } from './api/token'
@@ -53,6 +54,7 @@ export default function App() {
         {/* Emailed links (RFC 0005): open signed in or not. */}
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/download" element={<DownloadPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
             <Route index element={<Home />} />

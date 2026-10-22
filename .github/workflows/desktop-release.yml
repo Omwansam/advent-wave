@@ -1,0 +1,130 @@
+# The desktop app (DESKTOP/) for Windows, macOS and Linux.
+#
+#   git tag desktop-v1.0.0 && git push origin desktop-v1.0.0
+#
+# builds all three on their own runners and attaches them to one GitHub release. Our server's
+# `downloads` service (deploy/docker/desktop-sync.py) notices the release within 15 minutes,
+# checks every file and serves it from https://adventwave.draftbitlabs.tech/downloads/ — where
+# the website's /download page links and installed apps look for updates. GitHub only builds;
+# listeners download from our server. The tag must match "version" in DESKTOP/package.json.
+#
+# Run it by hand (Actions → desktop-release → Run workflow) to build without releasing; the
+# installers are then attached to the run as artifacts.
+#
+# Signing is optional and off until these repository secrets exist (DESKTOP/README.md):
+#   WIN_CSC_LINK, WIN_CSC_KEY_PASSWORD                    Windows code-signing certificate
+#   MAC_CSC_LINK, MAC_CSC_KEY_PASSWORD                    Apple Developer ID certificate
+#   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID  Apple notarization
+name: desktop-release
+
+on:
+  push:
+    tags: ["desktop-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        name: Read the version, and check it against the tag
+        run: |
+          version=$(node -p "require('./DESKTOP/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/desktop-v* ]]; then
+            tag="${GITHUB_REF#refs/tags/}"
+            if [[ "$tag" != "desktop-v$version" ]]; then
+              echo "::error::Tag $tag does not match DESKTOP/package.json version $version"
+              exit 1
+            fi
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          fi
+      # One draft for all three builds to upload into; three runners racing to create it would
+      # make three drafts.
+      - name: Create the draft release
+        if: steps.version.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release view "desktop-v$VERSION" >/dev/null 2>&1 || \
+            gh release create "desktop-v$VERSION" --draft --verify-tag \
+              --title "AdventWave Desktop $VERSION" \
+              --notes "AdventWave for Windows, macOS and Linux. Download: https://adventwave.draftbitlabs.tech/download"
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: --win
+          - os: macos-latest
+            platform: --mac
+          - os: ubuntu-latest
+            platform: --linux
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: DESKTOP
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: DESKTOP/package-lock.json
+      - run: npm ci
+      - name: Build${{ needs.prepare.outputs.release == 'true' && ' and upload' || '' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          CSC_LINK: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PUBLISH: ${{ needs.prepare.outputs.release == 'true' && 'always' || 'never' }}
+        run: |
+          # No certificate: build unsigned rather than search the runner's keychain for one.
+          if [[ -z "$CSC_LINK" && -z "$WIN_CSC_LINK" ]]; then export CSC_IDENTITY_AUTO_DISCOVERY=false; fi
+          npx electron-builder ${{ matrix.platform }} --publish "$PUBLISH"
+      - uses: actions/upload-artifact@v4
+        if: needs.prepare.outputs.release != 'true'
+        with:
+          name: AdventWave-${{ runner.os }}
+          path: |
+            DESKTOP/dist/*.exe
+            DESKTOP/dist/*.dmg
+            DESKTOP/dist/*.zip
+            DESKTOP/dist/*.AppImage
+            DESKTOP/dist/*.deb
+            DESKTOP/dist/*.yml
+          if-no-files-found: error
+
+  publish:
+    needs: [prepare, build]
+    if: needs.prepare.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the release as the latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: gh release edit "desktop-v$VERSION" --repo "$GITHUB_REPOSITORY" --draft=false --latest

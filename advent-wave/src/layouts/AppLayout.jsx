@@ -7,6 +7,7 @@ import { QueueDrawer } from '../components/QueueDrawer'
 import { KeyboardShortcutsModal } from '../components/KeyboardShortcutsModal'
 import { ToastHost } from '../components/ToastHost'
 import { CreatePlaylistModal } from '../components/CreatePlaylistModal'
+import { DesktopAppPrompt } from '../components/DesktopAppPrompt'
 import { FriendActivityPanel } from '../components/FriendActivityPanel'
 import { useUiStore } from '../store/useUiStore'
 import { useAuthStore } from '../store/useAuthStore'
@@ -138,6 +139,7 @@ export function AppLayout() {
 
       <KeyboardShortcutsModal />
       <CreatePlaylistModal />
+      <DesktopAppPrompt />
       <ToastHost />
       <FriendActivityPanel />
       <QueueDrawer />

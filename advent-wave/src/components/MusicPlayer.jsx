@@ -33,6 +33,7 @@ import { useCrossfade } from '../hooks/useCrossfade'
 import { useAutoplay } from '../hooks/useAutoplay'
 import { usePreloadNext } from '../hooks/usePreloadNext'
 import { useMediaSession } from '../hooks/useMediaSession'
+import { useDesktopBridge } from '../hooks/useDesktopBridge'
 import { indexAt, useChapters, useLyrics } from '../hooks/useMediaText'
 import { PlaybackSpeedButton } from './PlaybackSpeedButton'
 import { SleepTimerButton } from './SleepTimerButton'
@@ -311,6 +312,7 @@ export function MusicPlayer() {
   const onNext = () => nextSong()
 
   useMediaSession({ audioRef, active, currentSong, isPlaying, onPrev, onNext })
+  useDesktopBridge({ currentSong, isPlaying, onPrev, onNext })
 
   const onSeekPointer = (e) => {
     const el = progressRef.current

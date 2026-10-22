@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { requestPasswordReset } from '../api'
 import { useAuthStore } from '../store/useAuthStore'
 import { AuthField, AuthMessage, AuthShell, AuthSubmit } from '../components/AuthShell'
 import { describeError } from '../utils/errors'
+import { isDesktopApp } from '../utils/desktop'
 
 const TITLES = {
   login: ['Log in to AdventWave', 'Worship, sermons and podcasts, wherever you left them.'],
@@ -82,6 +83,13 @@ export function LoginPage() {
             <button type="button" onClick={() => switchTo('register')} className="font-semibold text-[var(--aw-primary)] hover:underline">
               Create an account
             </button>
+            {isDesktopApp ? null : (
+              <p className="mt-3">
+                <Link to="/download" className="font-semibold text-[var(--aw-muted)] hover:text-[var(--aw-text)] hover:underline">
+                  Get AdventWave for Windows, macOS or Linux
+                </Link>
+              </p>
+            )}
           </>
         ) : (
           <>

@@ -154,3 +154,18 @@ https://6a8dc631229a592bd3fa8ea5e72428b5.us.r2.cloudflarestorage.com
 
 
 Still to do: sign in to the admin portal, change the temporary admin password, then delete the two ADVENTWAVE_ADMIN_BOOTSTRAP_* lines from /srv/adventtwave/adventwave.env. My import used them, and they shouldn't stay in that file.
+
+## Desktop app downloads
+
+The desktop installers (`DESKTOP/`) are served from this server at
+`https://<app host>/downloads/`, by the `web` container from `$AW_HOME/downloads`. The website's
+`/download` page links there, and installed apps check `downloads/latest*.yml` for updates.
+
+GitHub's runners build them on a `desktop-v*` tag (`.github/workflows/desktop-release.yml`).
+The `downloads` service (`desktop-sync.py`) checks the repository's releases every 15 minutes,
+downloads a new one, verifies every file against GitHub's digest, and swaps it in — installers
+first, update feeds last. Until the first release arrives, `/download` says the app is on its
+way. To check right now:
+
+    ./aw exec downloads python /desktop-sync.py once
+    ./aw logs --tail 20 downloads
