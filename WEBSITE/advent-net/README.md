@@ -42,7 +42,7 @@ Postgres on every request.
 ## Deploy
 
 On the server it is the `site` container of the AdventWave Docker stack, beside the gateway, Redis
-and the web apps: `deploy/docker/Dockerfile.site`, on a host of its own whose vhost passes
+and the web apps: `deploy/docker/Dockerfile.site`, on its own host, `advent.draftbitlabs.tech`, whose vhost passes
 `/v1/site` and `/downloads/` to the live services. Adding it to the running install takes three
 steps, in `deploy/docker/README.md` ("The website").
 

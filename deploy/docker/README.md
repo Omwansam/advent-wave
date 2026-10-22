@@ -13,7 +13,7 @@ Cloudflare ─► fibi-proxy-1 (80/443, Let's Encrypt via fibi-certbot-1)
                  │                                       /     → adventwave-web:80
                  │  admin.draftbitlabs.tech             /v1/* → adventwave-gateway:8080
                  │                                       /     → adventwave-web:81
-                 │  <website host>  (AW_SITE_HOST)      /v1/site    → adventwave-gateway:8080
+                 │  advent.draftbitlabs.tech            /v1/site    → adventwave-gateway:8080
                  │                                       /downloads/ → adventwave-web:80
                  │                                       /           → adventwave-site:80
               compose project "adventwave": gateway, web, site, postgres, redis, backup, downloads
@@ -38,7 +38,7 @@ git clone https://github.com/Omwansam/advent-wave.git /srv/adventtwave/app
 cd /srv/adventtwave/app
 deploy/docker/install.sh --app-host adventwave.draftbitlabs.tech \
                          --admin-host admin.draftbitlabs.tech --admin-email you@example.org \
-                         --site-host <website host>      # optional; see "The website" below
+                         --site-host advent.draftbitlabs.tech   # optional; see "The website" below
 ```
 
 It writes `adventwave.env` with fresh secrets, builds the images, starts the stack, waits for the
@@ -103,7 +103,7 @@ only what it reads:
 **Add it to a running install**, in this order. The proxy refuses a hostname that no vhost claims,
 so the port-80 vhost has to exist before the DNS record does:
 
-1. `deploy/docker/install.sh --site-host <website host>` — stores `AW_SITE_HOST` in
+1. `deploy/docker/install.sh --site-host advent.draftbitlabs.tech` — stores `AW_SITE_HOST` in
    `adventwave.env`, builds and starts `site`, and adds the host to the port-80 vhost. The gateway
    is rebuilt with the same run, which is what brings `GET /v1/site`.
 2. In Cloudflare, an `A` record for the website host to `2.24.114.80`, proxied. One level below
@@ -113,7 +113,7 @@ so the port-80 vhost has to exist before the DNS record does:
    and leaves the app and admin hosts as they were.
 
 Afterwards `install.sh` rebuilds the site with everything else. To check it from the server:
-`curl -sk --resolve <website host>:443:127.0.0.1 https://<website host>/v1/site | head -c 200`.
+`curl -sk --resolve advent.draftbitlabs.tech:443:127.0.0.1 https://advent.draftbitlabs.tech/v1/site | head -c 200`.
 
 ## Email and object storage, later
 
