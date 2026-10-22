@@ -91,6 +91,49 @@ in `adventwave.env` (the template, with explanations, is
 [`adventwave.env.example`](adventwave.env.example); buckets and their CORS rule are in
 [`../README.md`](../README.md) §3, with your admin host in `AllowedOrigins`) and rerun `install.sh`.
 
+### Cloudflare R2
+
+Checked against Cloudflare's R2 docs in October 2026.
+
+1. **Enable R2.** Cloudflare dashboard → **R2 object storage**. Cloudflare asks for a payment method
+   even if you stay within the free allowance.
+2. **Create two buckets.** Select **Create bucket** twice: `adventwave-masters` and
+   `adventwave-derived`. Names may only use lowercase letters, digits and hyphens. Leave the
+   location on *Automatic* and choose no jurisdiction, because a jurisdiction changes the endpoint
+   below. Leave both buckets **private**: no public access and no `r2.dev` or custom domain. Players
+   get time-limited signed links instead.
+3. **Allow browser uploads to the masters bucket.** `adventwave-masters` → **Settings** →
+   **CORS Policy** → **Add CORS policy** → **JSON** tab. R2 takes the rule list only, without
+   the `CORSRules` wrapper in `../s3-cors.json`:
+   ```json
+   [{"AllowedOrigins":["https://admin.draftbitlabs.tech"],"AllowedMethods":["PUT"],"AllowedHeaders":["Content-Type"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3600}]
+   ```
+   The derived bucket needs no CORS rule: players use a plain `<audio>` element.
+4. **Protect the masters** (optional, recommended). R2 has no object versioning. Instead,
+   `adventwave-masters` → **Settings** → **Bucket lock rules** → **Add rule**: prefix `masters/`,
+   no expiry. AdventWave never deletes or replaces a master, so the lock costs nothing, and it stops
+   anyone deleting the only original by mistake. Do **not** lock `adventwave-derived`: a
+   re-transcode rewrites those files.
+5. **Create a key.** **R2 object storage** → **Overview** → *Account Details* → **API Tokens** →
+   **Manage** → **Create Account API token**, permission **Object Read & Write**, limited to the two
+   buckets. Copy the **Access Key ID** and **Secret Access Key**; the secret is shown once. Your
+   account ID is on the same page.
+6. **Put them in `/srv/adventtwave/adventwave.env`**, replacing the `not-configured` lines, then run
+   `deploy/docker/install.sh`:
+   ```
+   ADVENTWAVE_S3_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+   ADVENTWAVE_S3_REGION=auto
+   ADVENTWAVE_S3_ACCESS_KEY=<Access Key ID>
+   ADVENTWAVE_S3_SECRET_KEY=<Secret Access Key>
+   ADVENTWAVE_S3_MASTERS_BUCKET=adventwave-masters
+   ADVENTWAVE_S3_DERIVED_BUCKET=adventwave-derived
+   ADVENTWAVE_S3_PATH_STYLE=false
+   ```
+
+Recordings transcoded on a development machine are not in R2 and not in the server's database.
+They are uploaded again through the admin portal, or by a transfer script, and the server
+transcodes them itself.
+
 ## Backups
 
 The `backup` service dumps the database every 24 hours into `/srv/adventtwave/backups` and keeps
