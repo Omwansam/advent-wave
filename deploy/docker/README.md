@@ -139,3 +139,18 @@ transcodes them itself.
 The `backup` service dumps the database every 24 hours into `/srv/adventtwave/backups` and keeps
 14. They are on the same disk as the database: copy them elsewhere too. Restoring is at the top of
 [`backup-loop.sh`](backup-loop.sh).
+
+
+
+5bdb3129e1fd18d8b33166fa52701a0f
+606e5b9126361e5af7c52e9e9214586a084e29e61d2b6eb5934b5f0a66a1e1a2
+
+https://6a8dc631229a592bd3fa8ea5e72428b5.r2.cloudflarestorage.com
+
+https://6a8dc631229a592bd3fa8ea5e72428b5.eu.r2.cloudflarestorage.com
+
+https://6a8dc631229a592bd3fa8ea5e72428b5.us.r2.cloudflarestorage.com
+
+
+
+Still to do: sign in to the admin portal, change the temporary admin password, then delete the two ADVENTWAVE_ADMIN_BOOTSTRAP_* lines from /srv/adventtwave/adventwave.env. My import used them, and they shouldn't stay in that file.
