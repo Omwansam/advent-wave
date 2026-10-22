@@ -35,6 +35,8 @@ export const usePlayerStore = create(
     (set, get) => ({
       currentSong: null,
       isPlaying: false,
+      /** Wanted playing but no sound yet: the source is loading or stalled. Shown on the play buttons; never persisted. */
+      buffering: false,
       queue: [],
       /**
        * Position to seek to once the resumed track's metadata loads, in seconds. Set by
@@ -331,6 +333,7 @@ export const usePlayerStore = create(
         }),
 
       setPlaying: (v) => set({ isPlaying: Boolean(v) }),
+      setBuffering: (v) => set({ buffering: Boolean(v) }),
 
       nextSong: () => {
         const { queue, currentIndex, repeat } = get()

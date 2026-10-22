@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { Link } from 'react-router-dom'
 import {
   ListMusic,
+  Loader2,
   Maximize2,
   MicVocal,
   Pause,
@@ -31,6 +32,7 @@ import { peekNext, releaseElement, startPlayback } from '../utils/playback'
 import { useCrossfade } from '../hooks/useCrossfade'
 import { useAutoplay } from '../hooks/useAutoplay'
 import { usePreloadNext } from '../hooks/usePreloadNext'
+import { useMediaSession } from '../hooks/useMediaSession'
 import { indexAt, useChapters, useLyrics } from '../hooks/useMediaText'
 import { PlaybackSpeedButton } from './PlaybackSpeedButton'
 import { SleepTimerButton } from './SleepTimerButton'
@@ -71,6 +73,7 @@ export function MusicPlayer() {
 
   const currentSong = usePlayerStore((s) => s.currentSong)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const buffering = usePlayerStore((s) => s.buffering)
   const volume = usePlayerStore((s) => s.volume)
   const currentTime = usePlayerStore((s) => s.currentTime)
   const duration = usePlayerStore((s) => s.duration)
@@ -154,6 +157,27 @@ export function MusicPlayer() {
   useEffect(() => {
     if (streamError) usePlayerStore.getState().setPlaying(false)
   }, [streamError])
+
+  // "Loading" on the play buttons: wanted playing, nothing audible yet. The manifest still on its
+  // way counts, and so does the element waiting for data, at the start or after a stall.
+  useEffect(() => {
+    usePlayerStore.getState().setBuffering(isPlaying && !streamUrl && !streamError)
+  }, [isPlaying, streamUrl, streamError])
+
+  useEffect(() => {
+    const a = slotsRef.current[active]
+    if (!a) return undefined
+    const setBuffering = usePlayerStore.getState().setBuffering
+    const onWaiting = () => setBuffering(true)
+    const onPlay = () => {
+      if (a.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) setBuffering(true)
+    }
+    const onSound = () => setBuffering(false)
+    const events = [['waiting', onWaiting], ['play', onPlay], ['playing', onSound], ['pause', onSound], ['error', onSound]]
+    events.forEach(([e, f]) => a.addEventListener(e, f))
+    if (!a.paused && a.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) setBuffering(false)
+    return () => events.forEach(([e, f]) => a.removeEventListener(e, f))
+  }, [active])
 
   useEffect(() => {
     const a = slotsRef.current[active]
@@ -285,6 +309,8 @@ export function MusicPlayer() {
   }
 
   const onNext = () => nextSong()
+
+  useMediaSession({ audioRef, active, currentSong, isPlaying, onPrev, onNext })
 
   const onSeekPointer = (e) => {
     const el = progressRef.current
@@ -457,12 +483,15 @@ export function MusicPlayer() {
                     onClick={togglePlay}
                     className="flex size-10 items-center justify-center rounded-full bg-[var(--aw-primary)] text-white shadow-lg transition duration-200 ease-out hover:scale-105 hover:bg-[var(--aw-primary-hover)] active:scale-90"
                     aria-label={isPlaying ? 'Pause' : 'Play'}
+                    aria-busy={isPlaying && buffering}
                   >
                     <span
-                      key={isPlaying ? 'pause' : 'play'}
+                      key={isPlaying ? (buffering ? 'loading' : 'pause') : 'play'}
                       className="inline-flex aw-play-icon-swap"
                     >
-                      {isPlaying ? (
+                      {isPlaying && buffering ? (
+                        <Loader2 className="size-5 animate-spin" />
+                      ) : isPlaying ? (
                         <Pause className="size-5 fill-current" />
                       ) : (
                         <Play className="size-5 translate-x-0.5 fill-current" />

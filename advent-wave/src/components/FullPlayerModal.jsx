@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   ChevronDown,
   ListMusic,
+  Loader2,
   Pause,
   Play,
   Repeat,
@@ -29,6 +30,7 @@ export function FullPlayerModal({ audioRef }) {
 
   const currentSong = usePlayerStore((s) => s.currentSong)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const buffering = usePlayerStore((s) => s.buffering)
   const currentTime = usePlayerStore((s) => s.currentTime)
   const duration = usePlayerStore((s) => s.duration)
   const shuffle = usePlayerStore((s) => s.shuffle)
@@ -212,10 +214,12 @@ export function FullPlayerModal({ audioRef }) {
                 className="flex size-16 items-center justify-center rounded-full bg-[var(--aw-primary)] text-white shadow-xl transition duration-200 ease-out hover:scale-105 hover:bg-[var(--aw-primary-hover)] active:scale-90"
               >
                 <span
-                  key={isPlaying ? 'pause' : 'play'}
+                  key={isPlaying ? (buffering ? 'loading' : 'pause') : 'play'}
                   className="inline-flex aw-play-icon-swap"
                 >
-                  {isPlaying ? (
+                  {isPlaying && buffering ? (
+                    <Loader2 className="size-9 animate-spin" />
+                  ) : isPlaying ? (
                     <Pause className="size-9 fill-current" />
                   ) : (
                     <Play className="size-9 translate-x-1 fill-current" />
