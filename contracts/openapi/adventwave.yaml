@@ -9,7 +9,7 @@ info:
   license:
     name: Proprietary
   title: AdventWave API
-  version: 1.6.0
+  version: 1.7.0
 servers:
 - description: This instance
   url: http://localhost:8080
@@ -4214,6 +4214,25 @@ paths:
           description: Unhandled failure; the body carries no detail
       tags:
       - account
+  /v1/site:
+    get:
+      operationId: site
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteDto"
+          description: OK
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security: []
+      tags:
+      - catalogue
   /v1/users:
     get:
       operationId: searchUsers
@@ -5283,6 +5302,92 @@ components:
           type: string
         user:
           $ref: "#/components/schemas/UserDto"
+    SiteCollection:
+      type: object
+      properties:
+        cover:
+          type: string
+        description:
+          type: string
+        id:
+          type: string
+        items:
+          type: integer
+          format: int32
+        title:
+          type: string
+    SiteDto:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiscoverCategoryDto"
+        generatedAt:
+          type: string
+          format: date-time
+        playlists:
+          type: array
+          items:
+            $ref: "#/components/schemas/SiteCollection"
+        sermons:
+          type: array
+          items:
+            $ref: "#/components/schemas/SiteItem"
+        totals:
+          $ref: "#/components/schemas/SiteTotals"
+        trending:
+          type: array
+          items:
+            $ref: "#/components/schemas/SiteItem"
+    SiteItem:
+      type: object
+      properties:
+        albumId:
+          type: string
+        artist:
+          type: string
+        artistId:
+          type: string
+        cover:
+          type: string
+        durationMs:
+          type: integer
+          format: int32
+        id:
+          type: string
+        mediaType:
+          type: string
+          enum:
+          - song
+          - sermon
+          - podcast
+        title:
+          type: string
+    SiteTotals:
+      type: object
+      properties:
+        artists:
+          type: integer
+          format: int64
+        churches:
+          type: integer
+          format: int64
+        hours:
+          type: integer
+          format: int64
+        playlists:
+          type: integer
+          format: int64
+        podcasts:
+          type: integer
+          format: int64
+        sermons:
+          type: integer
+          format: int64
+        songs:
+          type: integer
+          format: int64
     StatusRequest:
       type: object
       properties:

@@ -3,7 +3,7 @@
 #   docker compose -f deploy/docker/compose.yml --env-file "$AW_HOME/adventwave.env" up -d --build
 #
 # Publishes nothing to the internet. The host's existing edge proxy (here the FIBI stack's nginx,
-# which owns 80/443) reaches `web` and `gateway` over its network, `fibi_internal`, by the
+# which owns 80/443) reaches `web`, `site` and `gateway` over its network, `fibi_internal`, by the
 # prefixed aliases below; postgres and redis stay on this stack's own network. The gateway is also
 # bound to the host's loopback, for health checks and the first-deploy script.
 name: adventwave
@@ -83,6 +83,27 @@ services:
     networks:
       fibi_internal:
         aliases: [adventwave-web]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging
+
+  site:
+    # The official website (WEBSITE/advent-net). Its host's vhost sends /v1/site to `gateway` and
+    # /downloads/ to `web`, so it shows the live catalogue — cached in `redis` by the gateway
+    # (RFC 0008) — and the desktop installers this server holds.
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.site
+      args:
+        VITE_APP_ORIGIN: https://${AW_APP_HOST:?set AW_APP_HOST in adventwave.env}
+    image: adventwave-site:latest
+    restart: unless-stopped
+    networks:
+      fibi_internal:
+        aliases: [adventwave-site]
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
       interval: 30s

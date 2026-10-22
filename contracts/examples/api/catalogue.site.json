@@ -1,0 +1,96 @@
+{
+  "_source": "live response from the local gateway, no account; lists truncated to two items",
+  "request": {
+    "method": "GET",
+    "path": "/v1/site",
+    "authenticated": false
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "totals": {
+        "songs": 38,
+        "sermons": 5,
+        "podcasts": 4,
+        "hours": 7,
+        "artists": 40,
+        "churches": 3,
+        "playlists": 6
+      },
+      "trending": [
+        {
+          "id": "7c1c708f-f418-476b-a2c8-dbbfed99cc2a",
+          "title": "Magari na Farasi",
+          "artist": "Kurasini SDA Choir",
+          "artistId": "ae27559e-eef1-4e5c-8986-dba27e6b5fca",
+          "mediaType": "song",
+          "durationMs": 140922
+        },
+        {
+          "id": "a67c57cf-3b76-4331-8bf7-724e3d6ba872",
+          "title": "Verification Silence",
+          "artist": "Verification Choir",
+          "artistId": "0d55b462-3c9e-4841-9aea-789c4b97d1c1",
+          "albumId": "7d84eb99-ca40-4772-89db-66c940a14063",
+          "mediaType": "song",
+          "durationMs": 34000
+        }
+      ],
+      "sermons": [
+        {
+          "id": "6ade5605-c3f6-5e34-a73f-a1ab936f1c1e",
+          "title": "Grace That Transforms",
+          "artist": "Pastor Dwight Nelson",
+          "artistId": "263d3f37-aa18-5bd4-a596-550bb5ea171f",
+          "albumId": "09b5bfc1-4e48-5c03-9efa-7ed52f3b3b2e",
+          "cover": "https://picsum.photos/seed/ser-dwight/400/400",
+          "mediaType": "sermon",
+          "durationMs": 2580000
+        },
+        {
+          "id": "ff398b29-1758-5ff1-8ac2-c7218aaf3cc5",
+          "title": "The Rest Remains",
+          "artist": "Pastor Mark Finley",
+          "artistId": "b903ef64-301d-5f48-afbd-f0917808774e",
+          "albumId": "65469fa5-4ee9-5b39-9739-0e868adf6a1a",
+          "cover": "https://picsum.photos/seed/ser-finley/400/400",
+          "mediaType": "sermon",
+          "durationMs": 2820000
+        }
+      ],
+      "playlists": [
+        {
+          "id": "ab80a2d3-7887-59af-852a-884716e571bd",
+          "title": "Sabbath Morning",
+          "description": "Gentle hymns and worship to begin the day in stillness.",
+          "cover": "https://picsum.photos/seed/p-sabbath-morning/400/400",
+          "items": 4
+        },
+        {
+          "id": "1f63e86e-e367-55d8-911e-354380af7744",
+          "title": "Kenya — Sabbath & streets",
+          "description": "Choirs and praise teams from Nairobi, Kisumu, Mombasa, and the Rift — mock catalogue celebrating Kenya.",
+          "cover": "https://picsum.photos/seed/p-kenya-sabbath/400/400",
+          "items": 10
+        }
+      ],
+      "categories": [
+        {
+          "id": "worship",
+          "label": "Worship",
+          "gradient": "from-[#6D5DF6]/25 to-[#c9a227]/20",
+          "cover": "https://picsum.photos/seed/cat-worship/400/400",
+          "sortOrder": 0
+        },
+        {
+          "id": "youth",
+          "label": "Youth",
+          "gradient": "from-[#5b8def]/25 to-[#6D5DF6]/20",
+          "cover": "https://picsum.photos/seed/cat-youth/400/400",
+          "sortOrder": 1
+        }
+      ],
+      "generatedAt": "2026-10-22T20:38:39.958258121Z"
+    }
+  }
+}

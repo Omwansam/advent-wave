@@ -9,6 +9,7 @@ Six workstreams sharing one Redis without a registry is a guaranteed collision. 
 | `a:player:{user_id}` | A | 24h, flushed to PG every 30s | Player-state write buffer | yes — `PlayerStateService` |
 | `a:player:dirty` | A | none (drained each flush) | Set of listeners with unflushed state | yes — `PlayerStateService` |
 | `a:home:{segment}` | A | 5m ±20% jitter | Assembled shared home sections | yes — `HomeSectionCache` |
+| `a:site:{section}` | A | 30m ±20% jitter + event-invalidated | Public-website showcase (RFC 0008); `a:site:showcase` is the whole `GET /v1/site` response | yes — `SiteCache`, dropped on `catalog.media.v1`, `catalog.artist.v1`, `catalog.playlist.v1` |
 | `a:ratelimit:{user_id}:{route}` | A | 1m | Fixed-window limiter, esp. `/v1/events/playback` | yes — `RateLimiter` |
 | `a:friendfeed:{user_id}` | A | 10m | Backs `FriendActivityPanel` | not used — since 1.6.0 (RFC 0007) `GET /v1/friends` reads Postgres (`listener_activity`), one indexed query per minute per open app; held for when that stops being cheap |
 | `b:media:{media_item_id}` | B | 1h + event-invalidated | Catalog read cache | not yet — catalogue is small enough to read through |
@@ -37,6 +38,7 @@ mechanism. No workstream invents its own invalidation path.
 Every Redis path in this codebase degrades rather than fails:
 
 - `HomeSectionCache` — a read or write failure is a cache miss; the page is slower and correct.
+- `SiteCache` — the same: a read or write failure is a cache miss, built from Postgres.
 - `PlayerStateService` — falls back to writing Postgres directly.
 - `RateLimiter` — **fails open**. Dropping playback events during a cache outage would corrupt
   what we report to contributing churches; a brief unlimited window is the lesser harm.

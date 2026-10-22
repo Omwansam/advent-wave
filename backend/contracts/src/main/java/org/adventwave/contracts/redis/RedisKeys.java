@@ -5,6 +5,8 @@ import java.time.Duration;
 public final class RedisKeys {
     public static final Duration PLAYER_TTL = Duration.ofHours(24L);
     public static final Duration HOME_TTL = Duration.ofMinutes(5L);
+    /** The public website's showcase changes when the catalogue does, and is invalidated then too. */
+    public static final Duration SITE_TTL = Duration.ofMinutes(30L);
     public static final Duration RATELIMIT_TTL = Duration.ofMinutes(1L);
     public static final Duration FRIEND_FEED_TTL = Duration.ofMinutes(10L);
     public static final Duration MEDIA_TTL = Duration.ofHours(1L);
@@ -22,6 +24,10 @@ public final class RedisKeys {
 
     public static String home(String segment) {
         return "a:home:" + segment;
+    }
+
+    public static String site(String section) {
+        return "a:site:" + section;
     }
 
     public static String rateLimit(String userId, String route) {

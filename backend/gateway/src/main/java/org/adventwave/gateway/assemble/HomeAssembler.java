@@ -65,11 +65,24 @@ public class HomeAssembler {
     public HomeDto assemble(UUID userId, ZoneId zone) {
         LibrarySnapshot librarysnapshot = this.library.snapshot(userId);
         Future<List<TrackDto>> future = this.fanOut.submit(() -> this.recentlyPlayed(librarysnapshot));
-        Future<List<TrackDto>> future1 = this.fanOut.submit(() -> this.cache.trending(this::trendingNow));
-        Future<List<PlaylistDto>> future2 = this.fanOut.submit(() -> this.cache.sabbathWorship(this::sabbathWorship));
-        Future<List<TrackDto>> future3 = this.fanOut.submit(() -> this.cache.sermons(() -> this.catalog.byType(MediaType.SERMON, 12)));
+        Future<List<TrackDto>> future1 = this.fanOut.submit(this::trendingRail);
+        Future<List<PlaylistDto>> future2 = this.fanOut.submit(this::sabbathWorshipRail);
+        Future<List<TrackDto>> future3 = this.fanOut.submit(this::sermonsRail);
         Future<RecommendationsDto> future4 = this.fanOut.submit(() -> this.recommendations.forUser(userId, librarysnapshot));
         return new HomeDto(this.greetingPeriod(zone), this.await(future), this.await(future1), this.await(future2), this.await(future3), this.await(future4));
+    }
+
+    /** The rails every listener shares, through {@link HomeSectionCache}. The public site (RFC 0008) shows them too. */
+    public List<TrackDto> trendingRail() {
+        return this.cache.trending(this::trendingNow);
+    }
+
+    public List<TrackDto> sermonsRail() {
+        return this.cache.sermons(() -> this.catalog.byType(MediaType.SERMON, SERMONS));
+    }
+
+    public List<PlaylistDto> sabbathWorshipRail() {
+        return this.cache.sabbathWorship(this::sabbathWorship);
     }
 
     private List<TrackDto> recentlyPlayed(LibrarySnapshot snapshot) {

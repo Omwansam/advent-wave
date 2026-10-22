@@ -77,7 +77,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/v1/auth/admin/login").permitAll()
                         // Already authorised by its HMAC signature and expiry, and followed by a
                         // media player that cannot attach an Authorization header to a redirect.
-                        .requestMatchers(HttpMethod.GET, "/v1/media/*/stream/*").permitAll();
+                        .requestMatchers(HttpMethod.GET, "/v1/media/*/stream/*").permitAll()
+                        // The public website's showcase (RFC 0008): published catalogue only,
+                        // nothing about a listener.
+                        .requestMatchers(HttpMethod.GET, "/v1/site").permitAll();
                     // Where that redirect lands in local development, for the same reason. Open
                     // only when the local media origin is configured.
                     if (LocalMediaOriginConfig.enabled(catalog, storage)) {
@@ -166,7 +169,14 @@ public class SecurityConfig {
         corsconfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         corsconfiguration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         corsconfiguration.setMaxAge(3600L);
+        // The public website may be served from a host of its own (RFC 0008). Its one read takes no
+        // credentials, so any origin may make it. Registered first: the first matching pattern wins.
+        CorsConfiguration site = new CorsConfiguration();
+        site.setAllowedOrigins(List.of("*"));
+        site.setAllowedMethods(List.of("GET", "HEAD"));
+        site.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource urlbasedcorsconfigurationsource = new UrlBasedCorsConfigurationSource();
+        urlbasedcorsconfigurationsource.registerCorsConfiguration("/v1/site", site);
         urlbasedcorsconfigurationsource.registerCorsConfiguration("/**", corsconfiguration);
         return urlbasedcorsconfigurationsource;
     }

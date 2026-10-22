@@ -1,0 +1,54 @@
+# AdventWave website — HTTPS. Rendered by deploy/docker/enable-https.sh once the certificate covers
+# the site's host. A file of its own, beside 20-adventwave-https.conf: a server that has not added a
+# website host yet, or has not reissued the certificate for it, keeps the other two exactly as they
+# were.
+#
+# The site is a static build that asks its own origin for data (RFC 0008), so this host passes on
+# only what it reads: the showcase from the gateway, and the installers and release.json from the
+# web container. The rest of the API is not reachable here.
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name __SITE_HOST__;
+
+    ssl_certificate     /etc/letsencrypt/live/__CERT_NAME__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/__CERT_NAME__/privkey.pem;
+    include /etc/nginx/conf.d/ssl-params.conf;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options    "nosniff" always;
+    add_header X-Frame-Options           "DENY" always;
+    add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy        "geolocation=(), microphone=(), camera=()" always;
+
+    limit_conn conn_limit 50;
+    set $aw_gateway http://adventwave-gateway:8080;
+    set $aw_web     http://adventwave-web:80;
+    set $aw_site    http://adventwave-site:80;
+
+    # When AdventWave's containers are stopped or not answering, say so on this domain: a 503
+    # page with Retry-After (Cloudflare passes a 503 through; a 502 it replaces with its own bare
+    # "error code: 502"). install.sh puts the page beside these files; only *.conf is included.
+    error_page 502 504 =503 /__site-down.html;
+    location = /__site-down.html {
+        internal;
+        root /etc/nginx/conf.d/vhosts-adventwave;
+        add_header Cache-Control "no-store" always;
+        add_header Retry-After "300" always;
+    }
+
+    # The catalogue showcase, built once and cached in Redis by the gateway.
+    location = /v1/site {
+        limit_req zone=api_limit burst=60 nodelay;
+        proxy_pass $aw_gateway;
+    }
+    # The desktop installers, update feeds and release.json, as on the app host.
+    location /downloads/ {
+        proxy_pass $aw_web;
+    }
+    location / {
+        proxy_pass $aw_site;
+    }
+}

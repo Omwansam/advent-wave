@@ -10,7 +10,7 @@ an RFC says otherwise — and the disagreement is recorded, never silently patch
 | Path | Contract | Status at 1.0.0 | Generated from |
 |---|---|---|---|
 | [`postgres/`](postgres/) | Schema, constraints, trigger, outbox | **implemented** | `backend/tools/dump-schema.sh` (pg_dump of a migrated DB) |
-| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 49 listener and auth + 39 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
+| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 50 listener, auth and public-site + 39 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
 | [`kafka/`](kafka/) | Six topics, JSON Schema per message value | **implemented**; `audio.transcode.v1` `completed` is produced by the local worker (RFC 0001) until workstream D's service exists | `playback.events.v1`, `library.events.v1`, `catalog.playlist.v1` from the event classes and `LibraryService`; the rest from the plan and table columns |
 | [`redis/`](redis/) | Key registry, TTLs, owners | **implemented** | `RedisKeys.java` + call sites |
 | [`cassandra/`](cassandra/) | History and play-count tables | **planned** (Postgres interim) | plan §1 day 4 |
@@ -83,6 +83,17 @@ Verbatim, because they are contract terms and not code-review preferences:
 - **Redis is never a source of truth.** The only tolerated loss is ≤30s of playback position.
 
 ## Changes
+
+### 1.7.0 — [RFC 0008](rfcs/0008-public-site.md), the public website
+- **Added** `openapi` (tag `catalogue`): `GET /v1/site`, public and open to every origin (CORS `*`,
+  GET and HEAD only, no credentials) — totals, trending, sermons, curated playlists and categories
+  for the official website. Titles, names and covers only: no stream URL, nothing about a listener.
+  `Cache-Control: public, max-age=300, stale-while-revalidate=600`. Schemas `SiteDto`, `SiteTotals`,
+  `SiteItem`, `SiteCollection`.
+- **Added** `redis`: `a:site:{section}` (only `a:site:showcase` so far), 30m ±20% jitter, dropped on
+  every `catalog.media.v1`, `catalog.artist.v1` and `catalog.playlist.v1` message.
+- **Added** `examples`: `catalogue.site.json`.
+- Every existing `operationId` is unchanged. No breaking change.
 
 ### 1.6.0 — RFCs [0005](rfcs/0005-listener-accounts.md), [0006](rfcs/0006-object-storage.md), [0007](rfcs/0007-friend-activity.md): accounts, object storage, friends
 - **Added** `openapi` (RFC 0005, tag `auth`): `POST /v1/auth/register`, `/v1/auth/login`,

@@ -1,6 +1,7 @@
 package org.adventwave.catalog;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,6 +136,25 @@ public class CatalogService {
             .stream()
             .map(c -> new DiscoverCategoryDto(c.getId(), c.getLabel(), c.getGradient(), c.getCoverUrl(), c.getSortOrder()))
             .toList();
+    }
+
+    public CatalogTotals publishedTotals() {
+        Map<MediaType, Long> items = new EnumMap<>(MediaType.class);
+        long durationMs = 0L;
+
+        for (Object[] row : this.mediaItems.publishedTotalsByType()) {
+            items.put((MediaType)row[0], ((Number)row[1]).longValue());
+            durationMs += ((Number)row[2]).longValue();
+        }
+
+        return new CatalogTotals(
+            items.getOrDefault(MediaType.SONG, 0L),
+            items.getOrDefault(MediaType.SERMON, 0L),
+            items.getOrDefault(MediaType.PODCAST, 0L),
+            durationMs,
+            this.mediaItems.countPublishedArtists(),
+            this.mediaItems.countPublishedChurches()
+        );
     }
 
     public List<TrackDto> discoverCategoryTracks(String categoryId) {

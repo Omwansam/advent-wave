@@ -5,7 +5,7 @@
 server {
     listen 80;
     listen [::]:80;
-    server_name __APP_HOST__ __ADMIN_HOST__;
+    server_name __APP_HOST__ __ADMIN_HOST__ __SITE_HOST__;
 
     # Let's Encrypt HTTP-01, through the proxy's shared webroot. Never behind the redirect:
     # renewal happens exactly when the certificate is about to expire.

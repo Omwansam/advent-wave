@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/*
+ * AdventWave's colours, from the web app (advent-wave/src/index.css): violet primary, gold accent.
+ * The site is dark only — it sits on the Flow Wave scene, which is a night sky by design.
+ */
+@theme {
+  --color-aw-primary: #6d5df6;
+  --color-aw-primary-hover: #5a4ae8;
+  --color-aw-violet: #a99dff;
+  --color-aw-lavender: #e4e0ff;
+  --color-aw-gold: #d9b443;
+  --color-aw-ink: #0b0918;
+  --color-aw-text: #eceaf2;
+  --color-aw-muted: #a8a2bb;
+
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+  background: var(--color-aw-ink);
+  color: var(--color-aw-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgb(109 93 246 / 0.5);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-aw-violet);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

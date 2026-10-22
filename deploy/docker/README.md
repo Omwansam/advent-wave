@@ -3,8 +3,9 @@
 The variant of [`../README.md`](../README.md) for a server where everything runs in Docker and an
 existing edge proxy already owns ports 80 and 443 — as on `fibi` (2.24.114.80), where the FIBI
 stack's nginx (`fibi-proxy-1`) fronts several sites. AdventWave publishes nothing to the internet:
-its `web` and `gateway` containers join the proxy's network (`fibi_internal`) as
-`adventwave-web` and `adventwave-gateway`, and the proxy includes AdventWave's own vhost files.
+its `web`, `site` and `gateway` containers join the proxy's network (`fibi_internal`) as
+`adventwave-web`, `adventwave-site` and `adventwave-gateway`, and the proxy includes AdventWave's
+own vhost files.
 
 ```
 Cloudflare ─► fibi-proxy-1 (80/443, Let's Encrypt via fibi-certbot-1)
@@ -12,7 +13,10 @@ Cloudflare ─► fibi-proxy-1 (80/443, Let's Encrypt via fibi-certbot-1)
                  │                                       /     → adventwave-web:80
                  │  admin.draftbitlabs.tech             /v1/* → adventwave-gateway:8080
                  │                                       /     → adventwave-web:81
-              compose project "adventwave": gateway, web, postgres, redis, backup
+                 │  <website host>  (AW_SITE_HOST)      /v1/site    → adventwave-gateway:8080
+                 │                                       /downloads/ → adventwave-web:80
+                 │                                       /           → adventwave-site:80
+              compose project "adventwave": gateway, web, site, postgres, redis, backup, downloads
 ```
 
 ## Layout on the server
@@ -33,10 +37,11 @@ Cloudflare ─► fibi-proxy-1 (80/443, Let's Encrypt via fibi-certbot-1)
 git clone https://github.com/Omwansam/advent-wave.git /srv/adventtwave/app
 cd /srv/adventtwave/app
 deploy/docker/install.sh --app-host adventwave.draftbitlabs.tech \
-                         --admin-host admin.draftbitlabs.tech --admin-email you@example.org
+                         --admin-host admin.draftbitlabs.tech --admin-email you@example.org \
+                         --site-host <website host>      # optional; see "The website" below
 ```
 
-It writes `adventwave.env` with fresh secrets, builds both images, starts the stack, waits for the
+It writes `adventwave.env` with fresh secrets, builds the images, starts the stack, waits for the
 gateway to report healthy, and renders the port-80 vhost.
 
 **Connect the proxy** (once). In `/opt/fibi/FIBI`, beside the other tenants' lines:
@@ -81,6 +86,34 @@ cd /srv/adventtwave/app && deploy/docker/install.sh
 Pulls `main`, rebuilds, restarts what changed and re-renders the vhosts. Flyway migrates the
 database on start, so take a dump first when a release adds a migration:
 `deploy/docker/aw exec backup sh /backup-loop.sh once`.
+
+## The website
+
+The official website (`WEBSITE/advent-net`, the Flow Wave site) is the `site` container: its own
+image (`Dockerfile.site`, nginx serving the static build) on a host of its own. The site asks its
+own origin for everything, and its vhost (`vhosts/30-adventwave-site-https.conf.template`) passes on
+only what it reads:
+
+- `/v1/site` → the gateway: the live catalogue, built once and cached in this stack's Redis
+  (`a:site:showcase`, RFC 0008). Nothing else under `/v1` is reachable on this host.
+- `/downloads/` → the `web` container: `release.json` and the installers, as on the app host.
+- everything else → the site. Its "Open AdventWave" links and download buttons point at the app
+  host, which is baked into the build from `AW_APP_HOST`.
+
+**Add it to a running install**, in this order. The proxy refuses a hostname that no vhost claims,
+so the port-80 vhost has to exist before the DNS record does:
+
+1. `deploy/docker/install.sh --site-host <website host>` — stores `AW_SITE_HOST` in
+   `adventwave.env`, builds and starts `site`, and adds the host to the port-80 vhost. The gateway
+   is rebuilt with the same run, which is what brings `GET /v1/site`.
+2. In Cloudflare, an `A` record for the website host to `2.24.114.80`, proxied. One level below
+   the domain (`<name>.draftbitlabs.tech`), for the same certificate reason as the other two.
+3. `deploy/docker/enable-https.sh` — reissues the `adventwave` certificate with the third name
+   and installs the site's HTTPS vhost. If the proxy rejected that file, the script removes it again
+   and leaves the app and admin hosts as they were.
+
+Afterwards `install.sh` rebuilds the site with everything else. To check it from the server:
+`curl -sk --resolve <website host>:443:127.0.0.1 https://<website host>/v1/site | head -c 200`.
 
 ## Email and object storage, later
 
@@ -141,15 +174,6 @@ The `backup` service dumps the database every 24 hours into `/srv/adventtwave/ba
 [`backup-loop.sh`](backup-loop.sh).
 
 
-
-5bdb3129e1fd18d8b33166fa52701a0f
-606e5b9126361e5af7c52e9e9214586a084e29e61d2b6eb5934b5f0a66a1e1a2
-
-https://6a8dc631229a592bd3fa8ea5e72428b5.r2.cloudflarestorage.com
-
-https://6a8dc631229a592bd3fa8ea5e72428b5.eu.r2.cloudflarestorage.com
-
-https://6a8dc631229a592bd3fa8ea5e72428b5.us.r2.cloudflarestorage.com
 
 
 

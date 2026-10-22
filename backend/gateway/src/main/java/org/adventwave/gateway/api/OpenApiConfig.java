@@ -142,13 +142,15 @@ public class OpenApiConfig {
         "POST /v1/auth/password-reset/confirm",
         "POST /v1/auth/verify-email",
         "POST /v1/auth/admin/login",
-        "GET /v1/media/{id}/stream/{profile}"
+        "GET /v1/media/{id}/stream/{profile}",
+        "GET /v1/site"
     );
 
     private static final Map<String, String> TAG_BY_CONTROLLER = Map.ofEntries(
         Map.entry("dev-session-controller", "auth"),
         Map.entry("me-controller", "account"),
         Map.entry("home-controller", "catalogue"),
+        Map.entry("site-controller", "catalogue"),
         Map.entry("media-controller", "media"),
         Map.entry("search-controller", "search"),
         Map.entry("library-controller", "library"),

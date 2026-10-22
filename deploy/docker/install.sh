@@ -2,8 +2,9 @@
 # Installs or updates AdventWave on a shared Docker host (deploy/docker/README.md). On the server,
 # from the checkout in $AW_HOME/app:
 #
-#   first time:  deploy/docker/install.sh --app-host listen.example.org --admin-host admin.example.org --admin-email you@example.org
+#   first time:  deploy/docker/install.sh --app-host listen.example.org --admin-host admin.example.org --admin-email you@example.org [--site-host www.example.org]
 #   afterwards:  deploy/docker/install.sh            (pulls, rebuilds, restarts what changed)
+#   add the website to an existing install:  deploy/docker/install.sh --site-host www.example.org
 #
 # The first run writes $AW_HOME/adventwave.env with fresh secrets. Email and object storage are
 # filled with values that let the gateway start but cannot work (`.invalid` hosts); put the real
@@ -16,7 +17,7 @@ repo=$(cd "$here/../.." && pwd)
 ENV_FILE="$AW_HOME/adventwave.env"
 PROXY=${AW_PROXY_CONTAINER:-fibi-proxy-1}
 PORT=${AW_GATEWAY_PORT:-8090}
-APP_HOST="" ADMIN_HOST="" ADMIN_EMAIL="" PULL=1
+APP_HOST="" ADMIN_HOST="" ADMIN_EMAIL="" SITE_HOST="" PULL=1
 ARGS=("$@")
 
 while [ $# -gt 0 ]; do
@@ -24,12 +25,17 @@ while [ $# -gt 0 ]; do
     --app-host) APP_HOST=$2; shift 2 ;;
     --admin-host) ADMIN_HOST=$2; shift 2 ;;
     --admin-email) ADMIN_EMAIL=$2; shift 2 ;;
+    --site-host) SITE_HOST=$2; shift 2 ;;
     --no-pull) PULL=0; shift ;;
     *) echo "unknown argument $1" >&2; exit 2 ;;
   esac
 done
 
 setting() { grep -E "^$1=" "$ENV_FILE" | tail -n 1 | cut -d= -f2-; }
+# Replaces a setting's line, or adds it; GNU sed -i keeps the file's mode 600.
+set_setting() {
+  if grep -qE "^$1=" "$ENV_FILE"; then sed -i "s|^$1=.*|$1=$2|" "$ENV_FILE"; else printf '%s=%s\n' "$1" "$2" >> "$ENV_FILE"; fi
+}
 secret() { openssl rand -hex "${1:-32}" 2>/dev/null || python3 -c "import secrets,sys; print(secrets.token_hex(int(sys.argv[1])))" "${1:-32}"; }
 
 mkdir -p "$AW_HOME/backups" "$AW_HOME/vhosts" "$AW_HOME/downloads"
@@ -43,6 +49,8 @@ if [ ! -f "$ENV_FILE" ]; then
 # Template with explanations: deploy/docker/adventwave.env.example. Apply changes: deploy/docker/install.sh
 AW_APP_HOST=$APP_HOST
 AW_ADMIN_HOST=$ADMIN_HOST
+# The official website (WEBSITE/advent-net); empty until it has a host of its own.
+AW_SITE_HOST=$SITE_HOST
 ADVENTWAVE_APP_BASE_URL=https://$APP_HOST
 ADVENTWAVE_API_BASE_URL=https://$APP_HOST
 ADVENTWAVE_CORS_ORIGINS=https://$APP_HOST,https://$ADMIN_HOST
@@ -80,7 +88,9 @@ ADVENTWAVE_S3_PATH_STYLE=false
 CONF
   echo "wrote $ENV_FILE"
 fi
+[ -n "$SITE_HOST" ] && set_setting AW_SITE_HOST "$SITE_HOST"
 APP_HOST=$(setting AW_APP_HOST); ADMIN_HOST=$(setting AW_ADMIN_HOST)
+SITE_HOST=$(setting AW_SITE_HOST || true)   # absent from installs made before the website
 
 if [ "$PULL" = 1 ] && git -C "$repo" rev-parse --git-dir >/dev/null 2>&1; then
   before=$(git -C "$repo" rev-parse HEAD)
@@ -103,13 +113,18 @@ done
 curl -fsS "http://127.0.0.1:$PORT/actuator/health" >/dev/null 2>&1 \
   || { echo; echo "not healthy; ./aw logs --tail 100 gateway says why" >&2; exit 1; }
 
-render() { sed -e "s/__APP_HOST__/$APP_HOST/g" -e "s/__ADMIN_HOST__/$ADMIN_HOST/g" -e "s/__CERT_NAME__/adventwave/g" "$here/vhosts/$1.template" > "$AW_HOME/vhosts/$1"; }
+render() {
+  sed -e "s/__APP_HOST__/$APP_HOST/g" -e "s/__ADMIN_HOST__/$ADMIN_HOST/g" -e "s/__SITE_HOST__/$SITE_HOST/g" \
+      -e "s/__CERT_NAME__/adventwave/g" "$here/vhosts/$1.template" > "$AW_HOME/vhosts/$1"
+}
 cp "$here/vhosts/__site-down.html" "$AW_HOME/vhosts/"   # shown when the containers are down
 render 10-adventwave-http.conf
 # The HTTPS block only once enable-https.sh has issued the certificate; refreshed on every update.
 [ -f "$AW_HOME/vhosts/20-adventwave-https.conf" ] && render 20-adventwave-https.conf
+# The website's HTTPS block likewise, once enable-https.sh has added its host to the certificate.
+[ -n "$SITE_HOST" ] && [ -f "$AW_HOME/vhosts/30-adventwave-site-https.conf" ] && render 30-adventwave-site-https.conf
 
 if docker ps --format '{{.Names}}' | grep -qx "$PROXY"; then
   docker exec "$PROXY" nginx -t -q && docker exec "$PROXY" nginx -s reload && echo "==> proxy reloaded"
 fi
-echo "==> done. https://$APP_HOST and https://$ADMIN_HOST (once DNS and enable-https.sh are done)"
+echo "==> done. https://$APP_HOST and https://$ADMIN_HOST${SITE_HOST:+, and the website at https://$SITE_HOST} (once DNS and enable-https.sh are done)"

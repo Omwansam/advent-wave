@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1.7
+# The official website (WEBSITE/advent-net) behind its own small nginx, on port 80. Its host's vhost
+# sends /v1/site to the gateway and /downloads/ to the web container (vhosts/30-*), so the site asks
+# its own origin for data: built with VITE_API_ORIGIN empty. VITE_APP_ORIGIN is the listener app,
+# where "Open AdventWave" and the installers are. Build context: the repository root.
+# The same pinned Node and npm as Dockerfile.web.
+FROM node:24.22.0-bookworm-slim AS build
+WORKDIR /src
+COPY WEBSITE/advent-net/package.json WEBSITE/advent-net/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund --loglevel=error
+COPY WEBSITE/advent-net/ ./
+ARG VITE_APP_ORIGIN
+ENV VITE_APP_ORIGIN=$VITE_APP_ORIGIN \
+    VITE_API_ORIGIN=
+RUN test -n "$VITE_APP_ORIGIN" || { echo "build arg VITE_APP_ORIGIN is required (https://<app host>)" >&2; exit 1; }; \
+    npx vite build \
+    # A development address must not ship; fail the build if one did.
+    && ! grep -rlq 'localhost:8080\|127.0.0.1' dist
+
+FROM nginx:1.27-alpine
+COPY deploy/docker/site.nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /src/dist /usr/share/nginx/site
+EXPOSE 80

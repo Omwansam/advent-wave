@@ -139,5 +139,16 @@ public final class CatalogRepositories {
 
         @Query("select m from MediaItem m\n  join fetch m.artist a\n  left join fetch m.album al\nwhere m.status = 'published'\n  and (lower(m.title) like lower(concat('%', :q, '%'))\n    or lower(a.name)   like lower(concat('%', :q, '%'))\n    or lower(al.title) like lower(concat('%', :q, '%')))\n")
         List<MediaItem> searchCandidates(@Param("q") String query, Limit limit);
+
+        /** One row per media type with anything published: {@code [MediaType, count, total durationMs]}. */
+        @Query("select m.mediaType, count(m), coalesce(sum(m.durationMs), 0) from MediaItem m where m.status = 'published' group by m.mediaType")
+        List<Object[]> publishedTotalsByType();
+
+        @Query("select count(distinct m.artist.id) from MediaItem m where m.status = 'published'")
+        long countPublishedArtists();
+
+        /** Churches whose licence covers at least one published item. */
+        @Query("select count(distinct l.churchId) from MediaItem m, License l where m.licenseId = l.id and m.status = 'published'")
+        long countPublishedChurches();
     }
 }
