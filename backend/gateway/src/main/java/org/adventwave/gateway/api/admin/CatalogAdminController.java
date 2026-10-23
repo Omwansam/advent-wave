@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.adventwave.contracts.api.admin.AdminAlbumDto;
 import org.adventwave.contracts.api.admin.AdminArtistDto;
+import org.adventwave.contracts.api.admin.AdminConferenceDto;
 import org.adventwave.contracts.api.admin.AdminMediaItemDto;
 import org.adventwave.contracts.api.admin.MasterUploadDto;
 import org.adventwave.gateway.admin.CatalogAdminService;
@@ -51,6 +52,12 @@ public class CatalogAdminController {
     @PutMapping("/artists/{id}")
     public AdminArtistDto updateArtist(@PathVariable UUID id, @Valid @RequestBody AdminArtistDto.Request request) {
         return this.admin.updateArtist(id, request);
+    }
+
+    /** The division, unions, conferences and fields a profile can sit in (RFC 0009), in directory order. */
+    @GetMapping("/conferences")
+    public List<AdminConferenceDto> conferences() {
+        return this.admin.conferences();
     }
 
     // ----------------------------------------------------------------- albums

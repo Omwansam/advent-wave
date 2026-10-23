@@ -8,12 +8,34 @@ import { Checkbox, SelectInput, TextArea, TextInput } from '../Field'
 import { Modal } from '../Modal'
 import { InlineError } from '../Notice'
 
+const KINDS = [
+  { value: 'church', label: 'Church — a congregation’s own profile' },
+  { value: 'choir', label: 'Choir' },
+  { value: 'group', label: 'Group — ministry group, band, quartet' },
+  { value: 'soloist', label: 'Singer or musician' },
+  { value: 'preacher', label: 'Preacher or speaker' },
+  { value: 'ministry', label: 'Ministry — radio, media, department' },
+]
+
+const ENSEMBLES = [
+  { value: 'main', label: 'Main choir' },
+  { value: 'youth', label: 'Youth choir' },
+  { value: 'children', label: 'Children’s choir' },
+  { value: 'women', label: 'Women’s choir' },
+  { value: 'men', label: 'Men’s choir' },
+  { value: 'other', label: 'Other' },
+]
+
 /**
  * The artist fields, as a form body. Shared by the modal and the inline "new artist" panel
  * in Add media. PUT /artists/{id} replaces every field, so this always sends all of them.
+ * Kind, ensemble, home church, conference and location are RFC 0009: what listeners see the
+ * profile as, and where it sits.
  */
 export function ArtistFields({ artist, defaultChurchId, compact = false, onCancel, onSaved, submitLabel }) {
   const churches = useCatalogStore((s) => s.churches)
+  const artists = useCatalogStore((s) => s.artists)
+  const conferences = useCatalogStore((s) => s.conferences)
   const refreshCatalog = useCatalogStore((s) => s.refresh)
   const [form, setForm] = useState({
     name: artist?.name ?? '',
@@ -22,7 +44,18 @@ export function ArtistFields({ artist, defaultChurchId, compact = false, onCance
     bio: artist?.bio ?? '',
     churchId: artist?.churchId ?? defaultChurchId ?? '',
     verified: artist?.verified ?? false,
+    kind: artist?.kind ?? 'choir',
+    ensemble: artist?.ensemble ?? 'main',
+    homeChurchId: artist?.homeChurchId ?? '',
+    conferenceId: artist?.conferenceId ?? '',
+    location: artist?.location ?? '',
   })
+  const isChoir = form.kind === 'choir'
+  const isChurch = form.kind === 'church'
+  const churchProfiles = artists.filter((a) => a.kind === 'church' && a.id !== artist?.id)
+  const conferenceOptions = conferences
+    .filter((c) => c.kind !== 'division')
+    .map((c) => ({ value: c.id, label: c.kind === 'union' ? `${c.name} (whole union)` : `${c.name} — ${c.kind}` }))
   const action = useAction()
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }))
 
@@ -37,6 +70,11 @@ export function ArtistFields({ artist, defaultChurchId, compact = false, onCance
         bio: blankToNull(form.bio),
         churchId: form.churchId || null,
         verified: form.verified,
+        kind: form.kind,
+        ensemble: isChoir ? form.ensemble : null,
+        homeChurchId: isChurch ? null : form.homeChurchId || null,
+        conferenceId: form.conferenceId || null,
+        location: blankToNull(form.location),
       }
       const saved = artist ? await updateArtist(artist.id, body) : await createArtist(body)
       await refreshCatalog()
@@ -54,10 +92,33 @@ export function ArtistFields({ artist, defaultChurchId, compact = false, onCance
         value={form.slug}
         onChange={set('slug')}
       />
+      <SelectInput label="Kind" hint="What listeners see this profile as." value={form.kind} onChange={set('kind')} options={KINDS} />
+      {isChoir ? (
+        <SelectInput label="Ensemble" value={form.ensemble} onChange={set('ensemble')} options={ENSEMBLES} />
+      ) : null}
+      {!isChurch ? (
+        <SelectInput
+          label="Home church"
+          hint="The church profile this belongs to. None: an independent choir, group or singer."
+          value={form.homeChurchId}
+          onChange={set('homeChurchId')}
+          placeholder="None — independent"
+          options={churchProfiles.map((c) => ({ value: c.id, label: c.name }))}
+        />
+      ) : null}
+      <SelectInput
+        label="Conference"
+        hint={isChurch ? 'Where this church sits.' : 'Leave empty to use the home church’s.'}
+        value={form.conferenceId}
+        onChange={set('conferenceId')}
+        placeholder="Not set"
+        options={conferenceOptions}
+      />
+      <TextInput label="Location" placeholder="Town or area, e.g. Kisii" value={form.location} onChange={set('location')} />
       <SelectInput
         className={compact ? 'sm:col-span-2' : ''}
-        label="Church"
-        hint="Its licences are the ones this artist's recordings can use."
+        label="Rights holder"
+        hint="The contributing church whose licences this artist's recordings use."
         value={form.churchId}
         onChange={set('churchId')}
         placeholder="No church"

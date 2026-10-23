@@ -26,9 +26,12 @@ import org.adventwave.catalog.domain.MediaItem;
 import org.adventwave.catalog.media.BitrateLadder;
 import org.adventwave.catalog.media.AssetUrls;
 import org.adventwave.catalog.repo.CatalogRepositories;
+import org.adventwave.contracts.api.ArtistKind;
+import org.adventwave.contracts.api.Ensemble;
 import org.adventwave.contracts.api.MediaType;
 import org.adventwave.contracts.api.admin.AdminAlbumDto;
 import org.adventwave.contracts.api.admin.AdminArtistDto;
+import org.adventwave.contracts.api.admin.AdminConferenceDto;
 import org.adventwave.contracts.api.admin.AdminMediaItemDto;
 import org.adventwave.contracts.api.admin.ChurchDto;
 import org.adventwave.contracts.api.admin.LicenseDto;
@@ -67,6 +70,7 @@ public class CatalogAdminService {
     private final CatalogRepositories.AlbumRepository albums;
     private final CatalogRepositories.MediaItemRepository mediaItems;
     private final CatalogRepositories.MediaAssetRepository assets;
+    private final CatalogRepositories.ConferenceRepository conferences;
     private final MediaPublicationService publication;
     private final OutboxWriter outbox;
     private final CatalogProperties catalog;
@@ -81,6 +85,7 @@ public class CatalogAdminService {
         CatalogRepositories.AlbumRepository albums,
         CatalogRepositories.MediaItemRepository mediaItems,
         CatalogRepositories.MediaAssetRepository assets,
+        CatalogRepositories.ConferenceRepository conferences,
         MediaPublicationService publication,
         OutboxWriter outbox,
         CatalogProperties catalog,
@@ -92,6 +97,7 @@ public class CatalogAdminService {
         this.albums = albums;
         this.mediaItems = mediaItems;
         this.assets = assets;
+        this.conferences = conferences;
         this.publication = publication;
         this.outbox = outbox;
         this.catalog = catalog;
@@ -250,6 +256,60 @@ public class CatalogAdminService {
         if (r.churchId() != null) this.requireChurch(r.churchId());
         a.setChurchId(r.churchId());
         if (r.verified() != null) a.setVerified(r.verified());
+        this.applyProfile(a, r);
+    }
+
+    /**
+     * RFC 0009. The same rules the database holds (V11), said first in words an editor can act on:
+     * an ensemble only for a choir, a home only for something that is not a church, and only a
+     * church profile as a home. A church that is home to others cannot stop being one.
+     */
+    private void applyProfile(Artist a, AdminArtistDto.Request r) {
+        ArtistKind kind = r.kind() != null ? r.kind() : a.getKind();
+        if (a.getKind() == ArtistKind.CHURCH && kind != ArtistKind.CHURCH && a.getId() != null
+            && !this.artists.findByHomeChurchId(a.getId()).isEmpty()) {
+            throw new IllegalArgumentException("this church is home to other profiles; move them first");
+        }
+
+        if (r.ensemble() != null && kind != ArtistKind.CHOIR) {
+            throw new IllegalArgumentException("only a choir has an ensemble");
+        }
+
+        a.setKind(kind);
+        a.setEnsemble(kind == ArtistKind.CHOIR ? (r.ensemble() != null ? r.ensemble() : Ensemble.MAIN) : null);
+
+        UUID home = r.homeChurchId();
+        if (home != null) {
+            if (kind == ArtistKind.CHURCH) {
+                throw new IllegalArgumentException("a church does not belong to another church");
+            }
+
+            if (home.equals(a.getId())) {
+                throw new IllegalArgumentException("a profile cannot be its own home church");
+            }
+
+            Artist church = this.requireArtist(home);
+            if (church.getKind() != ArtistKind.CHURCH) {
+                throw new IllegalArgumentException(church.getName() + " is not a church profile");
+            }
+        }
+
+        a.setHomeChurchId(home);
+        String conference = r.conferenceId() == null || r.conferenceId().isBlank() ? null : r.conferenceId().trim();
+        if (conference != null && !this.conferences.existsById(conference)) {
+            throw new IllegalArgumentException("no conference " + conference);
+        }
+
+        a.setConferenceId(conference);
+        a.setLocation(r.location() == null || r.location().isBlank() ? null : r.location().trim());
+    }
+
+    /** The church's structure in Kenya, for the profile form's conference picker. */
+    @Transactional(readOnly = true)
+    public List<AdminConferenceDto> conferences() {
+        return this.conferences.findAllByOrderBySortOrderAsc().stream()
+            .map(c -> new AdminConferenceDto(c.getId(), c.getName(), c.getShortName(), c.getKind(), c.getParentId()))
+            .toList();
     }
 
     // ----------------------------------------------------------------- albums

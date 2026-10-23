@@ -10,7 +10,7 @@ an RFC says otherwise — and the disagreement is recorded, never silently patch
 | Path | Contract | Status at 1.0.0 | Generated from |
 |---|---|---|---|
 | [`postgres/`](postgres/) | Schema, constraints, trigger, outbox | **implemented** | `backend/tools/dump-schema.sh` (pg_dump of a migrated DB) |
-| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 50 listener, auth and public-site + 39 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
+| [`openapi/adventwave.yaml`](openapi/adventwave.yaml) | The public REST surface, 52 listener, auth and public-site + 40 admin operations | **implemented** | `backend/tools/dump-openapi.sh` (springdoc, from the running gateway) |
 | [`kafka/`](kafka/) | Six topics, JSON Schema per message value | **implemented**; `audio.transcode.v1` `completed` is produced by the local worker (RFC 0001) until workstream D's service exists | `playback.events.v1`, `library.events.v1`, `catalog.playlist.v1` from the event classes and `LibraryService`; the rest from the plan and table columns |
 | [`redis/`](redis/) | Key registry, TTLs, owners | **implemented** | `RedisKeys.java` + call sites |
 | [`cassandra/`](cassandra/) | History and play-count tables | **planned** (Postgres interim) | plan §1 day 4 |
@@ -83,6 +83,25 @@ Verbatim, because they are contract terms and not code-review preferences:
 - **Redis is never a source of truth.** The only tolerated loss is ≤30s of playback position.
 
 ## Changes
+
+### 1.8.0 — [RFC 0009](rfcs/0009-churches-and-choirs.md), churches, choirs and ministries
+- **Added** `postgres` (V11): table `conferences`, seeded with the East-Central Africa Division,
+  the East and West Kenya Union Conferences and their 23 conferences and fields; `artists.kind`,
+  `ensemble`, `home_church_id`, `conference_id`, `location`, with CHECKs and the trigger
+  `artists_home_church_gate`. Existing profiles classified from their names and recordings.
+- **Added** `openapi` (tag `catalogue`): `GET /v1/artists` (profiles with something to hear,
+  filtered by kind, ensemble, independence, church and conference) and `GET /v1/conferences`;
+  admin `GET /v1/admin/conferences`. Schemas `ArtistsDto`, `ArtistSummaryDto`, `ConferencesDto`,
+  `ConferenceDto`, `AdminConferenceDto`.
+- **Added** `openapi`: optional `ArtistDto.kind`, `ensemble`, `bio`, `location`, `followers`,
+  `conference`, `church`, `members`, `related`; `AdminArtistDto` and its request gain `kind`,
+  `ensemble`, `homeChurchId`, `conferenceId`, `location`. A church's `tracks` include its members'.
+- **Added** `kafka`: optional `kind`, `ensemble`, `home_church_id`, `conference_id`, `location` on
+  `catalog.artist.v1`; absent `kind` means choir.
+- **Changed** covers: a profile, album or item without its own cover now has a placeholder for its
+  kind (served by the web app at `/covers/`), so `cover` is present where it was absent.
+- **Added** `examples`: `catalogue.artists.json`, `catalogue.conferences.json`, `media.artist.church.json`.
+- Every existing `operationId` is unchanged. No breaking change.
 
 ### 1.7.0 — [RFC 0008](rfcs/0008-public-site.md), the public website
 - **Added** `openapi` (tag `catalogue`): `GET /v1/site`, public and open to every origin (CORS `*`,

@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.adventwave.catalog.domain.Album;
 import org.adventwave.catalog.domain.Artist;
 import org.adventwave.catalog.domain.Church;
+import org.adventwave.catalog.domain.Conference;
 import org.adventwave.catalog.domain.License;
 import org.adventwave.catalog.domain.DiscoverCategory;
 import org.adventwave.catalog.domain.MediaAsset;
@@ -40,6 +41,9 @@ public final class CatalogRepositories {
     }
 
     public interface ArtistRepository extends JpaRepository<Artist, UUID> {
+        /** A church's members (RFC 0009), whatever they have published. */
+        List<Artist> findByHomeChurchId(UUID homeChurchId);
+
         Optional<Artist> findByName(String name);
 
         Optional<Artist> findBySlug(String slug);
@@ -48,6 +52,11 @@ public final class CatalogRepositories {
 
         @Query("select a from Artist a where lower(a.name) like lower(concat('%', :q, '%'))")
         List<Artist> searchCandidates(@Param("q") String query, Limit limit);
+    }
+
+    /** The church's structure in Kenya (RFC 0009), in the order the directory lists it. */
+    public interface ConferenceRepository extends JpaRepository<Conference, String> {
+        List<Conference> findAllByOrderBySortOrderAsc();
     }
 
     public interface DiscoverCategoryItemRepository extends JpaRepository<DiscoverCategory.Item, DiscoverCategory.Item.Key> {
@@ -119,6 +128,10 @@ public final class CatalogRepositories {
 
         @Query("select m from MediaItem m\n  join fetch m.artist\n  left join fetch m.album\nwhere m.status = 'published' and m.artist.id = :artistId\norder by m.popularity desc, m.title asc\n")
         List<MediaItem> findPublishedByArtist(@Param("artistId") UUID artistId);
+
+        /** A church's page (RFC 0009): its own recordings and its members', most popular first. */
+        @Query("select m from MediaItem m join fetch m.artist left join fetch m.album where m.status = 'published' and m.artist.id in :artistIds order by m.popularity desc, m.title asc")
+        List<MediaItem> findPublishedByArtists(@Param("artistIds") List<UUID> artistIds);
 
         @Query("select m from MediaItem m\n  join fetch m.artist\n  left join fetch m.album\nwhere m.status = 'published' and m.album.id = :albumId\norder by m.title asc\n")
         List<MediaItem> findPublishedByAlbum(@Param("albumId") UUID albumId);

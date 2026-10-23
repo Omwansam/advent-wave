@@ -103,6 +103,28 @@ export function getArtist(id, options) {
   return api.get(`/v1/artists/${id}`, options)
 }
 
+/**
+ * Profiles with something to hear, most listened to first (RFC 0009). Every filter is optional:
+ * `kind` one or more of church, choir, group, soloist, preacher, ministry; `ensemble` for choirs;
+ * `independent` true for choirs, groups and singers with no home church; `church` one church's
+ * members; `conference` a conference, field or union id.
+ */
+export function getArtists({ kind, ensemble, independent, church, conference, limit } = {}, options) {
+  const query = {}
+  if (kind) query.kind = Array.isArray(kind) ? kind.join(',') : kind
+  if (ensemble) query.ensemble = ensemble
+  if (independent != null) query.independent = String(independent)
+  if (church) query.church = church
+  if (conference) query.conference = conference
+  if (limit) query.limit = String(limit)
+  return api.get('/v1/artists', { ...options, query })
+}
+
+/** The union conferences in Kenya with their conferences and fields (RFC 0009). */
+export function getConferences(options) {
+  return api.get('/v1/conferences', options)
+}
+
 export function getAlbum(id, options) {
   return api.get(`/v1/albums/${id}`, options)
 }

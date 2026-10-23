@@ -45,7 +45,7 @@ class CatalogAdminTest extends IntegrationTest {
         ChurchDto church = this.admin.createChurch(new ChurchDto.Request("Test Church " + UUID.randomUUID(), "KE", "kenya", null));
         this.churchId = church.id();
         this.licenseId = this.admin.createLicense(new LicenseDto.Request(UUID.fromString(this.churchId), null, null, null, null)).id();
-        this.artistId = this.admin.createArtist(new AdminArtistDto.Request("Test Choir " + UUID.randomUUID(), null, null, null, UUID.fromString(this.churchId), null)).id();
+        this.artistId = this.admin.createArtist(new AdminArtistDto.Request("Test Choir " + UUID.randomUUID(), null, null, null, UUID.fromString(this.churchId), null, null, null, null, null, null)).id();
     }
 
     private AdminMediaItemDto draft() {

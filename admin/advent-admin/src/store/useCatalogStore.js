@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { create } from 'zustand'
-import { listArtists, listChurches } from '../api'
+import { listArtists, listChurches, listConferences } from '../api'
 
 /**
  * Artists and churches, cached for name lookups and pickers: media rows carry an artistId,
@@ -10,6 +10,8 @@ import { listArtists, listChurches } from '../api'
 export const useCatalogStore = create((set, get) => ({
   artists: [],
   churches: [],
+  /** RFC 0009: where a profile can sit in the church's structure. */
+  conferences: [],
   loaded: false,
   error: null,
   /** @type {Promise<void> | null} */
@@ -20,9 +22,9 @@ export const useCatalogStore = create((set, get) => ({
     const state = get()
     if (state.inflight) return state.inflight
     if (state.loaded && !force) return Promise.resolve()
-    const inflight = Promise.all([listArtists(), listChurches()])
-      .then(([artists, churches]) => {
-        set({ artists, churches, loaded: true, error: null, inflight: null })
+    const inflight = Promise.all([listArtists(), listChurches(), listConferences()])
+      .then(([artists, churches, conferences]) => {
+        set({ artists, churches, conferences, loaded: true, error: null, inflight: null })
       })
       .catch((error) => {
         set({ error, inflight: null })
@@ -33,7 +35,7 @@ export const useCatalogStore = create((set, get) => ({
 
   refresh: () => get().load(true),
 
-  reset: () => set({ artists: [], churches: [], loaded: false, error: null, inflight: null }),
+  reset: () => set({ artists: [], churches: [], conferences: [], loaded: false, error: null, inflight: null }),
 }))
 
 export function useArtistsById() {

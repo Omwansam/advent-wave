@@ -77,7 +77,7 @@ class AdminUploadTest extends IntegrationTest {
         this.token = AdminTestSupport.token(this.mvc, this.accounts, AdminRole.CONTENT_MANAGER);
         ChurchDto church = this.admin.createChurch(new ChurchDto.Request("Upload Church " + UUID.randomUUID(), "KE", "kenya", null));
         String licence = this.admin.createLicense(new LicenseDto.Request(UUID.fromString(church.id()), null, null, null, null)).id();
-        String artist = this.admin.createArtist(new AdminArtistDto.Request("Upload Choir " + UUID.randomUUID(), null, null, null, UUID.fromString(church.id()), null)).id();
+        String artist = this.admin.createArtist(new AdminArtistDto.Request("Upload Choir " + UUID.randomUUID(), null, null, null, UUID.fromString(church.id()), null, null, null, null, null, null)).id();
         this.itemId = this.admin.createMedia(new AdminMediaItemDto.Request(
             "song", "Upload Song", UUID.fromString(artist), null, 1000, null, null, null, null, null, UUID.fromString(licence))).id();
     }

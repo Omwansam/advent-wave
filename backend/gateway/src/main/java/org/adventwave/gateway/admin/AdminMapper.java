@@ -36,7 +36,8 @@ public final class AdminMapper {
     static AdminArtistDto artist(Artist a) {
         return new AdminArtistDto(
             a.getId().toString(), a.getName(), a.getSlug(), a.getCoverUrl(), a.getBio(),
-            a.getChurchId() == null ? null : a.getChurchId().toString(), a.isVerified(), a.getCreatedAt().toString()
+            a.getChurchId() == null ? null : a.getChurchId().toString(), a.isVerified(), a.getCreatedAt().toString(),
+            a.getKind(), a.getEnsemble(), a.getHomeChurchId() == null ? null : a.getHomeChurchId().toString(), a.getConferenceId(), a.getLocation()
         );
     }
 
@@ -79,6 +80,12 @@ public final class AdminMapper {
         putIfPresent(p, "bio", a.getBio());
         putIfPresent(p, "church_id", a.getChurchId() == null ? null : a.getChurchId().toString());
         p.put("verified", a.isVerified());
+        // RFC 0009
+        p.put("kind", a.getKind().wireValue());
+        putIfPresent(p, "ensemble", a.getEnsemble() == null ? null : a.getEnsemble().wireValue());
+        putIfPresent(p, "home_church_id", a.getHomeChurchId() == null ? null : a.getHomeChurchId().toString());
+        putIfPresent(p, "conference_id", a.getConferenceId());
+        putIfPresent(p, "location", a.getLocation());
         return p;
     }
 

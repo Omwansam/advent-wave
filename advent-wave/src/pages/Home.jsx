@@ -11,8 +11,9 @@ import {
   QuickPickTile,
   TrackQuickTile,
 } from '../components/QuickPickTile'
+import { ProfileShelf } from '../components/ProfileCard'
 import { Shelf } from '../components/Shelf'
-import { getHome } from '../api'
+import { getArtists, getHome } from '../api'
 import { useApi } from '../hooks/useApi'
 import { greetingLabel } from '../utils/timeGreeting'
 import { useAuthStore } from '../store/useAuthStore'
@@ -70,6 +71,10 @@ export function Home() {
   // One request assembles the whole page server-side: recently played, trending, curated
   // playlists, sermons and recommendations. The client only filters and arranges.
   const { data, error, loading, refetch } = useApi((signal) => getHome({ signal }), [])
+  // Spotify's "Popular artists", for a church catalogue (RFC 0009): choirs and groups, and
+  // churches, each the most listened to over 30 days. Loaded beside the home page, not in it.
+  const { data: popularChoirs } = useApi((signal) => getArtists({ kind: ['choir', 'group', 'soloist'], limit: 16 }, { signal }), [])
+  const { data: churches } = useApi((signal) => getArtists({ kind: 'church', limit: 16 }, { signal }), [])
 
   const q = search.trim().toLowerCase()
   const visible = useMemo(
@@ -223,6 +228,18 @@ export function Home() {
         <LazySection>
           <TrackShelf title="Trending now" to="/discover" tracks={visible(trendingNow)} />
         </LazySection>
+
+        {chip !== 'sermons' && !q ? (
+          <LazySection>
+            <ProfileShelf title="Popular choirs" to="/choirs" profiles={popularChoirs?.artists} />
+          </LazySection>
+        ) : null}
+
+        {!q ? (
+          <LazySection>
+            <ProfileShelf title="Churches" to="/choirs?filter=churches" profiles={churches?.artists} />
+          </LazySection>
+        ) : null}
 
         {becauseYouListened ? (
           <LazySection>

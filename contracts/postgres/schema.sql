@@ -13,6 +13,25 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 COMMENT ON EXTENSION pg_trgm IS 'text similarity measurement and index searching based on trigrams';
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
+CREATE FUNCTION public.enforce_home_church_is_a_church() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.home_church_id IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM artists WHERE id = NEW.home_church_id AND kind = 'church') THEN
+        RAISE EXCEPTION
+            'artist % cannot belong to %: that is not a church profile', NEW.id, NEW.home_church_id
+            USING ERRCODE = 'check_violation';
+    END IF;
+    IF TG_OP = 'UPDATE' AND OLD.kind = 'church' AND NEW.kind <> 'church'
+       AND EXISTS (SELECT 1 FROM artists WHERE home_church_id = NEW.id) THEN
+        RAISE EXCEPTION
+            'artist % is home to other profiles and must stay a church', NEW.id
+            USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$;
 CREATE FUNCTION public.enforce_publication_requires_granted_license() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -80,7 +99,17 @@ CREATE TABLE public.artists (
     bio text,
     church_id uuid,
     verified boolean DEFAULT false NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    kind text DEFAULT 'choir'::text NOT NULL,
+    ensemble text,
+    home_church_id uuid,
+    conference_id text,
+    location text,
+    CONSTRAINT artists_church_has_no_home CHECK (((kind <> 'church'::text) OR (home_church_id IS NULL))),
+    CONSTRAINT artists_ensemble_check CHECK ((ensemble = ANY (ARRAY['main'::text, 'youth'::text, 'children'::text, 'women'::text, 'men'::text, 'other'::text]))),
+    CONSTRAINT artists_ensemble_only_choirs CHECK (((ensemble IS NULL) OR (kind = 'choir'::text))),
+    CONSTRAINT artists_kind_check CHECK ((kind = ANY (ARRAY['church'::text, 'choir'::text, 'group'::text, 'soloist'::text, 'preacher'::text, 'ministry'::text]))),
+    CONSTRAINT artists_not_own_home CHECK ((home_church_id IS DISTINCT FROM id))
 );
 CREATE TABLE public.churches (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -91,6 +120,18 @@ CREATE TABLE public.churches (
     consent_status text DEFAULT 'none'::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT churches_consent_status_check CHECK ((consent_status = ANY (ARRAY['none'::text, 'pending'::text, 'granted'::text, 'revoked'::text])))
+);
+CREATE TABLE public.conferences (
+    id text NOT NULL,
+    name text NOT NULL,
+    short_name text,
+    kind text NOT NULL,
+    parent_id text,
+    headquarters text,
+    website text,
+    sort_order integer DEFAULT 0 NOT NULL,
+    CONSTRAINT conferences_kind_check CHECK ((kind = ANY (ARRAY['division'::text, 'union'::text, 'conference'::text, 'field'::text]))),
+    CONSTRAINT conferences_parent_by_kind CHECK (((kind = 'division'::text) = (parent_id IS NULL)))
 );
 CREATE TABLE public.discover_categories (
     id text NOT NULL,
@@ -381,6 +422,10 @@ ALTER TABLE ONLY public.artists
     ADD CONSTRAINT artists_slug_key UNIQUE (slug);
 ALTER TABLE ONLY public.churches
     ADD CONSTRAINT churches_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.conferences
+    ADD CONSTRAINT conferences_name_key UNIQUE (name);
+ALTER TABLE ONLY public.conferences
+    ADD CONSTRAINT conferences_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.discover_categories
     ADD CONSTRAINT discover_categories_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.discover_category_items
@@ -450,6 +495,8 @@ ALTER TABLE ONLY public.users
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 CREATE INDEX albums_title_trgm_idx ON public.albums USING gin (title public.gin_trgm_ops);
+CREATE INDEX artists_home_church_idx ON public.artists USING btree (home_church_id);
+CREATE INDEX artists_kind_idx ON public.artists USING btree (kind);
 CREATE INDEX artists_name_trgm_idx ON public.artists USING gin (name public.gin_trgm_ops);
 CREATE INDEX licenses_church_idx ON public.licenses USING btree (church_id);
 CREATE INDEX listener_tokens_user_purpose_idx ON public.listener_tokens USING btree (user_id, purpose);
@@ -471,11 +518,18 @@ CREATE INDEX playlists_owner_idx ON public.playlists USING btree (owner_id);
 CREATE INDEX user_follows_user_followee_idx ON public.user_follows_user USING btree (followee_id);
 CREATE INDEX user_likes_user_created_idx ON public.user_likes USING btree (user_id, created_at DESC);
 CREATE INDEX users_display_name_trgm_idx ON public.users USING gin (display_name public.gin_trgm_ops);
+CREATE TRIGGER artists_home_church_gate BEFORE INSERT OR UPDATE OF home_church_id, kind ON public.artists FOR EACH ROW EXECUTE FUNCTION public.enforce_home_church_is_a_church();
 CREATE TRIGGER media_items_publication_gate BEFORE INSERT OR UPDATE OF status, license_id ON public.media_items FOR EACH ROW EXECUTE FUNCTION public.enforce_publication_requires_granted_license();
 ALTER TABLE ONLY public.albums
     ADD CONSTRAINT albums_artist_id_fkey FOREIGN KEY (artist_id) REFERENCES public.artists(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.artists
     ADD CONSTRAINT artists_church_id_fkey FOREIGN KEY (church_id) REFERENCES public.churches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.artists
+    ADD CONSTRAINT artists_conference_id_fkey FOREIGN KEY (conference_id) REFERENCES public.conferences(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.artists
+    ADD CONSTRAINT artists_home_church_id_fkey FOREIGN KEY (home_church_id) REFERENCES public.artists(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.conferences
+    ADD CONSTRAINT conferences_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.conferences(id);
 ALTER TABLE ONLY public.discover_category_items
     ADD CONSTRAINT discover_category_items_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.discover_categories(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.discover_category_items

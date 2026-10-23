@@ -14,6 +14,10 @@
     "verified": false,
     "artist_id": "774f6ba9-170c-44e4-a677-c2e299f69309",
     "church_id": "19ce0653-0fff-401b-95fa-31b5e5c8b619",
-    "cover_url": "https://picsum.photos/seed/ncc/400/400"
+    "cover_url": "https://picsum.photos/seed/ncc/400/400",
+    "kind": "choir",
+    "ensemble": "main",
+    "conference_id": "ckc",
+    "location": "Nairobi"
   }
 }

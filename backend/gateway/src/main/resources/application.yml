@@ -130,6 +130,9 @@ adventwave:
     # The derived bucket's CDN origin; a storage key is appended to it. Empty means
     # {api-base-url}/media-storage, which only the local profile's media origin answers.
     media-origin-url: ${ADVENTWAVE_MEDIA_ORIGIN_URL:}
+    # The web app, which serves the placeholder covers at /covers/ (RFC 0009). On a server the app
+    # and the API share a host, so this is the same address as the app's.
+    cover-base-url: ${ADVENTWAVE_APP_BASE_URL:http://localhost:5173}
 
   # Where masters and derived audio live (RFC 0006). local: adventwave.catalog.local-media-root on
   # this machine, development only. s3: S3-compatible object storage (AWS S3, Cloudflare R2,
@@ -177,7 +180,7 @@ adventwave:
   contracts:
     # The contract version this build implements — <repo>/contracts/VERSION. CI asserts the
     # generated OpenAPI carries the same value.
-    version: 1.7.0
+    version: 1.8.0
 
 springdoc:
   # The document is generated from the controllers and dumped to contracts/openapi/ by

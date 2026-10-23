@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from './layouts/AppLayout'
 import { Home } from './pages/Home'
 import { Discover } from './pages/Discover'
+import { Choirs } from './pages/Choirs'
 import { Library } from './pages/Library'
 import { PlaylistDetail } from './pages/PlaylistDetail'
 import { Podcasts } from './pages/Podcasts'
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="search" element={<Search />} />
             <Route path="browse" element={<Browse />} />
             <Route path="discover" element={<Discover />} />
+            <Route path="choirs" element={<Choirs />} />
             <Route path="settings" element={<Settings />} />
             <Route path="history" element={<ListeningHistory />} />
             <Route path="artists" element={<FollowedArtists />} />

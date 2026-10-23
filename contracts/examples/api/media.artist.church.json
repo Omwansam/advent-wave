@@ -1,0 +1,86 @@
+{
+  "_source": "live response from the local gateway: a church profile with one choir; tracks truncated to one",
+  "request": {
+    "method": "GET",
+    "path": "/v1/artists/9582e045-b765-48bb-846e-4dea448a1c70",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": "9582e045-b765-48bb-846e-4dea448a1c70",
+      "name": "Nairobi Central SDA Church",
+      "slug": "nairobi-central-sda-church",
+      "cover": "http://localhost:5173/covers/church-3.jpg",
+      "verified": false,
+      "songIds": [
+        "b8e13c77-e7b8-46d6-a95d-931fb5804b7d"
+      ],
+      "tracks": [
+        {
+          "id": "b8e13c77-e7b8-46d6-a95d-931fb5804b7d",
+          "title": "Mwamba Wa Milele",
+          "artist": "Nairobi Central Choir",
+          "duration": 251,
+          "cover": "http://localhost:5173/covers/choir-2.jpg",
+          "audioUrl": "http://localhost:8080/v1/media/b8e13c77-e7b8-46d6-a95d-931fb5804b7d/stream",
+          "mediaType": "song",
+          "artistId": "774f6ba9-170c-44e4-a677-c2e299f69309",
+          "durationMs": 251400,
+          "genre": "choir",
+          "language": "sw",
+          "region": "kenya",
+          "popularity": 60
+        }
+      ],
+      "kind": "church",
+      "bio": "Known as Maxwell, on Jakaya Kikwete Road opposite the Nairobi Area Police headquarters.",
+      "location": "Nairobi",
+      "followers": 0,
+      "conference": {
+        "id": "ckc",
+        "name": "Central Kenya Conference",
+        "shortName": "CKC",
+        "kind": "conference",
+        "headquarters": "Karura, Red Hill Road, Nairobi",
+        "website": "https://ckc.adventist.or.ke",
+        "union": {
+          "id": "ekuc",
+          "name": "East Kenya Union Conference",
+          "shortName": "EKUC",
+          "kind": "union",
+          "headquarters": "Jakaya Kikwete Road, Nairobi",
+          "website": "https://eku.adventist.org"
+        }
+      },
+      "members": [
+        {
+          "id": "774f6ba9-170c-44e4-a677-c2e299f69309",
+          "name": "Nairobi Central Choir",
+          "cover": "http://localhost:5173/covers/choir-2.jpg",
+          "kind": "choir",
+          "ensemble": "main",
+          "verified": false,
+          "churchId": "9582e045-b765-48bb-846e-4dea448a1c70",
+          "churchName": "Nairobi Central SDA Church"
+        }
+      ],
+      "related": [
+        {
+          "id": "fcae3f97-ab4c-5953-8b85-69bb1276c048",
+          "name": "Loma Linda University Church",
+          "cover": "http://localhost:5173/covers/church-1.jpg",
+          "kind": "church",
+          "verified": false
+        },
+        {
+          "id": "56fd7833-ee07-570f-8a7d-0d74b1d23b17",
+          "name": "Strathmore University SDA Fellowship",
+          "cover": "http://localhost:5173/covers/church-3.jpg",
+          "kind": "church",
+          "verified": false
+        }
+      ]
+    }
+  }
+}

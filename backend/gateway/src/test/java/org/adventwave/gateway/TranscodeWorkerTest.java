@@ -100,7 +100,7 @@ class TranscodeWorkerTest extends IntegrationTest {
         ChurchDto church = this.admin.createChurch(new ChurchDto.Request("Worker Church " + UUID.randomUUID(), "KE", "kenya", null));
         this.licenseId = this.admin.createLicense(new LicenseDto.Request(UUID.fromString(church.id()), null, null, null, null)).id();
         this.admin.setLicenseStatus(UUID.fromString(this.licenseId), new LicenseDto.StatusRequest("granted"));
-        this.artistId = this.admin.createArtist(new AdminArtistDto.Request("Worker Choir " + UUID.randomUUID(), null, null, null, UUID.fromString(church.id()), null)).id();
+        this.artistId = this.admin.createArtist(new AdminArtistDto.Request("Worker Choir " + UUID.randomUUID(), null, null, null, UUID.fromString(church.id()), null, null, null, null, null, null)).id();
     }
 
     private String requested(String mode) throws IOException {

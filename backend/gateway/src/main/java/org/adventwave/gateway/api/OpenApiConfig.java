@@ -151,6 +151,7 @@ public class OpenApiConfig {
         Map.entry("me-controller", "account"),
         Map.entry("home-controller", "catalogue"),
         Map.entry("site-controller", "catalogue"),
+        Map.entry("profile-controller", "catalogue"),
         Map.entry("media-controller", "media"),
         Map.entry("search-controller", "search"),
         Map.entry("library-controller", "library"),

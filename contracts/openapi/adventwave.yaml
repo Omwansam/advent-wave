@@ -9,7 +9,7 @@ info:
   license:
     name: Proprietary
   title: AdventWave API
-  version: 1.7.0
+  version: 1.8.0
 servers:
 - description: This instance
   url: http://localhost:8080
@@ -1063,6 +1063,45 @@ paths:
         - catalog:write
       tags:
       - "admin: contributors"
+  /v1/admin/conferences:
+    get:
+      operationId: conferences_1
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminConferenceDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "The account's role lacks the catalog:read permission, or its\
+            \ password must be changed first; the message says which"
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      security:
+      - bearerAuth:
+        - catalog:read
+        - catalog:write
+      tags:
+      - "admin: catalogue"
   /v1/admin/licenses:
     get:
       operationId: listLicenses
@@ -2380,6 +2419,74 @@ paths:
           description: Unhandled failure; the body carries no detail
       tags:
       - media
+  /v1/artists:
+    get:
+      operationId: artists
+      parameters:
+      - in: query
+        name: kind
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+      - in: query
+        name: ensemble
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: independent
+        required: false
+        schema:
+          type: boolean
+      - in: query
+        name: church
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: conference
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistsDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Validation failed, a parameter would not convert, or a referenced\
+            \ item is unknown"
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - catalogue
   /v1/artists/{id}:
     get:
       operationId: artist_1
@@ -2771,6 +2878,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BrowseDto"
+          description: OK
+        "401":
+          description: "Missing, expired, or unverifiable bearer token. Empty body."
+          headers:
+            WWW-Authenticate:
+              description: "`Bearer`, with error=\"invalid_token\" and a description\
+                \ when a token was presented"
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unhandled failure; the body carries no detail
+      tags:
+      - catalogue
+  /v1/conferences:
+    get:
+      operationId: conferences
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConferencesDto"
           description: OK
         "401":
           description: "Missing, expired, or unverifiable bearer token. Empty body."
@@ -4419,11 +4552,35 @@ components:
           type: string
         churchId:
           type: string
+        conferenceId:
+          type: string
         coverUrl:
           type: string
         createdAt:
           type: string
+        ensemble:
+          type: string
+          enum:
+          - main
+          - youth
+          - children
+          - women
+          - men
+          - other
+        homeChurchId:
+          type: string
         id:
+          type: string
+        kind:
+          type: string
+          enum:
+          - church
+          - choir
+          - group
+          - soloist
+          - preacher
+          - ministry
+        location:
           type: string
         name:
           type: string
@@ -4431,6 +4588,19 @@ components:
           type: string
         verified:
           type: boolean
+    AdminConferenceDto:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        name:
+          type: string
+        parentId:
+          type: string
+        shortName:
+          type: string
     AdminLoginRequest:
       type: object
       properties:
@@ -4535,12 +4705,49 @@ components:
     ArtistDto:
       type: object
       properties:
+        bio:
+          type: string
+        church:
+          $ref: "#/components/schemas/ArtistSummaryDto"
+        conference:
+          $ref: "#/components/schemas/ConferenceDto"
         cover:
           type: string
+        ensemble:
+          type: string
+          enum:
+          - main
+          - youth
+          - children
+          - women
+          - men
+          - other
+        followers:
+          type: integer
+          format: int64
         id:
           type: string
+        kind:
+          type: string
+          enum:
+          - church
+          - choir
+          - group
+          - soloist
+          - preacher
+          - ministry
+        location:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistSummaryDto"
         name:
           type: string
+        related:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistSummaryDto"
         slug:
           type: string
         songIds:
@@ -4553,6 +4760,48 @@ components:
             $ref: "#/components/schemas/TrackDto"
         verified:
           type: boolean
+    ArtistSummaryDto:
+      type: object
+      properties:
+        churchId:
+          type: string
+        churchName:
+          type: string
+        cover:
+          type: string
+        ensemble:
+          type: string
+          enum:
+          - main
+          - youth
+          - children
+          - women
+          - men
+          - other
+        id:
+          type: string
+        kind:
+          type: string
+          enum:
+          - church
+          - choir
+          - group
+          - soloist
+          - preacher
+          - ministry
+        location:
+          type: string
+        name:
+          type: string
+        verified:
+          type: boolean
+    ArtistsDto:
+      type: object
+      properties:
+        artists:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistSummaryDto"
     Asset:
       type: object
       properties:
@@ -4663,6 +4912,35 @@ components:
           type: string
         region:
           type: string
+    ConferenceDto:
+      type: object
+      properties:
+        churches:
+          type: integer
+          format: int32
+        conferences:
+          type: array
+          items: {}
+        headquarters:
+          type: string
+        id:
+          type: string
+        kind:
+          type: string
+        name:
+          type: string
+        shortName:
+          type: string
+        union: {}
+        website:
+          type: string
+    ConferencesDto:
+      type: object
+      properties:
+        unions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConferenceDto"
     ConsentRequest:
       type: object
       properties:

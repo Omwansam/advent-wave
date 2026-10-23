@@ -1,0 +1,88 @@
+{
+  "_source": "live response from the local gateway; each union truncated to its first three conferences",
+  "request": {
+    "method": "GET",
+    "path": "/v1/conferences",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "unions": [
+        {
+          "id": "ekuc",
+          "name": "East Kenya Union Conference",
+          "shortName": "EKUC",
+          "kind": "union",
+          "headquarters": "Jakaya Kikwete Road, Nairobi",
+          "website": "https://eku.adventist.org",
+          "churches": 0,
+          "conferences": [
+            {
+              "id": "ckc",
+              "name": "Central Kenya Conference",
+              "shortName": "CKC",
+              "kind": "conference",
+              "headquarters": "Karura, Red Hill Road, Nairobi",
+              "website": "https://ckc.adventist.or.ke",
+              "churches": 1
+            },
+            {
+              "id": "crvc",
+              "name": "Central Rift Valley Conference",
+              "shortName": "CRVC",
+              "kind": "conference",
+              "headquarters": "Nakuru",
+              "website": "https://centralriftvalleyconference.org",
+              "churches": 0
+            },
+            {
+              "id": "nc",
+              "name": "Nyamira Conference",
+              "shortName": "NC",
+              "kind": "conference",
+              "headquarters": "Nyamira",
+              "churches": 0
+            }
+          ]
+        },
+        {
+          "id": "wkuc",
+          "name": "West Kenya Union Conference",
+          "shortName": "WKUC",
+          "kind": "union",
+          "headquarters": "Kanyakwar, off Kakamega Road, Kisumu",
+          "churches": 0,
+          "conferences": [
+            {
+              "id": "cnc",
+              "name": "Central Nyanza Conference",
+              "shortName": "CNC",
+              "kind": "conference",
+              "headquarters": "Kisumu",
+              "website": "https://cncadventist.org",
+              "churches": 0
+            },
+            {
+              "id": "grvc",
+              "name": "Greater Rift Valley Conference",
+              "shortName": "GRVC",
+              "kind": "conference",
+              "headquarters": "Eldoret",
+              "churches": 0
+            },
+            {
+              "id": "klc",
+              "name": "Kenya Lake Conference",
+              "shortName": "KLC",
+              "kind": "conference",
+              "headquarters": "Kendu Bay",
+              "website": "https://klc.adventistafrica.org",
+              "churches": 0
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

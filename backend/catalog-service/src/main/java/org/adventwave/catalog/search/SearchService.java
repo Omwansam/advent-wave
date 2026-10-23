@@ -79,7 +79,7 @@ public class SearchService {
             for (MediaItem mediaitem : list) {
                 int i = this.trackScore(mediaitem, s, flag);
                 if (i >= 0) {
-                    SearchService.Scored<TrackDto> scored = new SearchService.Scored<>(CatalogMapper.toTrack(mediaitem, this.properties.getApiBaseUrl()), i);
+                    SearchService.Scored<TrackDto> scored = new SearchService.Scored<>(CatalogMapper.toTrack(mediaitem, this.properties), i);
                     switch (mediaitem.getMediaType()) {
                         case SONG:
                             list1.add(scored);
@@ -118,7 +118,7 @@ public class SearchService {
             for (Album album : this.albums.searchCandidates(s, Limit.of(500))) {
                 int l = Math.max(SearchRanking.matchScore(album.getTitle(), s), SearchRanking.matchScore(album.getArtist().getName(), s));
                 if (l >= 0) {
-                    list4.add(new SearchService.Scored<>(CatalogMapper.toAlbum(album, List.of(), null).withoutTracks(), l));
+                    list4.add(new SearchService.Scored<>(CatalogMapper.toAlbum(album, List.of(), null, this.properties).withoutTracks(), l));
                 }
             }
 
@@ -136,7 +136,7 @@ public class SearchService {
 
             List<SearchService.Scored<ArtistDto>> list6 = map.values()
                 .stream()
-                .map(scored -> new SearchService.Scored<>(CatalogMapper.toArtist(scored.value(), List.of(), null).withoutTracks(), scored.score()))
+                .map(scored -> new SearchService.Scored<>(CatalogMapper.toArtist(scored.value(), List.of(), null, this.properties).withoutTracks(), scored.score()))
                 .toList();
             TopResult topresult = this.topResult(list1, list2, list3, list6, list4, list5);
             List<TrackDto> songs = this.take(list1, 48);
@@ -173,7 +173,7 @@ public class SearchService {
             MediaItem item = items.get(id);
             MediaLyrics text = words.get(id);
             if (item != null && text != null) {
-                matches.add(new LyricsMatchDto(CatalogMapper.toTrack(item, this.properties.getApiBaseUrl()), MediaTextService.firstMatchingLine(text, query)));
+                matches.add(new LyricsMatchDto(CatalogMapper.toTrack(item, this.properties), MediaTextService.firstMatchingLine(text, query)));
             }
         }
         return matches.isEmpty() ? null : matches;

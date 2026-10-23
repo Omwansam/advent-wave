@@ -49,6 +49,43 @@
         },
         "verified": {
           "type": "boolean"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "church",
+            "choir",
+            "group",
+            "soloist",
+            "preacher",
+            "ministry"
+          ],
+          "description": "What the profile is (RFC 0009, contracts 1.8.0). Absent on messages from before 1.8.0, which mean choir."
+        },
+        "ensemble": {
+          "type": "string",
+          "enum": [
+            "main",
+            "youth",
+            "children",
+            "women",
+            "men",
+            "other"
+          ],
+          "description": "Which of a church's choirs; present only when kind is choir."
+        },
+        "home_church_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "The church profile (an artist of kind church) this one belongs to. Absent: a church, or an independent profile."
+        },
+        "conference_id": {
+          "type": "string",
+          "description": "conferences.id: the conference, field or union the profile sits in."
+        },
+        "location": {
+          "type": "string",
+          "description": "Town or area, as the profile gives it."
         }
       }
     },

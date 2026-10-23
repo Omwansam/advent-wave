@@ -123,8 +123,9 @@ export function getArtist(id, options) {
 }
 
 /**
- * @param {{ name: string, slug?: string, coverUrl?: string, bio?: string,
- *           churchId?: string, verified?: boolean }} artist
+ * @param {{ name: string, slug?: string, coverUrl?: string, bio?: string, churchId?: string,
+ *           verified?: boolean, kind?: string, ensemble?: string, homeChurchId?: string,
+ *           conferenceId?: string, location?: string }} artist
  */
 export function createArtist(artist, options) {
   return api.post('/v1/admin/artists', artist, options)
@@ -133,6 +134,11 @@ export function createArtist(artist, options) {
 /** A full replace: send every field, not just the changed ones. */
 export function updateArtist(id, artist, options) {
   return api.put(`/v1/admin/artists/${id}`, artist, options)
+}
+
+/** RFC 0009: the division, unions, conferences and fields, in directory order. */
+export function listConferences(options) {
+  return api.get('/v1/admin/conferences', options)
 }
 
 /* -------------------------------------------------------------- albums */

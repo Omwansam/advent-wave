@@ -13,7 +13,7 @@ import { useAsync } from '../hooks/useAsync'
 import { formatDate, formatDateTime } from '../lib/format'
 import { PERMISSIONS } from '../lib/roles'
 import { useCan } from '../store/useAuthStore'
-import { useChurchesById } from '../store/useCatalogStore'
+import { useArtistsById, useCatalogStore, useChurchesById } from '../store/useCatalogStore'
 
 export function ArtistDetail() {
   const { id } = useParams()
@@ -28,6 +28,8 @@ export function ArtistDetail() {
   )
   const media = useAsync(loadMedia)
   const churchesById = useChurchesById()
+  const artistsById = useArtistsById()
+  const conferences = useCatalogStore((s) => s.conferences)
   const [editing, setEditing] = useState(false)
   const [albumForm, setAlbumForm] = useState(null)
   const canEdit = useCan(PERMISSIONS.MEDIA_WRITE)
@@ -37,6 +39,9 @@ export function ArtistDetail() {
 
   const a = artist.data
   const church = a.churchId ? churchesById[a.churchId] : null
+  const home = a.homeChurchId ? artistsById[a.homeChurchId] : null
+  const conference = a.conferenceId ? conferences.find((c) => c.id === a.conferenceId) : null
+  const kind = a.kind === 'choir' ? `Choir — ${a.ensemble ?? 'main'}` : a.kind
 
   return (
     <>
@@ -68,8 +73,23 @@ export function ArtistDetail() {
               <DefinitionList
                 items={[
                   ['Slug', <span key="slug" className="aw-mono">{a.slug}</span>],
+                  ['Kind', <span key="kind" className="capitalize">{kind}</span>],
                   [
-                    'Church',
+                    'Home church',
+                    a.homeChurchId ? (
+                      <Link key="home" to={`/artists/${a.homeChurchId}`} className="text-[var(--aw-primary)] hover:underline">
+                        {home?.name ?? a.homeChurchId}
+                      </Link>
+                    ) : a.kind === 'church' ? (
+                      'This is a church profile'
+                    ) : (
+                      'Independent'
+                    ),
+                  ],
+                  ['Conference', conference?.name ?? (a.conferenceId || 'Not set')],
+                  ['Location', a.location || '—'],
+                  [
+                    'Rights holder',
                     a.churchId ? (
                       <Link key="church" to={`/churches/${a.churchId}`} className="text-[var(--aw-primary)] hover:underline">
                         {church?.name ?? a.churchId}

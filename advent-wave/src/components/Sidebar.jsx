@@ -2,6 +2,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   BookOpen,
   ChevronsLeft,
+  Church,
   Clock,
   Compass,
   Heart,
@@ -30,6 +31,7 @@ const nav = [
   { to: '/search', label: 'Search', Icon: Search },
   { to: '/browse', label: 'Browse', Icon: LayoutGrid },
   { to: '/discover', label: 'Discover', Icon: Compass },
+  { to: '/choirs', label: 'Choirs & churches', Icon: Church },
   { to: '/library', label: 'Library', Icon: Library },
   { to: '/liked', label: 'Liked songs', Icon: Heart },
   { to: '/history', label: 'Listening history', Icon: Clock },

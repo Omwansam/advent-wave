@@ -23,6 +23,11 @@ public class CatalogProperties {
      * gateway then serves itself at {@code /media-storage/derived/**}. Unset everywhere else.
      */
     private String localMediaRoot;
+    /**
+     * The web app's origin, which serves the placeholder covers at {@code /covers/} (RFC 0009,
+     * advent-wave/public/covers/). A cover stored as a path starting with "/" is resolved against it.
+     */
+    private String coverBaseUrl = "http://localhost:5173";
 
     /** The base a storage key is appended to, with no trailing slash. */
     public String mediaOrigin() {
@@ -60,6 +65,16 @@ public class CatalogProperties {
     @Generated
     public String getLocalMediaRoot() {
         return this.localMediaRoot;
+    }
+
+    @Generated
+    public String getCoverBaseUrl() {
+        return this.coverBaseUrl;
+    }
+
+    @Generated
+    public void setCoverBaseUrl(final String coverBaseUrl) {
+        this.coverBaseUrl = coverBaseUrl;
     }
 
     @Generated

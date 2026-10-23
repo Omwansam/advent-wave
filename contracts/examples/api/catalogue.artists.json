@@ -1,0 +1,39 @@
+{
+  "_source": "live response from the local gateway, seed catalogue",
+  "request": {
+    "method": "GET",
+    "path": "/v1/artists?kind=choir,group&limit=3",
+    "authenticated": true
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "artists": [
+        {
+          "id": "30123ac7-5b91-4539-8640-1a329a8990ce",
+          "name": "Nyandema Central SDA Choir",
+          "cover": "http://localhost:5173/covers/choir-1.jpg",
+          "kind": "choir",
+          "ensemble": "main",
+          "verified": false
+        },
+        {
+          "id": "ae27559e-eef1-4e5c-8986-dba27e6b5fca",
+          "name": "Kurasini SDA Choir",
+          "cover": "http://localhost:5173/covers/choir-1.jpg",
+          "kind": "choir",
+          "ensemble": "main",
+          "verified": false
+        },
+        {
+          "id": "0d55b462-3c9e-4841-9aea-789c4b97d1c1",
+          "name": "Verification Choir",
+          "cover": "http://localhost:5173/covers/choir-5.jpg",
+          "kind": "choir",
+          "ensemble": "main",
+          "verified": false
+        }
+      ]
+    }
+  }
+}
