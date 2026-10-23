@@ -82,14 +82,26 @@ function Hero({ site }) {
         </Link>
       </div>
       <p className="mt-6 min-h-5 text-sm text-aw-muted" aria-live="polite">
-        {t &&
-          `${formatCount(t.songs)} songs · ${formatCount(t.sermons)} sermons · ${formatCount(t.podcasts)} podcasts from ${formatCount(t.churches)} ${t.churches === 1 ? 'church' : 'churches'}`}
+        {t && catalogueLine(t)}
       </p>
       <p aria-hidden className="absolute bottom-8 text-[11px] uppercase tracking-[0.3em] text-white/40">
         scroll ↓
       </p>
     </div>
   )
+}
+
+const plural = (n, one, many) => `${formatCount(n)} ${n === 1 ? one : many}`
+
+/** "3 songs from 2 churches": only what there is, so a young catalogue never advertises a zero. */
+function catalogueLine(t) {
+  const kinds = [
+    t.songs && plural(t.songs, 'song', 'songs'),
+    t.sermons && plural(t.sermons, 'sermon', 'sermons'),
+    t.podcasts && plural(t.podcasts, 'podcast', 'podcasts'),
+  ].filter(Boolean)
+  if (kinds.length === 0) return null
+  return `${kinds.join(' · ')}${t.churches ? ` from ${plural(t.churches, 'church', 'churches')}` : ''}`
 }
 
 function Numbers({ site }) {
@@ -103,6 +115,9 @@ function Numbers({ site }) {
     { icon: Users, label: 'Choirs, preachers and hosts', value: t?.artists },
     { icon: Church, label: 'Churches sharing', value: t?.churches },
   ]
+  // While loading every tile waits; once loaded, a count of zero is left out rather than shown.
+  const shown = t ? stats.filter((s) => s.value > 0) : stats
+  if (shown.length === 0) return null
   return (
     <Section aria-labelledby="numbers" className="py-24 md:py-32">
       <div className="mx-auto max-w-3xl text-center">
@@ -111,14 +126,17 @@ function Numbers({ site }) {
           Recorded in sanctuaries, shared with the whole church.
         </h2>
       </div>
-      <dl className="mt-14 grid grid-cols-2 gap-3 md:grid-cols-3">
-        {stats.map(({ icon: Icon, label, value }) => (
-          <div key={label} className="rounded-3xl bg-aw-ink/80 p-6 ring-1 ring-white/10">
+      <dl className="mt-14 flex flex-wrap justify-center gap-3">
+        {shown.map(({ icon: Icon, label, value }) => (
+          <div
+            key={label}
+            className="flex basis-[calc(50%-0.375rem)] flex-col rounded-3xl bg-aw-ink/80 p-6 ring-1 ring-white/10 md:basis-[calc(33.333%-0.5rem)]"
+          >
             <Icon className="size-5 text-aw-violet" aria-hidden />
+            <dt className="order-last mt-1 text-sm text-aw-muted">{label}</dt>
             <dd className="mt-4 text-4xl font-extrabold tracking-tight text-white tabular-nums md:text-5xl">
               {value === undefined ? <span className="inline-block h-10 w-16 animate-pulse rounded-lg bg-white/10" /> : formatCount(value)}
             </dd>
-            <dt className="mt-1 text-sm text-aw-muted">{label}</dt>
           </div>
         ))}
       </dl>
@@ -160,7 +178,9 @@ function SeeAll({ href }) {
 }
 
 function Listen({ site }) {
-  if (site === null) {
+  // A young catalogue can have nothing in any rail yet; then this is the same card as no data.
+  const empty = site && !site.trending.length && !site.sermons.length && !site.playlists.length && !site.categories.length
+  if (site === null || empty) {
     return (
       <Section id="listen" className="py-24">
         <div className="rounded-3xl bg-aw-ink/80 p-10 text-center ring-1 ring-white/10">
@@ -185,52 +205,56 @@ function Listen({ site }) {
           What the church is listening to.
         </h2>
         <p className="mt-4 text-aw-muted">
-          Live from the catalogue: the most played recordings of the last seven days, sermons to come back to, and
-          playlists put together for the Sabbath.
+          Live from the catalogue, and it changes as churches add recordings. Tap anything to hear it in
+          AdventWave.
         </p>
       </div>
 
       <div className="mt-14 rounded-[2rem] bg-aw-ink/80 p-5 ring-1 ring-white/10 sm:p-8">
-        <Rail title="Trending now" action={<SeeAll href={appUrl('/browse')} />}>
-          <ol className="grid w-max auto-cols-[10.5rem] grid-flow-col gap-4 sm:w-auto sm:grid-flow-row sm:grid-cols-4 sm:auto-cols-auto">
-            {loading
-              ? placeholders.slice(0, 4).map((i) => <li key={i} className="aspect-square animate-pulse rounded-2xl bg-white/5" />)
-              : site.trending.map((item, i) => (
-                  <li key={item.id}>
-                    <a href={itemHref(item)} className="group block">
-                      <div className="relative">
-                        <Cover src={item.cover} className="aspect-square rounded-2xl ring-1 ring-white/10 transition group-hover:ring-aw-violet/60" />
-                        <span className="absolute left-2 top-2 rounded-full bg-aw-ink/80 px-2 py-0.5 text-xs font-bold text-white tabular-nums">
-                          {i + 1}
-                        </span>
-                      </div>
-                      <p className="mt-3 truncate font-semibold text-white">{item.title}</p>
-                      <p className="truncate text-sm text-aw-muted">{item.artist}</p>
-                    </a>
-                  </li>
-                ))}
-          </ol>
-        </Rail>
+        {(loading || site.trending.length > 0) && (
+          <Rail title="Trending now" action={<SeeAll href={appUrl('/browse')} />}>
+            <ol className="grid w-max auto-cols-[10.5rem] grid-flow-col gap-4 sm:w-auto sm:grid-flow-row sm:grid-cols-4 sm:auto-cols-auto">
+              {loading
+                ? placeholders.slice(0, 4).map((i) => <li key={i} className="aspect-square animate-pulse rounded-2xl bg-white/5" />)
+                : site.trending.map((item, i) => (
+                    <li key={item.id}>
+                      <a href={itemHref(item)} className="group block">
+                        <div className="relative">
+                          <Cover src={item.cover} className="aspect-square rounded-2xl ring-1 ring-white/10 transition group-hover:ring-aw-violet/60" />
+                          <span className="absolute left-2 top-2 rounded-full bg-aw-ink/80 px-2 py-0.5 text-xs font-bold text-white tabular-nums">
+                            {i + 1}
+                          </span>
+                        </div>
+                        <p className="mt-3 truncate font-semibold text-white">{item.title}</p>
+                        <p className="truncate text-sm text-aw-muted">{item.artist}</p>
+                      </a>
+                    </li>
+                  ))}
+            </ol>
+          </Rail>
+        )}
 
-        <Rail title="Sermons" action={<SeeAll href={appUrl('/sermons')} />}>
-          <ul className="grid w-max auto-cols-[17rem] grid-flow-col gap-3 sm:w-auto sm:grid-flow-row sm:grid-cols-2 sm:auto-cols-auto lg:grid-cols-3">
-            {loading
-              ? placeholders.slice(0, 3).map((i) => <li key={i} className="h-20 animate-pulse rounded-2xl bg-white/5" />)
-              : site.sermons.map((item) => (
-                  <li key={item.id}>
-                    <a href={itemHref(item)} className="flex items-center gap-4 rounded-2xl p-2 transition hover:bg-white/5">
-                      <Cover src={item.cover} className="size-16 shrink-0 rounded-xl" />
-                      <span className="min-w-0">
-                        <span className="block truncate font-semibold text-white">{item.title}</span>
-                        <span className="block truncate text-sm text-aw-muted">
-                          {item.artist} · {formatDuration(item.durationMs)}
+        {(loading || site.sermons.length > 0) && (
+          <Rail title="Sermons" action={<SeeAll href={appUrl('/sermons')} />}>
+            <ul className="grid w-max auto-cols-[17rem] grid-flow-col gap-3 sm:w-auto sm:grid-flow-row sm:grid-cols-2 sm:auto-cols-auto lg:grid-cols-3">
+              {loading
+                ? placeholders.slice(0, 3).map((i) => <li key={i} className="h-20 animate-pulse rounded-2xl bg-white/5" />)
+                : site.sermons.map((item) => (
+                    <li key={item.id}>
+                      <a href={itemHref(item)} className="flex items-center gap-4 rounded-2xl p-2 transition hover:bg-white/5">
+                        <Cover src={item.cover} className="size-16 shrink-0 rounded-xl" />
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold text-white">{item.title}</span>
+                          <span className="block truncate text-sm text-aw-muted">
+                            {item.artist} · {formatDuration(item.durationMs)}
+                          </span>
                         </span>
-                      </span>
-                    </a>
-                  </li>
-                ))}
-          </ul>
-        </Rail>
+                      </a>
+                    </li>
+                  ))}
+            </ul>
+          </Rail>
+        )}
 
         {(loading || site.playlists.length > 0) && (
           <Rail title="For the Sabbath">
