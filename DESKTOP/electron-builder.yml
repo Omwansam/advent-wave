@@ -87,7 +87,12 @@ linux:
       arch: [x64]
     - target: deb
       arch: [x64]
-  category: Audio
+  # One PNG per size the hicolor theme has a folder for (16 … 512), generated from build/icon.png.
+  # Given only the 1024 px icon, the package installs it in hicolor/1024x1024, a size the theme
+  # does not list: the desktop shows a generic gear instead of the app's icon.
+  icon: build/icons
+  # Audio alone is not a main category; the desktop entry spec wants AudioVideo with it.
+  category: AudioVideo
   synopsis: Adventist hymns, choirs, sermons and podcasts
   description: >-
     AdventWave brings hymns, choirs, sermons and podcasts from Seventh-day Adventist churches to
@@ -98,6 +103,7 @@ linux:
   desktop:
     entry:
       StartupWMClass: AdventWave
+      Categories: AudioVideo;Audio;Player;
 
 appImage:
   artifactName: AdventWave.AppImage
